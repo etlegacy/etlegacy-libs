@@ -42,4 +42,10 @@ elseif(UNIX)
                         "${CMAKE_SOURCE_DIR}/libs/jpeg/.libs/libjpeg.a"
                         "${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a"
                         PARENT_SCOPE)
+        
+        # return include dirs to the parent CMakeLists.txt
+        set(BUNDLED_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/libs/curl/include"
+                        "${CMAKE_SOURCE_DIR}/libs/jpeg"
+                        "${CMAKE_SOURCE_DIR}/libs/sdl/include"
+                        PARENT_SCOPE)
 endif()
