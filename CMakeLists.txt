@@ -1,11 +1,17 @@
 if(WIN32)
         message(FATAL_ERROR "Sorry, building bundled libs is not yet supported on Windows.")
 elseif(UNIX)
+        if(CROSS_COMPILE32)
+                set(CROSS_COMPILE32_FLAGS "CFLAGS=-m32 LDFLAGS=-m32")
+        else(CROSS_COMPILE32)
+                set(CROSS_COMPILE32_FLAGS "")
+        endif(CROSS_COMPILE32)
+
         #-----------------------------------------------------------------
         # Build bundled cURL library
         #-----------------------------------------------------------------
         add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/curl/lib/.libs/libcurl.a 
-                        COMMAND CFLAGS=-m32 LDFLAGS=-m32 ./configure --enable-shared=no --enable-static=yes --without-libssh2 --enable-http --enable-ftp --disable-gopher --enable-file --disable-ldap --disable-dict --disable-telnet --disable-manual --enable-libgcc --disable-ipv6 --disable-ares --without-ssl --without-zlib --without-libidn && make
+                        COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --enable-shared=no --enable-static=yes --without-libssh2 --enable-http --enable-ftp --disable-gopher --enable-file --disable-ldap --disable-dict --disable-telnet --disable-manual --enable-libgcc --disable-ipv6 --disable-ares --without-ssl --without-zlib --without-libidn && make
                         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/curl
                         )
 
@@ -17,7 +23,7 @@ elseif(UNIX)
         # Build bundled JPEG library
         #-----------------------------------------------------------------
         add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/jpeg/.libs/libjpeg.a 
-                        COMMAND CFLAGS=-m32 LDFLAGS=-m32 ./configure && make
+                        COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
                         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/jpeg
         )
 
@@ -29,7 +35,7 @@ elseif(UNIX)
         # Build bundled SDL library
         #-----------------------------------------------------------------
         add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
-                        COMMAND CFLAGS=-m32 LDFLAGS=-m32 ./configure && make
+                        COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
                         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl
         )
 
