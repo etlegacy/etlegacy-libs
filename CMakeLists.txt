@@ -1,5 +1,36 @@
 if(WIN32)
-        message(FATAL_ERROR "Sorry, building bundled libs is not yet supported on Windows.")
+        # FIXME: incomplete windows build with bundled libs
+
+        #-----------------------------------------------------------------
+        # Build bundled JPEG library
+        #-----------------------------------------------------------------
+        add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib
+                        COMMAND NMAKE /f makefile.vc setup-v10 && NMAKE /f makefile.vc
+                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/jpeg
+        )
+
+        add_custom_target(bundled_jpeg
+                        DEPENDS ${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib
+        )
+
+        #-----------------------------------------------------------------
+        # Build bundled cURL library
+        #-----------------------------------------------------------------
+        add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/curl/builds/libcurl-release-static-ipv6/lib/libcurl_a.lib
+                        COMMAND NMAKE /f Makefile.vc mode=static USE_SSPI=no USE_IDN=no
+                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/curl/winbuild
+        )
+
+        add_custom_target(bundled_curl
+                        DEPENDS ${CMAKE_SOURCE_DIR}/libs/curl/builds/libcurl-release-static-ipv6/lib/libcurl_a.lib
+        )
+
+        # return compiled libs to the parent CMakeLists.txt
+        set(BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/curl/builds/libcurl-release-static-ipv6/lib/libcurl_a.lib"
+                        "${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib"
+                        "${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.lib"
+                        "${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDLmain.lib"
+                        PARENT_SCOPE)
 elseif(UNIX)
         if(CROSS_COMPILE32)
                 set(CROSS_COMPILE32_FLAGS "CFLAGS=-m32 LDFLAGS=-m32")
@@ -48,10 +79,10 @@ elseif(UNIX)
                         "${CMAKE_SOURCE_DIR}/libs/jpeg/.libs/libjpeg.a"
                         "${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a"
                         PARENT_SCOPE)
-        
-        # return include dirs to the parent CMakeLists.txt
-        set(BUNDLED_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/libs/curl/include"
-                        "${CMAKE_SOURCE_DIR}/libs/jpeg"
-                        "${CMAKE_SOURCE_DIR}/libs/sdl/include"
-                        PARENT_SCOPE)
 endif()
+
+# return include dirs to the parent CMakeLists.txt
+set(BUNDLED_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/libs/curl/include"
+	"${CMAKE_SOURCE_DIR}/libs/jpeg"
+	"${CMAKE_SOURCE_DIR}/libs/sdl/include"
+	PARENT_SCOPE)
