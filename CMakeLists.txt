@@ -66,7 +66,7 @@ elseif(UNIX)
         # Build bundled SDL library
         #-----------------------------------------------------------------
         add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
-                        COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
+                        COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-pulseaudio && make
                         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl
         )
 
