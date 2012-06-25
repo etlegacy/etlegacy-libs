@@ -38,6 +38,8 @@ elseif(UNIX)
                 set(CROSS_COMPILE32_FLAGS "")
         endif(CROSS_COMPILE32)
 
+        set(OS_LIBRARIES ${OS_LIBRARIES} pthread rt PARENT_SCOPE) # SDL deps
+
         #-----------------------------------------------------------------
         # Build bundled cURL library
         #-----------------------------------------------------------------
