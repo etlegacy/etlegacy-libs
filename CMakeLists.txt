@@ -1,6 +1,4 @@
 if(WIN32)
-        # FIXME: incomplete windows build with bundled libs
-
         #-----------------------------------------------------------------
         # Build bundled JPEG library
         #-----------------------------------------------------------------
@@ -24,6 +22,11 @@ if(WIN32)
         add_custom_target(bundled_curl
                         DEPENDS ${CMAKE_SOURCE_DIR}/libs/curl/builds/libcurl-release-static-ipv6/lib/libcurl_a.lib
         )
+
+        #-----------------------------------------------------------------
+        # Copy bundled SDL library
+        #-----------------------------------------------------------------
+        file(COPY ${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.dll DESTINATION ${CMAKE_BINARY_DIR})
 
         # return compiled libs to the parent CMakeLists.txt
         set(BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/curl/builds/libcurl-release-static-ipv6/lib/libcurl_a.lib"
@@ -68,7 +71,7 @@ elseif(UNIX)
         # Build bundled SDL library
         #-----------------------------------------------------------------
         add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
-                        COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-pulseaudio && make
+                        COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
                         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl
         )
 
