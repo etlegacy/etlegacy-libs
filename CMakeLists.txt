@@ -14,26 +14,28 @@ if(WIN32)
         #-----------------------------------------------------------------
         # Build bundled cURL library
         #-----------------------------------------------------------------
-        add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/curl/builds/libcurl-release-static-ipv6/lib/libcurl_a.lib
-                        COMMAND NMAKE /f Makefile.vc mode=static USE_SSPI=no USE_IDN=no
-                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/curl/winbuild
+        add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib
+                        COMMAND NMAKE /f Makefile vc-dll
+                        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl.dll ${CMAKE_BINARY_DIR}
+                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/curl
         )
 
         add_custom_target(bundled_curl
-                        DEPENDS ${CMAKE_SOURCE_DIR}/libs/curl/builds/libcurl-release-static-ipv6/lib/libcurl_a.lib
+                        DEPENDS ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib
         )
 
         #-----------------------------------------------------------------
-        # Copy bundled SDL library
+        # Copy bundled SDL library to the etl.exe location
         #-----------------------------------------------------------------
         file(COPY ${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.dll DESTINATION ${CMAKE_BINARY_DIR})
 
         # return compiled libs to the parent CMakeLists.txt
-        set(BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/curl/builds/libcurl-release-static-ipv6/lib/libcurl_a.lib"
-                        "${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib"
-                        "${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.lib"
-                        "${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDLmain.lib"
-                        PARENT_SCOPE)
+        set(BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib"   # DLL
+                        "${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib"                             # static
+                        "${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.lib"                  # DLL
+                        "${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDLmain.lib"              # DLL
+                        PARENT_SCOPE
+        )
 elseif(UNIX)
         if(CROSS_COMPILE32)
                 set(CROSS_COMPILE32_FLAGS CFLAGS=-m32 LDFLAGS=-m32)
@@ -49,7 +51,7 @@ elseif(UNIX)
         add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/curl/lib/.libs/libcurl.a 
                         COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --enable-shared=no --enable-static=yes --without-libssh2 --enable-http --enable-ftp --disable-gopher --enable-file --disable-ldap --disable-dict --disable-telnet --disable-manual --enable-libgcc --disable-ipv6 --disable-ares --without-ssl --without-zlib --without-libidn && make
                         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/curl
-                        )
+        )
 
         add_custom_target(bundled_curl
                         DEPENDS ${CMAKE_SOURCE_DIR}/libs/curl/lib/.libs/libcurl.a 
@@ -83,11 +85,13 @@ elseif(UNIX)
         set(BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/curl/lib/.libs/libcurl.a"
                         "${CMAKE_SOURCE_DIR}/libs/jpeg/.libs/libjpeg.a"
                         "${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a"
-                        PARENT_SCOPE)
+                        PARENT_SCOPE
+        )
 endif()
 
 # return include dirs to the parent CMakeLists.txt
 set(BUNDLED_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/libs/curl/include"
 	"${CMAKE_SOURCE_DIR}/libs/jpeg"
 	"${CMAKE_SOURCE_DIR}/libs/sdl/include"
-	PARENT_SCOPE)
+	PARENT_SCOPE
+)
