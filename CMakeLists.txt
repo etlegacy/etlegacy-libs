@@ -73,7 +73,8 @@ elseif(UNIX)
         # Build bundled SDL library
         #-----------------------------------------------------------------
         add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
-                        COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
+                        # disable svga and directfb modules for cross-compiling on 64bit Debian Squeezy
+                        COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-video-svga --disable-video-directfb && make
                         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl
         )
 
