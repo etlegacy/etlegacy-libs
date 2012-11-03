@@ -49,7 +49,14 @@ elseif(UNIX)
         # Build bundled cURL library
         #-----------------------------------------------------------------
         add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/curl/lib/.libs/libcurl.a 
-                        COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --enable-shared=no --enable-static=yes --without-libssh2 --enable-http --enable-ftp --disable-gopher --enable-file --disable-ldap --disable-dict --disable-telnet --disable-manual --enable-libgcc --disable-ipv6 --disable-ares --without-ssl --without-zlib --without-libidn && make
+                        COMMAND ${CROSS_COMPILE32_FLAGS} ./configure
+						--enable-shared=no --enable-static=yes
+						--without-libssh2 --enable-http --enable-ftp
+						--disable-gopher --enable-file --disable-ldap
+						--disable-dict --disable-telnet --disable-manual
+						--enable-libgcc --disable-ipv6 --disable-ares
+						--without-ssl --without-zlib --without-libidn
+						--without-librtmp && make
                         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/curl
         )
 
