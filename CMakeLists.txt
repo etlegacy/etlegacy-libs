@@ -24,6 +24,12 @@ if(WIN32)
                         DEPENDS ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib
         )
 
+		#-----------------------------------------------------------------
+		# Build bundled Lua 5.1 library
+		#-----------------------------------------------------------------
+
+		# TODO: add lua for Windows
+
         #-----------------------------------------------------------------
         # Copy bundled SDL library to the etl.exe location
         #-----------------------------------------------------------------
@@ -41,9 +47,7 @@ elseif(UNIX)
                 set(CROSS_COMPILE32_FLAGS CFLAGS=-m32 LDFLAGS=-m32)
         else(CROSS_COMPILE32)
                 set(CROSS_COMPILE32_FLAGS "")
-        endif(CROSS_COMPILE32)
-
-        set(OS_LIBRARIES ${OS_LIBRARIES} pthread rt PARENT_SCOPE) # SDL deps
+		endif(CROSS_COMPILE32)
 
         #-----------------------------------------------------------------
         # Build bundled cURL library
@@ -82,10 +86,40 @@ elseif(UNIX)
                         DEPENDS ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
         )
         
+		#-----------------------------------------------------------------
+		# Build bundled Lua 5.1 library
+		#-----------------------------------------------------------------
+		# TODO: clean this up. The *32bit targets were added into the Lua Makefiles
+		if(CMAKE_SYSTEM MATCHES "OpenBSD*")
+				set(LUA_MAKE_TARGET "bsd")
+		elseif(CMAKE_SYSTEM MATCHES "Darwin")
+				if(NOT CROSS_COMPILE32)
+						set(LUA_MAKE_TARGET "macosx")
+				else()
+						set(LUA_MAKE_TARGET "macosx32bit")
+				endif()
+		else()
+				if(NOT CROSS_COMPILE32)
+						set(LUA_MAKE_TARGET "linux")
+				else()
+						set(LUA_MAKE_TARGET "linux32bit")
+				endif()
+		endif()
+		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/lua/src/liblua.a
+						COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
+						WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/lua
+		)
+		set(LUA_LIBRARY "${CMAKE_SOURCE_DIR}/libs/lua/src/liblua.a" PARENT_SCOPE)
+
+		add_custom_target(bundled_lua
+						DEPENDS ${CMAKE_SOURCE_DIR}/libs/lua/src/liblua.a
+		)
+
         # return compiled libs to the parent CMakeLists.txt
         set(BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/curl/lib/.libs/libcurl.a"
                         "${CMAKE_SOURCE_DIR}/libs/jpeg/.libs/libjpeg.a"
                         "${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a"
+						# Mac OS X: "${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDLmain.a"
                         PARENT_SCOPE
         )
 endif()
@@ -94,5 +128,6 @@ endif()
 set(BUNDLED_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/libs/curl/include"
 	"${CMAKE_SOURCE_DIR}/libs/jpeg"
 	"${CMAKE_SOURCE_DIR}/libs/sdl/include"
+	"${CMAKE_SOURCE_DIR}/libs/lua/src"
 	PARENT_SCOPE
 )
