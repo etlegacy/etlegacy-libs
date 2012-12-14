@@ -62,7 +62,7 @@ elseif(UNIX)
 	#-----------------------------------------------------------------
 	if(BUNDLED_CURL)
 		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/curl/lib/.libs/libcurl.a
-			COMMAND make --ignore-errors clean
+			COMMAND make clean || true
 			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure
 			--enable-shared=no --enable-static=yes
 			--without-libssh2 --enable-http --enable-ftp
@@ -85,7 +85,7 @@ elseif(UNIX)
 	#-----------------------------------------------------------------
 	if(BUNDLED_JPEG)
 		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/jpeg/.libs/libjpeg.a
-			COMMAND make --ignore-errors clean
+			COMMAND make clean || true
 			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
 			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/jpeg
 		)
@@ -101,7 +101,7 @@ elseif(UNIX)
 	#-----------------------------------------------------------------
 	if(BUNDLED_SDL)
 		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
-			COMMAND make --ignore-errors clean
+			COMMAND make clean || true
 			# disable svga and directfb modules for cross-compiling on 64bit Debian Squeezy
 			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-video-svga --disable-video-directfb && make
 			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl
@@ -137,7 +137,7 @@ elseif(UNIX)
 			endif()
 		endif()
 		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/lua/src/liblua.a
-			COMMAND make --ignore-errors clean
+			COMMAND make clean || true
 			COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
 			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/lua
 		)
