@@ -33,9 +33,10 @@ if(WIN32)
 	#-----------------------------------------------------------------
 	# Build bundled Lua 5.1 library
 	#-----------------------------------------------------------------
-	if(BUNDLED_LUA)
-		# TODO: add lua for Windows
-		message(FATAL_ERROR "Building bundled Lua on Windows is not yet possible.")
+	if(BUNDLED_LUA) # DLL
+		file(COPY ${CMAKE_SOURCE_DIR}/libs/lua-windows/lua51.dll DESTINATION ${CMAKE_BINARY_DIR})
+		set(LUA_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/lua-windows/lua51.lib" PARENT_SCOPE)
+		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/lua/src" PARENT_SCOPE)
 	endif(BUNDLED_LUA)
 
 	#-----------------------------------------------------------------
