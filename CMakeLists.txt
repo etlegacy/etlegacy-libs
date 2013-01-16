@@ -4,7 +4,7 @@ if(WIN32)
 	#-----------------------------------------------------------------
 	if(BUNDLED_JPEG) # static
 		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib
-			COMMAND NMAKE /f makefile.vc setup-v10 && NMAKE /f makefile.vc
+			COMMAND NMAKE /f makefile.vc setup-v10 && NMAKE /C /f makefile.vc
 			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/jpeg
 		)
 		add_custom_target(bundled_jpeg
@@ -19,7 +19,7 @@ if(WIN32)
 	#-----------------------------------------------------------------
 	if(BUNDLED_CURL) # DLL
 		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib
-			COMMAND NMAKE /f Makefile vc-dll
+			COMMAND NMAKE /C /fMakefile vc-dll VC=vc10
 			COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl.dll ${CMAKE_BINARY_DIR}
 			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/curl
 		)
