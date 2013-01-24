@@ -38,7 +38,7 @@ RANLIB= ranlib
 # == END OF USER SETTINGS. NO NEED TO CHANGE ANYTHING BELOW THIS LINE =========
 
 # Convenience platforms targets.
-PLATS= aix ansi bsd freebsd generic linux linux32bit macosx macosx32bit mingw posix solaris
+PLATS= aix ansi bsd freebsd generic linux macosx mingw posix posix32bit solaris
 
 # What to install.
 TO_BIN= lua luac

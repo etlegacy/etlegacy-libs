@@ -118,6 +118,9 @@ mingw:
 posix:
 	$(MAKE) all MYCFLAGS=-DLUA_USE_POSIX
 
+posix32bit:
+	$(MAKE) all MYCFLAGS="-m32 -DLUA_USE_POSIX"
+
 solaris:
 	$(MAKE) all MYCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN" MYLIBS="-ldl"
 

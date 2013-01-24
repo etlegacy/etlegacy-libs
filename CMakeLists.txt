@@ -140,21 +140,15 @@ elseif(UNIX)
 	#-----------------------------------------------------------------
 	# Build bundled Lua 5.1 library
 	#-----------------------------------------------------------------
-	# TODO: clean this up. The *32bit targets were added into the Lua Makefiles
+	# NOTE: the posix32bit target was added into the Lua Makefiles
 	if(BUNDLED_LUA)
 		if(CMAKE_SYSTEM MATCHES "OpenBSD*")
 			set(LUA_MAKE_TARGET "bsd")
-		elseif(CMAKE_SYSTEM MATCHES "Darwin")
-			if(NOT CROSS_COMPILE32)
-				set(LUA_MAKE_TARGET "macosx")
-			else()
-				set(LUA_MAKE_TARGET "macosx32bit")
-			endif()
 		else()
 			if(NOT CROSS_COMPILE32)
-				set(LUA_MAKE_TARGET "linux")
+				set(LUA_MAKE_TARGET "posix")
 			else()
-				set(LUA_MAKE_TARGET "linux32bit")
+				set(LUA_MAKE_TARGET "posix32bit")
 			endif()
 		endif()
 		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/lua/src/liblua.a
