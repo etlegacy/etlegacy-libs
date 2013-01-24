@@ -98,14 +98,9 @@ generic:
 linux:
 	$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
 
-linux32bit:
-	$(MAKE) all MYCFLAGS="-m32 -DLUA_USE_LINUX" MYLDFLAGS="-m32" MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
-
 macosx:
 	$(MAKE) all MYCFLAGS=-DLUA_USE_LINUX MYLIBS="-lreadline"
 
-macosx32bit:
-	$(MAKE) all MYCFLAGS="-m32 -DLUA_USE_LINUX" MYLDFLAGS="-m32" MYLIBS="-lreadline"
 # use this on Mac OS X 10.3-
 #	$(MAKE) all MYCFLAGS=-DLUA_USE_MACOSX
 
@@ -119,7 +114,7 @@ posix:
 	$(MAKE) all MYCFLAGS=-DLUA_USE_POSIX
 
 posix32bit:
-	$(MAKE) all MYCFLAGS="-m32 -DLUA_USE_POSIX"
+	$(MAKE) all MYCFLAGS="-m32 -DLUA_USE_POSIX" MYLDFLAGS="-m32"
 
 solaris:
 	$(MAKE) all MYCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN" MYLIBS="-ldl"
