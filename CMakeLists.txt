@@ -55,8 +55,21 @@ if(WIN32)
 	# Build bundled OGG and Vorbis file library
 	#-----------------------------------------------------------------
 	if(BUNDLED_OGG_VORBIS)
-		message(FATAL_ERROR "It is not possible to build OGG and Vorbis File libraries on Windows.")
+		# OGG
+		set(OGG_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/ogg-windows/libogg_static.lib" PARENT_SCOPE)
+		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/ogg/include" PARENT_SCOPE)
+		add_custom_target(bundled_ogg
+			DEPENDS ${CMAKE_SOURCE_DIR}/libs/ogg-windows/libogg_static.lib
+		)
+		
+		set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/ogg-windows/libvorbis_static.lib" "${CMAKE_SOURCE_DIR}/libs/ogg-windows/libvorbisfile_static.lib" PARENT_SCOPE)
+		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/vorbis/include" PARENT_SCOPE)
+		add_custom_target(bundled_ogg_vorbis
+			DEPENDS ${CMAKE_SOURCE_DIR}/libs/ogg-windows/libvorbis_static.lib
+			DEPENDS ${CMAKE_SOURCE_DIR}/libs/ogg-windows/libvorbisfile_static.lib
+		)
 	endif(BUNDLED_OGG_VORBIS)
+
 elseif(UNIX)
 
 	if(CROSS_COMPILE32)
