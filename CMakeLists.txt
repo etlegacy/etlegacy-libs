@@ -19,7 +19,7 @@ if(WIN32)
 	#-----------------------------------------------------------------
 	if(BUNDLED_CURL) # DLL
 		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib
-			COMMAND NMAKE /C /fMakefile vc-dll VC=vc10
+			COMMAND NMAKE /C /f Makefile vc-dll VC=vc10
 			COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl.dll ${CMAKE_BINARY_DIR}
 			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/curl
 		)
@@ -50,6 +50,13 @@ if(WIN32)
 		set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl/include" PARENT_SCOPE)
 	endif(BUNDLED_SDL)
 
+
+	#-----------------------------------------------------------------
+	# Build bundled OGG and Vorbis file library
+	#-----------------------------------------------------------------
+	if(BUNDLED_OGG_VORBIS)
+		message(FATAL_ERROR "It is not possible to build OGG and Vorbis File libraries on Windows.")
+	endif(BUNDLED_OGG_VORBIS)
 elseif(UNIX)
 
 	if(CROSS_COMPILE32)
@@ -149,4 +156,45 @@ elseif(UNIX)
 			DEPENDS ${CMAKE_SOURCE_DIR}/libs/lua/src/liblua.a
 		)
 	endif(BUNDLED_LUA)
+
+	#-----------------------------------------------------------------
+	# Build bundled OGG and Vorbis file library
+	#-----------------------------------------------------------------
+	if(BUNDLED_OGG_VORBIS)
+		# OGG
+		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/ogg/src/.libs/libogg.a
+			COMMAND make clean || true
+			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
+			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/ogg
+		)
+		add_custom_target(bundled_ogg
+			DEPENDS ${CMAKE_SOURCE_DIR}/libs/ogg/src/.libs/libogg.a
+		)
+		set(OGG_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/ogg/src/.libs/libogg.a" PARENT_SCOPE)
+		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/ogg/include" PARENT_SCOPE)
+
+		# OGG Vorbis File
+		if(CROSS_COMPILE32_FLAGS)
+			set(CFLAGS "-m32 -I${CMAKE_SOURCE_DIR}/libs/ogg/include")
+			set(LDFLAGS "-m32 -L${CMAKE_SOURCE_DIR}/libs/ogg/src/.libs")
+		else()
+			set(CFLAGS "-I${CMAKE_SOURCE_DIR}/libs/ogg/include")
+			set(LDFLAGS "-L${CMAKE_SOURCE_DIR}/libs/ogg/src/.libs")
+		endif()
+
+		add_custom_command(
+			OUTPUT ${CMAKE_SOURCE_DIR}/libs/vorbis/lib/.libs/libvorbisfile.a
+			COMMAND make clean || true
+			COMMAND eval \"CFLAGS=${CFLAGS} LDFLAGS=${LDFLAGS} ./configure --disable-oggtest && make\"
+			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/vorbis
+		)
+		add_custom_target(bundled_ogg_vorbis
+			DEPENDS ${CMAKE_SOURCE_DIR}/libs/vorbis/lib/.libs/libvorbisfile.a
+			DEPENDS ${CMAKE_SOURCE_DIR}/libs/vorbis/lib/.libs/libvorbis.a
+		)
+		set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/vorbis/lib/.libs/libvorbisfile.a" "${CMAKE_SOURCE_DIR}/libs/vorbis/lib/.libs/libvorbis.a" PARENT_SCOPE)
+		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/vorbis/include" PARENT_SCOPE)
+
+		add_dependencies(bundled_ogg_vorbis bundled_ogg)
+	endif(BUNDLED_OGG_VORBIS)
 endif()
