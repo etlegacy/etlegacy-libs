@@ -1,0 +1,125 @@
+K 25
+svn:wc:ra_dav:version-url
+V 35
+/svn/!svn/ver/200/trunk/tinygettext
+END
+po_parser.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/!svn/ver/174/trunk/tinygettext/po_parser.hpp
+END
+dictionary_manager.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/!svn/ver/174/trunk/tinygettext/dictionary_manager.cpp
+END
+log_stream.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/!svn/ver/174/trunk/tinygettext/log_stream.hpp
+END
+dictionary_manager.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/!svn/ver/184/trunk/tinygettext/dictionary_manager.hpp
+END
+plural_forms.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/!svn/ver/189/trunk/tinygettext/plural_forms.cpp
+END
+dictionary.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/!svn/ver/179/trunk/tinygettext/dictionary.cpp
+END
+plural_forms.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/!svn/ver/182/trunk/tinygettext/plural_forms.hpp
+END
+dictionary.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/!svn/ver/182/trunk/tinygettext/dictionary.hpp
+END
+iconv.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/svn/!svn/ver/180/trunk/tinygettext/iconv.cpp
+END
+log.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 43
+/svn/!svn/ver/178/trunk/tinygettext/log.cpp
+END
+language.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/!svn/ver/200/trunk/tinygettext/language.cpp
+END
+iconv.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/svn/!svn/ver/186/trunk/tinygettext/iconv.hpp
+END
+unix_file_system.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/!svn/ver/170/trunk/tinygettext/unix_file_system.cpp
+END
+log.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 43
+/svn/!svn/ver/174/trunk/tinygettext/log.hpp
+END
+tinygettext.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/!svn/ver/169/trunk/tinygettext/tinygettext.cpp
+END
+language.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/!svn/ver/200/trunk/tinygettext/language.hpp
+END
+file_system.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/!svn/ver/170/trunk/tinygettext/file_system.hpp
+END
+po_parser.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/!svn/ver/197/trunk/tinygettext/po_parser.cpp
+END
+unix_file_system.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/!svn/ver/170/trunk/tinygettext/unix_file_system.hpp
+END
+tinygettext.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/!svn/ver/182/trunk/tinygettext/tinygettext.hpp
+END
