@@ -46,7 +46,8 @@ DictionaryManager::DictionaryManager(const std::string& charset_) :
   current_language(),
   current_dict(0),
   empty_dict(),
-  filesystem(new UnixFileSystem)
+  filesystem(0)
+  //filesystem(new UnixFileSystem)
 {
 }
 

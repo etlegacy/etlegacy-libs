@@ -53,7 +53,7 @@ private:
   void get_string_line(std::ostringstream& str,unsigned int skip);
   bool is_empty_line();
   bool prefix(const char* );
-  void error(const std::string& msg) __attribute__((__noreturn__));
+  void error(const std::string& msg); // throws an error on Windows: __attribute__((__noreturn__));
   void warning(const std::string& msg);
 
 public:

@@ -19,7 +19,7 @@
 
 #include <string>
 
-#ifdef HAVE_SDL
+#ifdef BUNDLED_SDL // Using SDL iconv
 #  include "SDL.h"
 
 #  define tinygettext_ICONV_CONST const
@@ -27,7 +27,9 @@
 #  define tinygettext_iconv       SDL_iconv
 #  define tinygettext_iconv_open  SDL_iconv_open
 #  define tinygettext_iconv_close SDL_iconv_close 
-#else
+
+#else // Using pure iconv
+
 #  include <iconv.h>
 
 #  ifdef HAVE_ICONV_CONST
@@ -40,6 +42,7 @@
 #  define tinygettext_iconv       iconv
 #  define tinygettext_iconv_open  iconv_open
 #  define tinygettext_iconv_close iconv_close 
+
 #endif
 
 namespace tinygettext {
