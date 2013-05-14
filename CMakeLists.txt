@@ -68,7 +68,7 @@ if(WIN32)
 			DEPENDS ${CMAKE_SOURCE_DIR}/libs/ogg-windows/libvorbisfile_static.lib
 		)
 	endif(BUNDLED_OGG_VORBIS)
-
+	
 elseif(UNIX)
 
 	if(CROSS_COMPILE32)
@@ -204,3 +204,12 @@ elseif(UNIX)
 		add_dependencies(bundled_ogg_vorbis bundled_ogg)
 	endif(BUNDLED_OGG_VORBIS)
 endif()
+
+#-----------------------------------------------------------------
+# Build bundled GLEW library
+#-----------------------------------------------------------------
+if(BUNDLED_GLEW)
+	include(${CMAKE_SOURCE_DIR}/libs/glew/CMakeLists.txt)
+	set(BUNDLED_GLEW_LIBRARIES glew PARENT_SCOPE)
+	set(BUNDLED_GLEW_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/glew/include" PARENT_SCOPE)
+endif(BUNDLED_GLEW)
