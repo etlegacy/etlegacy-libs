@@ -3,14 +3,15 @@ if(WIN32)
 	# Build bundled JPEG library
 	#-----------------------------------------------------------------
 	if(BUNDLED_JPEG) # static
-		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib
-			COMMAND NMAKE /f makefile.vc setup-v10 && NMAKE /C /f makefile.vc
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/jpeg
-		)
-		add_custom_target(bundled_jpeg
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib
-		)
-		set(JPEG_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib" PARENT_SCOPE)
+		# add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib
+			# COMMAND NMAKE /f makefile.vc setup-v10 && NMAKE /C /f makefile.vc
+			# WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/jpeg
+		# )
+		# add_custom_target(bundled_jpeg
+			# DEPENDS ${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib
+		# )
+		# set(JPEG_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib" PARENT_SCOPE)
+		set(JPEG_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/jpeg-windows/jpeg.lib" PARENT_SCOPE)
 		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/jpeg" PARENT_SCOPE)
 	endif(BUNDLED_JPEG)
 
@@ -18,15 +19,16 @@ if(WIN32)
 	# Build bundled cURL library
 	#-----------------------------------------------------------------
 	if(BUNDLED_CURL) # DLL
-		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib
-			COMMAND NMAKE /C /f Makefile vc-dll VC=vc10
-			COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl.dll ${CMAKE_BINARY_DIR}
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/curl
-		)
-		add_custom_target(bundled_curl
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib
-		)
-		set(CURL_BUNDLED_LIBRARY "${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib" PARENT_SCOPE)
+		# add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib
+			# COMMAND NMAKE /C /f Makefile vc-dll VC=vc10
+			# COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl.dll ${CMAKE_BINARY_DIR}
+			# WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/curl
+		# )
+		# add_custom_target(bundled_curl
+			# DEPENDS ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib
+		# )
+		# set(CURL_BUNDLED_LIBRARY "${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib" PARENT_SCOPE)
+		set(CURL_BUNDLED_LIBRARY "${CMAKE_SOURCE_DIR}/libs/curl-windows/libcurl.lib" PARENT_SCOPE)
 		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/curl/include" PARENT_SCOPE)
 	endif(BUNDLED_CURL)
 
