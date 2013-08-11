@@ -11,6 +11,10 @@ if(WIN32)
 			# DEPENDS ${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib
 		# )
 		# set(JPEG_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib" PARENT_SCOPE)
+		
+		file(COPY "${CMAKE_SOURCE_DIR}/libs/jpeg/jconfig.vc" DESTINATION ${CMAKE_BINARY_DIR}/include)
+		file(RENAME ${CMAKE_BINARY_DIR}/include/jconfig.vc ${CMAKE_BINARY_DIR}/include/jconfig.h)
+
 		set(JPEG_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/jpeg-windows/jpeg.lib" PARENT_SCOPE)
 		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/jpeg" PARENT_SCOPE)
 	endif(BUNDLED_JPEG)
