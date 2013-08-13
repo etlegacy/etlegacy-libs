@@ -126,20 +126,36 @@ elseif(UNIX)
 	# Build bundled SDL library
 	#-----------------------------------------------------------------
 	if(BUNDLED_SDL)
-		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
-			COMMAND make clean || true
-			# disable svga and directfb modules for cross-compiling on 64bit Debian Squeezy
-			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-video-svga --disable-video-directfb && make
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl
-		)
-		add_custom_target(bundled_sdl
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
-		)
-		if(CMAKE_SYSTEM MATCHES "Darwin")
-			set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDLmain.a")
-		endif(CMAKE_SYSTEM MATCHES "Darwin")
-		set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a" PARENT_SCOPE)
-		set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl/include" PARENT_SCOPE)
+		if(FEATURE_SDL2)
+			add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl2/build/.libs/libSDL2.a
+				COMMAND make clean || true
+				COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
+				WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl2
+			)
+			add_custom_target(bundled_sdl
+				DEPENDS ${CMAKE_SOURCE_DIR}/libs/sdl2/build/.libs/libSDL2.a
+			)
+			if(CMAKE_SYSTEM MATCHES "Darwin")
+				set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl2/build/libSDL2main.a")
+			endif(CMAKE_SYSTEM MATCHES "Darwin")
+			set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl2/build/.libs/libSDL2.a" PARENT_SCOPE)
+			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl2/include" PARENT_SCOPE)
+		else() # SDL 1.3
+			add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
+				COMMAND make clean || true
+				# disable svga and directfb modules for cross-compiling on 64bit Debian Squeezy
+				COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-video-svga --disable-video-directfb && make
+				WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl
+			)
+			add_custom_target(bundled_sdl
+				DEPENDS ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
+			)
+			if(CMAKE_SYSTEM MATCHES "Darwin")
+				set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl/build/libSDL2main.a")
+			endif(CMAKE_SYSTEM MATCHES "Darwin")
+			set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a" PARENT_SCOPE)
+			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl/include" PARENT_SCOPE)
+		endif()
 	endif(BUNDLED_SDL)
 
 	#-----------------------------------------------------------------
