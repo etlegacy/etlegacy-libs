@@ -94,11 +94,19 @@ if(WIN32)
 	# Copy bundled SDL library to the etl.exe location
 	#-----------------------------------------------------------------
 	if(BUNDLED_SDL) # DLL
-		file(COPY ${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.dll DESTINATION ${CMAKE_BINARY_DIR})
-		set(SDL32_BUNDLED_LIBRARIES
-			"${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.lib"
-			"${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDLmain.lib" PARENT_SCOPE)
-		set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl/include" PARENT_SCOPE)
+		if(FEATURE_SDL2)
+			file(COPY ${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
+			set(SDL32_BUNDLED_LIBRARIES
+				"${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2.lib"
+				"${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2main.lib" PARENT_SCOPE)
+			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl2/include" PARENT_SCOPE)
+		else() #1.2
+			file(COPY ${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.dll DESTINATION ${CMAKE_BINARY_DIR})
+			set(SDL32_BUNDLED_LIBRARIES
+				"${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.lib"
+				"${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDLmain.lib" PARENT_SCOPE)
+			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl/include" PARENT_SCOPE)
+		endif()
 	endif(BUNDLED_SDL)
 
 
