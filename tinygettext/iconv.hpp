@@ -32,6 +32,11 @@
 
 #  include <iconv.h>
 
+#  ifdef __MORPHOS__
+#    define HAVE_ICONV_CONST
+#    define ICONV_CONST const
+#  endif
+
 #  ifdef HAVE_ICONV_CONST
 #    define tinygettext_ICONV_CONST ICONV_CONST
 #  else
