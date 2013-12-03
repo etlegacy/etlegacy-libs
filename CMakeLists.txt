@@ -1,65 +1,92 @@
 if(WIN32)
+	include(ExternalProject)
+	include(CheckIncludeFile)
 	#-----------------------------------------------------------------
 	# Build bundled JPEG library
 	#-----------------------------------------------------------------
 	if(BUNDLED_JPEG) # static
-		# create a backup of jconfig.h needed for reruns of libjpeg`s makefile
-		# message(STATUS "Backing up jpeg build files.")
-		# file(REMOVE "${CMAKE_SOURCE_DIR}/libs/jpeg/jconfig.h"
-		            # "${CMAKE_SOURCE_DIR}/libs/jpeg/jpeg.sln"
-			    # "${CMAKE_SOURCE_DIR}/libs/jpeg/apps.sln"
-			    # "${CMAKE_SOURCE_DIR}/libs/jpeg/jpeg.vcxproj"
-			    # "${CMAKE_SOURCE_DIR}/libs/jpeg/jpeg.vcxproj.filters"
-			    # "${CMAKE_SOURCE_DIR}/libs/jpeg/cjpeg.vcxproj"
-			    # "${CMAKE_SOURCE_DIR}/libs/jpeg/cjpeg.vcxproj.filters"
-			    # "${CMAKE_SOURCE_DIR}/libs/jpeg/djpeg.vcxproj"
-			    # "${CMAKE_SOURCE_DIR}/libs/jpeg/djpeg.vcxproj.filters"
-			    # "${CMAKE_SOURCE_DIR}/libs/jpeg/jpegtran.vcxproj"
-			    # "${CMAKE_SOURCE_DIR}/libs/jpeg/jpegtran.vcxproj.filters"
-			    # "${CMAKE_SOURCE_DIR}/libs/jpeg/rdjpgcom.vcxproj"
-			    # "${CMAKE_SOURCE_DIR}/libs/jpeg/rdjpgcom.vcxproj.filters"
-			    # "${CMAKE_SOURCE_DIR}/libs/jpeg/wrjpgcom.vcxproj"
-			    # "${CMAKE_SOURCE_DIR}/libs/jpeg/wrjpgcom.vcxproj.filters")
-		# file(COPY "${CMAKE_SOURCE_DIR}/libs/jpeg/jconfig.vc" DESTINATION ${CMAKE_BINARY_DIR})
-		# file(COPY "${CMAKE_SOURCE_DIR}/libs/jpeg/makejsln.v10" DESTINATION ${CMAKE_BINARY_DIR})
-		# file(COPY "${CMAKE_SOURCE_DIR}/libs/jpeg/makeasln.v10" DESTINATION ${CMAKE_BINARY_DIR})
-		# file(COPY "${CMAKE_SOURCE_DIR}/libs/jpeg/makejvcx.v10" DESTINATION ${CMAKE_BINARY_DIR})
-		# file(COPY "${CMAKE_SOURCE_DIR}/libs/jpeg/makejfil.v10" DESTINATION ${CMAKE_BINARY_DIR})
-		# file(COPY "${CMAKE_SOURCE_DIR}/libs/jpeg/makecvcx.v10" DESTINATION ${CMAKE_BINARY_DIR})
-		# file(COPY "${CMAKE_SOURCE_DIR}/libs/jpeg/makecfil.v10" DESTINATION ${CMAKE_BINARY_DIR})
-		# file(COPY "${CMAKE_SOURCE_DIR}/libs/jpeg/makedvcx.v10" DESTINATION ${CMAKE_BINARY_DIR})
-		# file(COPY "${CMAKE_SOURCE_DIR}/libs/jpeg/maketvcx.v10" DESTINATION ${CMAKE_BINARY_DIR})
-		# file(COPY "${CMAKE_SOURCE_DIR}/libs/jpeg/makervcx.v10" DESTINATION ${CMAKE_BINARY_DIR})
-		# file(COPY "${CMAKE_SOURCE_DIR}/libs/jpeg/makewvcx.v10" DESTINATION ${CMAKE_BINARY_DIR})
+		check_include_file ( stddef.h HAVE_STDDEF_H )
+		check_include_file ( stdlib.h HAVE_STDLIB_H )
 		
-		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib
-			COMMAND NMAKE /f makefile.vc setup-v10 && NMAKE /C /f makefile.vc
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/jpeg
-		)
-		
-		# message(STATUS "Restoring jpeg build files.")
-		# file(COPY "${CMAKE_BINARY_DIR}/jconfig.vc" DESTINATION ${CMAKE_SOURCE_DIR}/libs/jpeg/)
-		# file(COPY "${CMAKE_BINARY_DIR}/makejsln.v10" DESTINATION ${CMAKE_SOURCE_DIR}/libs/jpeg/)
-		# file(COPY "${CMAKE_BINARY_DIR}/makeasln.v10" DESTINATION ${CMAKE_SOURCE_DIR}/libs/jpeg/)
-		# file(COPY "${CMAKE_BINARY_DIR}/makejvcx.v10" DESTINATION ${CMAKE_SOURCE_DIR}/libs/jpeg/)
-		# file(COPY "${CMAKE_BINARY_DIR}/makejfil.v10" DESTINATION ${CMAKE_SOURCE_DIR}/libs/jpeg/)
-		# file(COPY "${CMAKE_BINARY_DIR}/makecvcx.v10" DESTINATION ${CMAKE_SOURCE_DIR}/libs/jpeg/)
-		# file(COPY "${CMAKE_BINARY_DIR}/makecfil.v10" DESTINATION ${CMAKE_SOURCE_DIR}/libs/jpeg/)
-		# file(COPY "${CMAKE_BINARY_DIR}/makedvcx.v10" DESTINATION ${CMAKE_SOURCE_DIR}/libs/jpeg/)
-		# file(COPY "${CMAKE_BINARY_DIR}/maketvcx.v10" DESTINATION ${CMAKE_SOURCE_DIR}/libs/jpeg/)
-		# file(COPY "${CMAKE_BINARY_DIR}/makervcx.v10" DESTINATION ${CMAKE_SOURCE_DIR}/libs/jpeg/)
-		# file(COPY "${CMAKE_BINARY_DIR}/makewvcx.v10" DESTINATION ${CMAKE_SOURCE_DIR}/libs/jpeg/)
-		
-		add_custom_target(bundled_jpeg
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib
-		)
-		
-		#file(COPY "${CMAKE_SOURCE_DIR}/libs/jpeg/jconfig.vc" DESTINATION ${CMAKE_BINARY_DIR}/include)
-		#file(RENAME ${CMAKE_BINARY_DIR}/include/jconfig.vc ${CMAKE_BINARY_DIR}/include/jconfig.h)
+		set(JPEG_LIB "${CMAKE_SOURCE_DIR}/libs/jpeg")
+		if(MSVC)
+    		add_definitions ( -D_CRT_SECURE_NO_WARNINGS )
+  		endif()
 
-		#set(JPEG_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/jpeg-windows/jpeg.lib" PARENT_SCOPE)
-		
-		set(JPEG_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/jpeg/libjpeg.lib" PARENT_SCOPE)
+		if(WIN32 AND NOT CYGWIN)
+		  set(TWO_FILE_COMMANDLINE true)
+		endif()
+		#configure_file (${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
+		configure_file (${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
+
+		include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+		FILE(GLOB JPEG_LIB_HEADERS 
+		  ${JPEG_LIB}/jerror.h
+		  ${JPEG_LIB}/jmorecfg.h
+		  ${JPEG_LIB}/jpeglib.h
+		  ${JPEG_LIB}/jconfig.h
+		)
+
+		FILE(GLOB JPEG_LIB_SRC
+		  ${JPEG_LIB}/jmemnobs.c
+		  ${JPEG_LIB}/jaricom.c
+		  ${JPEG_LIB}/jcapimin.c
+		  ${JPEG_LIB}/jcapistd.c
+		  ${JPEG_LIB}/jcarith.c
+		  ${JPEG_LIB}/jccoefct.c
+		  ${JPEG_LIB}/jccolor.c
+		  ${JPEG_LIB}/jcdctmgr.c
+		  ${JPEG_LIB}/jchuff.c
+		  ${JPEG_LIB}/jcinit.c
+		  ${JPEG_LIB}/jcmainct.c
+		  ${JPEG_LIB}/jcmarker.c
+		  ${JPEG_LIB}/jcmaster.c
+		  ${JPEG_LIB}/jcomapi.c
+		  ${JPEG_LIB}/jcparam.c
+		  ${JPEG_LIB}/jcprepct.c
+		  ${JPEG_LIB}/jcsample.c
+		  ${JPEG_LIB}/jctrans.c
+		  ${JPEG_LIB}/jdapimin.c
+		  ${JPEG_LIB}/jdapistd.c
+		  ${JPEG_LIB}/jdarith.c
+		  ${JPEG_LIB}/jdatadst.c
+		  ${JPEG_LIB}/jdatasrc.c
+		  ${JPEG_LIB}/jdcoefct.c
+		  ${JPEG_LIB}/jdcolor.c
+		  ${JPEG_LIB}/jddctmgr.c
+		  ${JPEG_LIB}/jdhuff.c
+		  ${JPEG_LIB}/jdinput.c
+		  ${JPEG_LIB}/jdmainct.c
+		  ${JPEG_LIB}/jdmarker.c
+		  ${JPEG_LIB}/jdmaster.c
+		  ${JPEG_LIB}/jdmerge.c
+		  ${JPEG_LIB}/jdpostct.c
+		  ${JPEG_LIB}/jdsample.c
+		  ${JPEG_LIB}/jdtrans.c
+		  ${JPEG_LIB}/jerror.c
+		  ${JPEG_LIB}/jfdctflt.c
+		  ${JPEG_LIB}/jfdctfst.c
+		  ${JPEG_LIB}/jfdctint.c
+		  ${JPEG_LIB}/jidctflt.c
+		  ${JPEG_LIB}/jidctfst.c
+		  ${JPEG_LIB}/jidctint.c
+		  ${JPEG_LIB}/jquant1.c
+		  ${JPEG_LIB}/jquant2.c
+		  ${JPEG_LIB}/jutils.c
+		  ${JPEG_LIB}/jmemmgr.c
+		  ${JPEG_LIB}/cderror.h
+		  ${JPEG_LIB}/cdjpeg.h
+		  ${JPEG_LIB}/jdct.h
+		  ${JPEG_LIB}/jinclude.h
+		  ${JPEG_LIB}/jmemsys.h
+		  ${JPEG_LIB}/jpegint.h
+		  ${JPEG_LIB}/jversion.h
+		  ${JPEG_LIB}/transupp.h
+		)
+
+		add_library (libjpeg STATIC ${JPEG_LIB_SRC} ${JPEG_LIB_HEADERS})
+		set(JPEG_BUNDLED_LIBRARIES libjpeg PARENT_SCOPE)
 		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/jpeg" PARENT_SCOPE)
 	endif(BUNDLED_JPEG)
 
@@ -67,18 +94,13 @@ if(WIN32)
 	# Build bundled cURL library
 	#-----------------------------------------------------------------
 	if(BUNDLED_CURL) # DLL
-		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib
-			COMMAND NMAKE /C /f Makefile vc-dll VC=vc10
-			COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl.dll ${CMAKE_BINARY_DIR}
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/curl
+		ExternalProject_Add(bundled_curl
+			SOURCE_DIR	${CMAKE_SOURCE_DIR}/libs/curl
+			BINARY_DIR	${PROJECT_BINARY_DIR}/libs/curl
+			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DBUILD_CURL_EXE=0 -DBUILD_CURL_TESTS=0 -DCURL_STATICLIB=1 -DCURL_USE_ARES=0 -DCURL_ZLIB=0 -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/curl
 		)
-		add_custom_target(bundled_curl
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib
-		)
-		
-		#set(CURL_BUNDLED_LIBRARY "${CMAKE_SOURCE_DIR}/libs/curl-windows/libcurl.lib" PARENT_SCOPE)
-		
-		set(CURL_BUNDLED_LIBRARY "${CMAKE_SOURCE_DIR}/libs/curl/lib/release-dll/libcurl_imp.lib" PARENT_SCOPE)
+
+		set(CURL_BUNDLED_LIBRARY "${PROJECT_BINARY_DIR}/curl/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" wsock32 ws2_32 PARENT_SCOPE)
 		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/curl/include" PARENT_SCOPE)
 	endif(BUNDLED_CURL)
 
@@ -86,7 +108,49 @@ if(WIN32)
 	# Build bundled Lua 5.1 library
 	#-----------------------------------------------------------------
 	if(BUNDLED_LUA)
-		set(LUA_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/lua-windows/lua51.lib" PARENT_SCOPE)
+		set(LUA_LIB "${CMAKE_SOURCE_DIR}/libs/lua/src")
+		FILE(GLOB LUA_LIB_SRC
+			${LUA_LIB}/lapi.c
+			${LUA_LIB}/lcode.c
+			${LUA_LIB}/ldebug.c
+			${LUA_LIB}/ldo.c
+			${LUA_LIB}/ldump.c
+			${LUA_LIB}/lfunc.c
+			${LUA_LIB}/lgc.c
+			${LUA_LIB}/llex.c
+			${LUA_LIB}/lmem.c
+			${LUA_LIB}/lobject.c
+			${LUA_LIB}/lopcodes.c
+			${LUA_LIB}/lparser.c
+			${LUA_LIB}/lstate.c
+			${LUA_LIB}/lstring.c
+			${LUA_LIB}/ltable.c
+			${LUA_LIB}/ltm.c
+			${LUA_LIB}/lundump.c
+			${LUA_LIB}/lvm.c
+			${LUA_LIB}/lzio.c
+			${LUA_LIB}/lauxlib.c
+			${LUA_LIB}/lbaselib.c
+			${LUA_LIB}/ldblib.c
+			${LUA_LIB}/liolib.c
+			${LUA_LIB}/lmathlib.c
+			${LUA_LIB}/loslib.c
+			${LUA_LIB}/ltablib.c
+			${LUA_LIB}/lstrlib.c
+			${LUA_LIB}/loadlib.c
+			${LUA_LIB}/linit.c
+		)
+
+		FILE(GLOB LUA_LIB_HEADERS
+			${LUA_LIB}/*.h
+		)
+
+		add_library(liblua STATIC ${LUA_LIB_SRC} ${LUA_LIB_HEADERS})
+		set_target_properties(liblua
+			PROPERTIES COMPILE_DEFINITIONS "LUA_ANSI"
+		)
+
+		set(LUA_BUNDLED_LIBRARIES liblua PARENT_SCOPE)
 		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/lua/src" PARENT_SCOPE)
 	endif(BUNDLED_LUA)
 
@@ -109,24 +173,127 @@ if(WIN32)
 		endif()
 	endif(BUNDLED_SDL)
 
-
 	#-----------------------------------------------------------------
 	# Build bundled OGG and Vorbis file library
 	#-----------------------------------------------------------------
 	if(BUNDLED_OGG_VORBIS)
 		# OGG
-		set(OGG_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/ogg-windows/libogg_static.lib" PARENT_SCOPE)
+		SET(OPATH "${CMAKE_SOURCE_DIR}/libs/ogg")
+
+		SET(OGG_SRC ${OPATH}/src/bitwise.c ${OPATH}/src/framing.c)
+		SET(OGG_HEADERS ${OPATH}/include/ogg/ogg.h ${OPATH}/include/ogg/os_types.h)
+
+		INCLUDE_DIRECTORIES("${OPATH}/include")
+
+		IF(MSVC)
+		    ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
+		    LIST(APPEND OGG_SRC ${OPATH}/win32/ogg.def)
+		ENDIF(MSVC)
+
+		IF("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+	        # libogg expects configure to be called on linux to
+	        # generate config_types.h
+		    LIST(APPEND OGG_HEADERS ${OPATH}/include/ogg/config_types.h)
+		    add_custom_command(OUTPUT ${OPATH}/include/ogg/config_types.h
+		        COMMAND ${OPATH}/configure
+		        DEPENDS ${OPATH}/include/ogg/ogg.h  # Hopefully if the libogg version changes, so does this file
+													# so configure_types.h will be regenerated.
+		        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		    )
+		ENDIF()
+
+		add_library(bundled_ogg STATIC ${OGG_SRC} ${OGG_HEADERS})
+
+		SET(VPATH "${CMAKE_SOURCE_DIR}/libs/vorbis")
+
+		SET(VORBIS_SRC
+		    ${VPATH}/lib/analysis.c
+		    ${VPATH}/lib/bitrate.c
+		    ${VPATH}/lib/block.c
+		    ${VPATH}/lib/codebook.c
+		    ${VPATH}/lib/envelope.c
+		    ${VPATH}/lib/floor0.c
+		    ${VPATH}/lib/floor1.c
+		    ${VPATH}/lib/info.c
+		    ${VPATH}/lib/lookup.c
+		    ${VPATH}/lib/lpc.c
+		    ${VPATH}/lib/lsp.c
+		    ${VPATH}/lib/mapping0.c
+		    ${VPATH}/lib/mdct.c
+		    ${VPATH}/lib/psy.c
+		    ${VPATH}/lib/registry.c
+		    ${VPATH}/lib/res0.c
+		    ${VPATH}/lib/sharedbook.c
+		    ${VPATH}/lib/smallft.c
+		    ${VPATH}/lib/synthesis.c
+		    ${VPATH}/lib/vorbisenc.c
+		    ${VPATH}/lib/window.c
+		)
+
+		SET(VORBIS_HEADERS 
+		    ${VPATH}/lib/backends.h
+		    ${VPATH}/lib/bitrate.h
+		    ${VPATH}/lib/codebook.h
+		    ${VPATH}/lib/codec_internal.h
+		    ${VPATH}/lib/envelope.h
+		    ${VPATH}/lib/modes/floor_all.h
+		    ${VPATH}/lib/books/floor/floor_books.h
+		    ${VPATH}/lib/highlevel.h
+		    ${VPATH}/lib/lookup.h
+		    ${VPATH}/lib/lookup_data.h
+		    ${VPATH}/lib/lpc.h
+		    ${VPATH}/lib/lsp.h
+		    ${VPATH}/lib/masking.h
+		    ${VPATH}/lib/mdct.h
+		    ${VPATH}/lib/misc.h
+		    ${VPATH}/lib/os.h
+		    ${VPATH}/lib/psy.h
+		    ${VPATH}/lib/modes/psych_11.h
+		    ${VPATH}/lib/modes/psych_16.h
+		    ${VPATH}/lib/modes/psych_44.h
+		    ${VPATH}/lib/modes/psych_8.h
+		    ${VPATH}/lib/registry.h
+		    ${VPATH}/lib/books/coupled/res_books_stereo.h
+		    ${VPATH}/lib/books/uncoupled/res_books_uncoupled.h
+		    ${VPATH}/lib/modes/residue_16.h
+		    ${VPATH}/lib/modes/residue_44.h
+		    ${VPATH}/lib/modes/residue_44u.h
+		    ${VPATH}/lib/modes/residue_8.h
+		    ${VPATH}/lib/scales.h
+		    ${VPATH}/lib/modes/setup_11.h
+		    ${VPATH}/lib/modes/setup_16.h
+		    ${VPATH}/lib/modes/setup_22.h
+		    ${VPATH}/lib/modes/setup_32.h
+		    ${VPATH}/lib/modes/setup_44.h
+		    ${VPATH}/lib/modes/setup_44u.h
+		    ${VPATH}/lib/modes/setup_8.h
+		    ${VPATH}/lib/modes/setup_X.h
+		    ${VPATH}/lib/smallft.h
+		    ${VPATH}/lib/window.h
+		)
+
+		SET(VORBIS_PUB_HEADERS
+		    ${VPATH}/include/vorbis/codec.h
+		    ${VPATH}/include/vorbis/vorbisenc.h
+		    ${VPATH}/include/vorbis/vorbisfile.h
+		)
+
+		INCLUDE_DIRECTORIES("${VPATH}/include" "${VPATH}/lib")
+
+		IF(MSVC)
+		    ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
+		    LIST(APPEND VORBIS_SRC ${VPATH}/win32/vorbis.def)
+		ENDIF(MSVC)
+
+		add_library(bundled_ogg_vorbis STATIC ${VORBIS_SRC} ${VORBIS_HEADERS} ${VORBIS_PUB_HEADERS})
+		target_link_libraries(bundled_ogg_vorbis bundled_ogg)
+		add_library(bundled_ogg_vorbis_file STATIC ${VPATH}/lib/vorbisfile.c ${VPATH}/include/vorbis/vorbisfile.h)
+		target_link_libraries(bundled_ogg_vorbis_file bundled_ogg bundled_ogg_vorbis)
+
+		set(OGG_BUNDLED_LIBRARIES bundled_ogg PARENT_SCOPE)
 		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/ogg/include" PARENT_SCOPE)
-		add_custom_target(bundled_ogg
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/ogg-windows/libogg_static.lib
-		)
-		
-		set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/ogg-windows/libvorbis_static.lib" "${CMAKE_SOURCE_DIR}/libs/ogg-windows/libvorbisfile_static.lib" PARENT_SCOPE)
+		set(OGG_VORBIS_BUNDLED_LIBRARIES bundled_ogg_vorbis bundled_ogg_vorbis_file PARENT_SCOPE)
 		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/vorbis/include" PARENT_SCOPE)
-		add_custom_target(bundled_ogg_vorbis
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/ogg-windows/libvorbis_static.lib
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/ogg-windows/libvorbisfile_static.lib
-		)
 	endif(BUNDLED_OGG_VORBIS)
 	
 elseif(UNIX)
