@@ -1,6 +1,7 @@
+include(ExternalProject)
+include(CheckIncludeFile)
+
 if(WIN32)
-	include(ExternalProject)
-	include(CheckIncludeFile)
 	#-----------------------------------------------------------------
 	# Build bundled JPEG library
 	#-----------------------------------------------------------------
@@ -456,3 +457,14 @@ if(BUNDLED_GLEW)
 	set(BUNDLED_GLEW_LIBRARIES glew PARENT_SCOPE)
 	set(BUNDLED_GLEW_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/glew/include" PARENT_SCOPE)
 endif(BUNDLED_GLEW)
+
+if(BUNDLED_FREETYPE)
+	ExternalProject_Add(bundled_freetype
+		SOURCE_DIR	${CMAKE_SOURCE_DIR}/libs/freetype
+		BINARY_DIR	${PROJECT_BINARY_DIR}/libs/freetype
+		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+		INSTALL_COMMAND  ""
+	)
+	set(BUNDLED_FREETYPE_LIBRARIES "${PROJECT_BINARY_DIR}/libs/freetype/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}" PARENT_SCOPE)
+	set(BUNDLED_FREETYPE_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/freetype/include" PARENT_SCOPE)
+endif(BUNDLED_FREETYPE)
