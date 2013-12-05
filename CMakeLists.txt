@@ -86,8 +86,8 @@ if(WIN32)
 		  ${JPEG_LIB}/transupp.h
 		)
 
-		add_library (libjpeg STATIC ${JPEG_LIB_SRC} ${JPEG_LIB_HEADERS})
-		set(JPEG_BUNDLED_LIBRARIES libjpeg PARENT_SCOPE)
+		add_library (jpeg STATIC ${JPEG_LIB_SRC} ${JPEG_LIB_HEADERS})
+		set(JPEG_BUNDLED_LIBRARIES jpeg PARENT_SCOPE)
 		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/jpeg" PARENT_SCOPE)
 	endif(BUNDLED_JPEG)
 
@@ -146,12 +146,12 @@ if(WIN32)
 			${LUA_LIB}/*.h
 		)
 
-		add_library(liblua STATIC ${LUA_LIB_SRC} ${LUA_LIB_HEADERS})
-		set_target_properties(liblua
+		add_library(lua STATIC ${LUA_LIB_SRC} ${LUA_LIB_HEADERS})
+		set_target_properties(lua
 			PROPERTIES COMPILE_DEFINITIONS "LUA_ANSI"
 		)
 
-		set(LUA_BUNDLED_LIBRARIES liblua PARENT_SCOPE)
+		set(LUA_BUNDLED_LIBRARIES lua PARENT_SCOPE)
 		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/lua/src" PARENT_SCOPE)
 	endif(BUNDLED_LUA)
 
@@ -454,7 +454,7 @@ endif()
 #-----------------------------------------------------------------
 if(BUNDLED_GLEW)
 	include(${CMAKE_SOURCE_DIR}/libs/glew/CMakeLists.txt)
-	set(BUNDLED_GLEW_LIBRARIES glew PARENT_SCOPE)
+	set(BUNDLED_GLEW_LIBRARIES glew Opengl32 PARENT_SCOPE)
 	set(BUNDLED_GLEW_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/glew/include" PARENT_SCOPE)
 endif(BUNDLED_GLEW)
 
@@ -465,6 +465,10 @@ if(BUNDLED_FREETYPE)
 		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 		INSTALL_COMMAND  ""
 	)
-	set(BUNDLED_FREETYPE_LIBRARIES "${PROJECT_BINARY_DIR}/libs/freetype/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}" PARENT_SCOPE)
+	if(MSVC)
+		set(BUNDLED_FREETYPE_LIBRARIES "${PROJECT_BINARY_DIR}/libs/freetype/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}" PARENT_SCOPE)
+	else()
+		set(BUNDLED_FREETYPE_LIBRARIES "${PROJECT_BINARY_DIR}/libs/freetype/libfreetype${CMAKE_STATIC_LIBRARY_SUFFIX}" PARENT_SCOPE)
+	endif()
 	set(BUNDLED_FREETYPE_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/freetype/include" PARENT_SCOPE)
 endif(BUNDLED_FREETYPE)
