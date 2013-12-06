@@ -454,7 +454,7 @@ endif()
 #-----------------------------------------------------------------
 if(BUNDLED_GLEW)
 	include(${CMAKE_SOURCE_DIR}/libs/glew/CMakeLists.txt)
-	set(BUNDLED_GLEW_LIBRARIES glew Opengl32 PARENT_SCOPE)
+	set(BUNDLED_GLEW_LIBRARIES glew PARENT_SCOPE)
 	set(BUNDLED_GLEW_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/glew/include" PARENT_SCOPE)
 endif(BUNDLED_GLEW)
 
