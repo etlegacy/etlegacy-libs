@@ -17,11 +17,10 @@ if(WIN32)
 		if(WIN32 AND NOT CYGWIN)
 		  set(TWO_FILE_COMMANDLINE true)
 		endif()
-		#configure_file (${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
+		
 		configure_file (${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
 
-		include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
+		#include_directories(${CMAKE_CURRENT_BINARY_DIR})
 		FILE(GLOB JPEG_LIB_HEADERS 
 		  ${JPEG_LIB}/jerror.h
 		  ${JPEG_LIB}/jmorecfg.h
