@@ -1635,7 +1635,7 @@ int QZ_GetGamma (_THIS, float *red, float *green, float *blue)
 
 int QZ_SetGammaRamp (_THIS, Uint16 *ramp)
 {
-    const uint32_t tableSize = 255;
+    const uint32_t tableSize = 256;
     CGGammaValue redTable[tableSize];
     CGGammaValue greenTable[tableSize];
     CGGammaValue blueTable[tableSize];
