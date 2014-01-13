@@ -1570,6 +1570,8 @@ static void QZ_VideoQuit (_THIS)
         [field_edit release];
         field_edit = NULL;
     }
+
+    QZ_UnregisterFromSleepNotifications(this);
 }
 
 static int  QZ_LockHWSurface(_THIS, SDL_Surface *surface)

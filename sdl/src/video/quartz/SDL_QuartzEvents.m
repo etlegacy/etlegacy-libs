@@ -762,18 +762,40 @@ void QZ_SleepNotificationHandler (void * refcon,
 
 void QZ_RegisterForSleepNotifications (_THIS)
 {
-     CFRunLoopSourceRef rls;
-     IONotificationPortRef thePortRef;
-     io_object_t notifier;
+    power_connection = IORegisterForSystemPower(this, &this->hidden->power_port_ref, QZ_SleepNotificationHandler, &this->hidden->power_notifier);
 
-     power_connection = IORegisterForSystemPower (this, &thePortRef, QZ_SleepNotificationHandler, &notifier);
-
-     if (power_connection == 0)
+    if (power_connection == 0) {
          NSLog(@"SDL: QZ_SleepNotificationHandler() IORegisterForSystemPower failed.");
+    }
+    else {
+    	CFRunLoopSourceRef rls = IONotificationPortGetRunLoopSource(this->hidden->power_port_ref);
+    	CFRunLoopAddSource(CFRunLoopGetCurrent(), rls, kCFRunLoopDefaultMode);
+    }
+}
 
-     rls = IONotificationPortGetRunLoopSource (thePortRef);
-     CFRunLoopAddSource (CFRunLoopGetCurrent(), rls, kCFRunLoopDefaultMode);
-     CFRelease (rls);
+
+void QZ_UnregisterFromSleepNotifications(_THIS)
+{
+    if (power_connection) {
+    	// remove the sleep notification port from the application runloop
+    	CFRunLoopRemoveSource(CFRunLoopGetCurrent(),
+    	    	    	      IONotificationPortGetRunLoopSource(this->hidden->power_port_ref),
+    	    	    	      kCFRunLoopDefaultMode);
+
+    	// deregister for system sleep notifications
+    	IODeregisterForSystemPower( &this->hidden->power_notifier );
+
+    	// IORegisterForSystemPower implicitly opens the Root Power Domain IOService
+    	// so we close it here
+    	IOServiceClose( power_connection );
+
+    	// destroy the notification port allocated by IORegisterForSystemPower
+    	IONotificationPortDestroy(this->hidden->power_port_ref);
+    	
+    	power_connection = 0;
+    	this->hidden->power_notifier = NULL;
+    	this->hidden->power_port_ref = NULL;
+    }
 }
 
 

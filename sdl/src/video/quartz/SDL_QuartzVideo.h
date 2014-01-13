@@ -114,6 +114,8 @@ typedef struct SDL_PrivateVideoData {
     NSText             *field_edit;        /* a field editor for keyboard composition processing */
     Uint32             last_virtual_button;/* last virtual mouse button pressed */
     io_connect_t       power_connection;   /* used with IOKit to detect wake from sleep */
+	IONotificationPortRef power_port_ref;  /* used with IOKit to detect wake from sleep */
+	io_object_t        power_notifier;     
     Uint8              expect_mouse_up;    /* used to determine when to send mouse up events */
     Uint8              grab_state;         /* used to manage grab behavior */
     NSPoint            cursor_loc;         /* saved cursor coords, for activate/deactivate when grabbed */
@@ -226,6 +228,7 @@ SDL_GrabMode QZ_GrabInput        (_THIS, SDL_GrabMode grab_mode);
 void         QZ_PrivateWarpCursor (_THIS, int x, int y);
 void         QZ_ChangeGrabState (_THIS, int action);
 void         QZ_RegisterForSleepNotifications (_THIS);
+void         QZ_UnregisterFromSleepNotifications (_THIS);
 void         QZ_PrivateGlobalToLocal (_THIS, NSPoint *p);
 void         QZ_PrivateCocoaToSDL (_THIS, NSPoint *p);
 BOOL         QZ_IsMouseInWindow (_THIS);
