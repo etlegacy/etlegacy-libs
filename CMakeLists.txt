@@ -167,7 +167,21 @@ if(WIN32)
 				"${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2.lib"
 				"${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2main.lib" PARENT_SCOPE)
 			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl2/include" PARENT_SCOPE)
+		if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc")
+		if(CMAKE_SYSTEM MATCHES "Darwin-8*")
+		if(CMAKE_SYSTEM MATCHES "Darwin-9*")
+				set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -faltivec")
+		endif()
+		endif()
+		endif()
 		else() #1.2
+		if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc")
+		if(CMAKE_SYSTEM MATCHES "Darwin-8*")
+		if(CMAKE_SYSTEM MATCHES "Darwin-9*")
+				set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -faltivec")
+		endif()
+		endif()
+		endif()
 			file(COPY ${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.dll DESTINATION ${CMAKE_BINARY_DIR})
 			set(SDL32_BUNDLED_LIBRARIES
 				"${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.lib"
