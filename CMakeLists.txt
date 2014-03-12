@@ -167,21 +167,7 @@ if(WIN32)
 				"${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2.lib"
 				"${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2main.lib" PARENT_SCOPE)
 			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl2/include" PARENT_SCOPE)
-		if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc")
-		if(CMAKE_SYSTEM MATCHES "Darwin-8*")
-		if(CMAKE_SYSTEM MATCHES "Darwin-9*")
-				set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -faltivec")
-		endif()
-		endif()
-		endif()
 		else() #1.2
-		if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc")
-		if(CMAKE_SYSTEM MATCHES "Darwin-8*")
-		if(CMAKE_SYSTEM MATCHES "Darwin-9*")
-				set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -faltivec")
-		endif()
-		endif()
-		endif()
 			file(COPY ${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.dll DESTINATION ${CMAKE_BINARY_DIR})
 			set(SDL32_BUNDLED_LIBRARIES
 				"${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.lib"
@@ -379,12 +365,28 @@ elseif(UNIX)
 			set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl2/build/.libs/libSDL2.a" PARENT_SCOPE)
 			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl2/include" PARENT_SCOPE)
 		else() # SDL 1.3
-			add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
-				COMMAND make clean || true
 				# disable svga and directfb modules for cross-compiling on 64bit Debian Squeezy
-				COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-cdrom --disable-video-svga --disable-cdrom --disable-video-directfb && make
+		if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc")
+			if(CMAKE_SYSTEM MATCHES "Darwin-8*")
+				add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
+				COMMAND make clean || true
+				COMMAND ${CROSS_COMPILE32_FLAGS} ./configure CFLAGS=-faltivec --disable-cdrom --disable-video-svga --disable-cdrom --disable-video-directfb && make
 				WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl
 			)
+			elseif(CMAKE_SYSTEM MATCHES "Darwin-9*")
+				add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
+				COMMAND make clean || true
+				COMMAND ${CROSS_COMPILE32_FLAGS} ./configure CFLAGS=-faltivec --disable-cdrom --disable-video-svga --disable-cdrom --disable-video-directfb && make
+				WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl
+			)
+		endif()
+		else()
+			add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
+			COMMAND make clean || true
+			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-cdrom --disable-video-svga --disable-cdrom --disable-video-directfb && make
+			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl
+			)
+		endif()
 			add_custom_target(bundled_sdl
 				DEPENDS ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
 			)
