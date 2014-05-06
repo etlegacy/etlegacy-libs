@@ -477,3 +477,29 @@ if(BUNDLED_FREETYPE)
 	endif()
 	set(BUNDLED_FREETYPE_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/freetype/include" PARENT_SCOPE)
 endif(BUNDLED_FREETYPE)
+
+if(BUNDLED_JANSSON)
+	ExternalProject_Add(bundled_jansson
+		SOURCE_DIR	${CMAKE_SOURCE_DIR}/libs/jansson
+		BINARY_DIR	${PROJECT_BINARY_DIR}/libs/jansson
+		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DWITHOUT_TESTS=1 -DBUILD_DOCS=0
+		INSTALL_COMMAND  ""
+	)
+	
+	ExternalProject_Get_Property(bundled_jansson binary_dir)
+
+	string(TOUPPER "${CMAKE_BUILD_TYPE}" buildtype_upper)
+	
+	if(WIN32 AND buildtype_upper MATCHES DEBUG)
+		set(jansson_name "jansson_d${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	else(WIN32 AND buildtype_upper MATCHES DEBUG)
+		set(jansson_name "jansson${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	endif(WIN32 AND buildtype_upper MATCHES DEBUG)
+	
+	if(MSVC)
+		set(BUNDLED_JASSON_LIBRARIES "${binary_dir}/lib/${jansson_name}" PARENT_SCOPE)
+	else()
+		set(BUNDLED_JASSON_LIBRARIES "${binary_dir}/lib/lib${jansson_name}" PARENT_SCOPE)
+	endif()
+	set(BUNDLED_JASSON_INCLUDE_DIR "${binary_dir}/include" PARENT_SCOPE)
+endif(BUNDLED_JANSSON)
