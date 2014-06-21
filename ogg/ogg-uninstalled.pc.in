@@ -10,5 +10,5 @@ Description: ogg is a library for manipulating ogg bitstreams (not installed)
 Version: @VERSION@
 Requires:
 Conflicts:
-Libs: ${libdir}/.libs/libogg.a
+Libs: ${libdir}/libogg.la
 Cflags: -I${includedir}
