@@ -4,7 +4,14 @@ cmake_minimum_required(VERSION 2.8)
 #project(glew)
 
 if(MINGW OR UNIX)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-attributes")
+  	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-attributes")
+
+	# this is required for bundled 64bit glew lib
+	# http://stackoverflow.com/questions/7216244/why-is-fpic-absolutely-necessary-on-64-and-not-on-32bit-platforms
+	# note: -mcmodel=large might be an option to set too
+	if(NOT CROSS_COMPILE32)
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+	endif(NOT CROSS_COMPILE32)
 endif()
 
 set(GLEW_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR})
