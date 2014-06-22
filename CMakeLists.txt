@@ -304,7 +304,14 @@ elseif(UNIX)
 	if(CROSS_COMPILE32)
 		set(CROSS_COMPILE32_FLAGS CFLAGS=-m32 LDFLAGS=-m32)
 	else(CROSS_COMPILE32)
-		set(CROSS_COMPILE32_FLAGS "")
+		
+		# when we don't cross compile we have to enable position independant code '-fPIC' for all bundled libs
+		# see http://stackoverflow.com/questions/7216244/why-is-fpic-absolutely-necessary-on-64-and-not-on-32bit-platforms
+		# let's misuse CROSS_COMPILE32_FLAGS var (for 64bit) to set our flag. FIXME: rename to CROSS_COMPILE_OPTIONAL_FLAGS?
+		# notes: - cflag -mcmodel=large might be an option too
+		#        - this has to be done in all dependant CMakeLists-txt files see glew/CMakeLists.txt
+		set(CROSS_COMPILE32_FLAGS "CFLAGS=-fPIC")
+
 	endif(CROSS_COMPILE32)
 
 	#-----------------------------------------------------------------
@@ -426,7 +433,7 @@ elseif(UNIX)
 		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/ogg/include" PARENT_SCOPE)
 
 		# OGG Vorbis File
-		if(CROSS_COMPILE32_FLAGS)
+		if(CROSS_COMPILE32)
 			set(CFLAGS "-m32 -I${CMAKE_SOURCE_DIR}/libs/ogg/include")
 			set(LDFLAGS "-m32 -L${CMAKE_SOURCE_DIR}/libs/ogg/src/.libs")
 		else()
