@@ -111,7 +111,7 @@ mingw:
 	$(MAKE) "LUAC_T=luac.exe" luac.exe
 
 posix:
-	$(MAKE) all MYCFLAGS=-DLUA_USE_POSIX
+	$(MAKE) all MYCFLAGS="-DLUA_USE_POSIX -fPIC"
 
 posix32bit:
 	$(MAKE) all MYCFLAGS="-m32 -DLUA_USE_POSIX" MYLDFLAGS="-m32"
