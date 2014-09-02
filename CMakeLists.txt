@@ -161,19 +161,11 @@ if(WIN32)
 	# Copy bundled SDL library to the etl.exe location
 	#-----------------------------------------------------------------
 	if(BUNDLED_SDL) # DLL
-		if(FEATURE_SDL2)
-			file(COPY ${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
-			set(SDL32_BUNDLED_LIBRARIES
-				"${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2.lib"
-				"${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2main.lib" PARENT_SCOPE)
-			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl2/include" PARENT_SCOPE)
-		else() #1.2
-			file(COPY ${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.dll DESTINATION ${CMAKE_BINARY_DIR})
-			set(SDL32_BUNDLED_LIBRARIES
-				"${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDL.lib"
-				"${CMAKE_SOURCE_DIR}/libs/sdl-windows/lib/x86/SDLmain.lib" PARENT_SCOPE)
-			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl/include" PARENT_SCOPE)
-		endif()
+		file(COPY ${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
+		set(SDL32_BUNDLED_LIBRARIES
+			"${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2.lib"
+			"${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2main.lib" PARENT_SCOPE)
+		set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl2/include" PARENT_SCOPE)
 	endif(BUNDLED_SDL)
 
 	#-----------------------------------------------------------------
@@ -357,36 +349,19 @@ elseif(UNIX)
 	# Build bundled SDL library
 	#-----------------------------------------------------------------
 	if(BUNDLED_SDL)
-		if(FEATURE_SDL2)
-			add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl2/build/.libs/libSDL2.a
-				COMMAND make clean || true
-				COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
-				WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl2
-			)
-			add_custom_target(bundled_sdl
-				DEPENDS ${CMAKE_SOURCE_DIR}/libs/sdl2/build/.libs/libSDL2.a
-			)
-			if(CMAKE_SYSTEM MATCHES "Darwin")
-				set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl2/build/libSDL2main.a")
-			endif(CMAKE_SYSTEM MATCHES "Darwin")
-			set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl2/build/.libs/libSDL2.a" PARENT_SCOPE)
-			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl2/include" PARENT_SCOPE)
-		else() # SDL 1.3
-			add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
-				COMMAND make clean || true
-				# disable svga and directfb modules for cross-compiling on 64bit Debian Squeezy
-				COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-cdrom --disable-video-svga --disable-cdrom --disable-video-directfb && make
-				WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl
-			)
-			add_custom_target(bundled_sdl
-				DEPENDS ${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a
-			)
-			if(CMAKE_SYSTEM MATCHES "Darwin")
-				set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDLmain.a")
-			endif(CMAKE_SYSTEM MATCHES "Darwin")
-			set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl/build/.libs/libSDL.a" PARENT_SCOPE)
-			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl/include" PARENT_SCOPE)
-		endif()
+		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl2/build/.libs/libSDL2.a
+			COMMAND make clean || true
+			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
+			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl2
+		)
+		add_custom_target(bundled_sdl
+			DEPENDS ${CMAKE_SOURCE_DIR}/libs/sdl2/build/.libs/libSDL2.a
+		)
+		if(CMAKE_SYSTEM MATCHES "Darwin")
+			set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl2/build/libSDL2main.a")
+		endif(CMAKE_SYSTEM MATCHES "Darwin")
+		set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl2/build/.libs/libSDL2.a" PARENT_SCOPE)
+		set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl2/include" PARENT_SCOPE)
 	endif(BUNDLED_SDL)
 
 	#-----------------------------------------------------------------
