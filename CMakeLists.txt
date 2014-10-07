@@ -1,6 +1,8 @@
 include(ExternalProject)
 include(CheckIncludeFile)
 
+set(LIBS_BINARYDIR_DIR ${PROJECT_BINARY_DIR}/libs)
+
 if(WIN32)
 	#-----------------------------------------------------------------
 	# Build bundled JPEG library
@@ -9,7 +11,7 @@ if(WIN32)
 		check_include_file ( stddef.h HAVE_STDDEF_H )
 		check_include_file ( stdlib.h HAVE_STDLIB_H )
 		
-		set(JPEG_LIB "${CMAKE_SOURCE_DIR}/libs/jpeg")
+		set(JPEG_LIB "${CMAKE_CURRENT_LIST_DIR}/jpeg")
 		if(MSVC)
     		add_definitions ( -D_CRT_SECURE_NO_WARNINGS )
   		endif()
@@ -85,9 +87,9 @@ if(WIN32)
 		  ${JPEG_LIB}/transupp.h
 		)
 
-		add_library (jpeg STATIC ${JPEG_LIB_SRC} ${JPEG_LIB_HEADERS})
-		set(JPEG_BUNDLED_LIBRARIES jpeg PARENT_SCOPE)
-		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/jpeg" PARENT_SCOPE)
+		add_library (bundled_jpeg STATIC ${JPEG_LIB_SRC} ${JPEG_LIB_HEADERS})
+		set(JPEG_BUNDLED_LIBRARIES bundled_jpeg)
+		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpeg")
 	endif(BUNDLED_JPEG)
 
 	#-----------------------------------------------------------------
@@ -95,8 +97,8 @@ if(WIN32)
 	#-----------------------------------------------------------------
 	if(BUNDLED_CURL) # DLL
 		ExternalProject_Add(bundled_curl
-			SOURCE_DIR	${CMAKE_SOURCE_DIR}/libs/curl
-			BINARY_DIR	${PROJECT_BINARY_DIR}/libs/curl
+			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/curl
+			BINARY_DIR	${LIBS_BINARYDIR_DIR}/curl
 			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DBUILD_CURL_EXE=0 -DBUILD_CURL_TESTS=0 -DCURL_STATICLIB=1 -DCURL_USE_ARES=0 -DCURL_ZLIB=0 -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/curl
 			INSTALL_COMMAND  ""
 		)
@@ -104,18 +106,18 @@ if(WIN32)
 		ExternalProject_Get_Property(bundled_curl binary_dir)
 
 		if(VSTUDIO)
-			set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/Release/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" PARENT_SCOPE)
+			set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/Release/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		else(VSTUDIO)
-			set(CURL_BUNDLED_LIBRARY "${binary_dir}/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" PARENT_SCOPE)
+			set(CURL_BUNDLED_LIBRARY "${binary_dir}/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		endif(VSTUDIO)
-		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/curl/include" PARENT_SCOPE)
+		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/curl/include")
 	endif(BUNDLED_CURL)
 
 	#-----------------------------------------------------------------
 	# Build bundled Lua 5.1 library
 	#-----------------------------------------------------------------
 	if(BUNDLED_LUA)
-		set(LUA_LIB "${CMAKE_SOURCE_DIR}/libs/lua/src")
+		set(LUA_LIB "${CMAKE_CURRENT_LIST_DIR}/lua/src")
 		FILE(GLOB LUA_LIB_SRC
 			${LUA_LIB}/lapi.c
 			${LUA_LIB}/lcode.c
@@ -152,24 +154,25 @@ if(WIN32)
 			${LUA_LIB}/*.h
 		)
 
-		add_library(lua STATIC ${LUA_LIB_SRC} ${LUA_LIB_HEADERS})
-		set_target_properties(lua
+		add_library(bundled_lua STATIC ${LUA_LIB_SRC} ${LUA_LIB_HEADERS})
+		set_target_properties(bundled_lua
 			PROPERTIES COMPILE_DEFINITIONS "LUA_ANSI"
 		)
 
-		set(LUA_BUNDLED_LIBRARIES lua PARENT_SCOPE)
-		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/lua/src" PARENT_SCOPE)
+		set(LUA_BUNDLED_LIBRARIES bundled_lua)
+		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
 	endif(BUNDLED_LUA)
 
 	#-----------------------------------------------------------------
 	# Copy bundled SDL library to the etl.exe location
 	#-----------------------------------------------------------------
 	if(BUNDLED_SDL) # DLL
-		file(COPY ${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
+		add_custom_target(bundled_sdl) # Dummy target just so cmake does not print warnings
+		file(COPY ${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
 		set(SDL32_BUNDLED_LIBRARIES
-			"${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2.lib"
-			"${CMAKE_SOURCE_DIR}/libs/sdl2-windows/lib/x86/SDL2main.lib" PARENT_SCOPE)
-		set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl2/include" PARENT_SCOPE)
+			"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.lib"
+			"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2main.lib")
+		set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
 	endif(BUNDLED_SDL)
 
 	#-----------------------------------------------------------------
@@ -177,7 +180,7 @@ if(WIN32)
 	#-----------------------------------------------------------------
 	if(BUNDLED_OGG_VORBIS)
 		# OGG
-		SET(OPATH "${CMAKE_SOURCE_DIR}/libs/ogg")
+		SET(OPATH "${CMAKE_CURRENT_LIST_DIR}/ogg")
 
 		SET(OGG_SRC ${OPATH}/src/bitwise.c ${OPATH}/src/framing.c)
 		SET(OGG_HEADERS ${OPATH}/include/ogg/ogg.h ${OPATH}/include/ogg/os_types.h)
@@ -185,8 +188,8 @@ if(WIN32)
 		INCLUDE_DIRECTORIES("${OPATH}/include")
 
 		IF(MSVC)
-		    ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
-		    LIST(APPEND OGG_SRC ${OPATH}/win32/ogg.def)
+			#ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
+			LIST(APPEND OGG_SRC ${OPATH}/win32/ogg.def)
 		ENDIF(MSVC)
 
 		IF("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
@@ -203,7 +206,7 @@ if(WIN32)
 
 		add_library(bundled_ogg STATIC ${OGG_SRC} ${OGG_HEADERS})
 
-		SET(VPATH "${CMAKE_SOURCE_DIR}/libs/vorbis")
+		SET(VPATH "${CMAKE_CURRENT_LIST_DIR}/vorbis")
 
 		SET(VORBIS_SRC
 		    ${VPATH}/lib/analysis.c
@@ -280,7 +283,7 @@ if(WIN32)
 		INCLUDE_DIRECTORIES("${VPATH}/include" "${VPATH}/lib")
 
 		IF(MSVC)
-		    ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
+			#ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
 		    LIST(APPEND VORBIS_SRC ${VPATH}/win32/vorbis.def)
 		ENDIF(MSVC)
 
@@ -289,10 +292,23 @@ if(WIN32)
 		add_library(bundled_ogg_vorbis_file STATIC ${VPATH}/lib/vorbisfile.c ${VPATH}/include/vorbis/vorbisfile.h)
 		target_link_libraries(bundled_ogg_vorbis_file bundled_ogg bundled_ogg_vorbis)
 
-		set(OGG_BUNDLED_LIBRARIES bundled_ogg PARENT_SCOPE)
-		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/ogg/include" PARENT_SCOPE)
-		set(OGG_VORBIS_BUNDLED_LIBRARIES bundled_ogg_vorbis bundled_ogg_vorbis_file PARENT_SCOPE)
-		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/vorbis/include" PARENT_SCOPE)
+		if(MSVC)
+			set(VORB_UNI "_UNICODE;UNICODE")
+			set_target_properties(bundled_ogg PROPERTIES
+				COMPILE_DEFINITIONS "${VORB_UNI}"
+			)
+			set_target_properties(bundled_ogg_vorbis PROPERTIES
+				COMPILE_DEFINITIONS "${VORB_UNI}"
+			)
+			set_target_properties(bundled_ogg_vorbis_file PROPERTIES
+				COMPILE_DEFINITIONS "${VORB_UNI}"
+			)
+		endif(MSVC)
+
+		set(OGG_BUNDLED_LIBRARIES bundled_ogg)
+		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/ogg/include")
+		set(OGG_VORBIS_BUNDLED_LIBRARIES bundled_ogg_vorbis bundled_ogg_vorbis_file)
+		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/vorbis/include")
 	endif(BUNDLED_OGG_VORBIS)
 	
 elseif(UNIX)
@@ -314,7 +330,7 @@ elseif(UNIX)
 	# Build bundled cURL library
 	#-----------------------------------------------------------------
 	if(BUNDLED_CURL)
-		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/curl/lib/.libs/libcurl.a
+		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/curl/lib/.libs/libcurl.a
 			COMMAND make clean || true
 			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure
 			--enable-shared=no --enable-static=yes
@@ -324,48 +340,48 @@ elseif(UNIX)
 			--enable-libgcc --disable-ipv6 --disable-ares
 			--without-ssl --without-zlib --without-libidn
 			--without-librtmp && make
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/curl
+			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/curl
 		)
 		add_custom_target(bundled_curl
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/curl/lib/.libs/libcurl.a
+			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/curl/lib/.libs/libcurl.a
 		)
-		set(CURL_BUNDLED_LIBRARY "${CMAKE_SOURCE_DIR}/libs/curl/lib/.libs/libcurl.a" PARENT_SCOPE)
-		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/curl/include" PARENT_SCOPE)
+		set(CURL_BUNDLED_LIBRARY "${CMAKE_CURRENT_LIST_DIR}/curl/lib/.libs/libcurl.a")
+		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/curl/include")
 	endif(BUNDLED_CURL)
 	
 	#-----------------------------------------------------------------
 	# Build bundled JPEG library
 	#-----------------------------------------------------------------
 	if(BUNDLED_JPEG)
-		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/jpeg/.libs/libjpeg.a
+		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/jpeg/.libs/libjpeg.a
 			COMMAND make clean || true
 			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/jpeg
+			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/jpeg
 		)
 		add_custom_target(bundled_jpeg
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/jpeg/.libs/libjpeg.a
+			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/jpeg/.libs/libjpeg.a
 		)
-		set(JPEG_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/jpeg/.libs/libjpeg.a" PARENT_SCOPE)
-		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/jpeg" PARENT_SCOPE)
+		set(JPEG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/jpeg/.libs/libjpeg.a")
+		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpeg")
 	endif(BUNDLED_JPEG)
 
 	#-----------------------------------------------------------------
 	# Build bundled SDL library
 	#-----------------------------------------------------------------
 	if(BUNDLED_SDL)
-		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/sdl2/build/.libs/libSDL2.a
+		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/sdl2/build/.libs/libSDL2.a
 			COMMAND make clean || true
 			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/sdl2
+			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/sdl2
 		)
 		add_custom_target(bundled_sdl
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/sdl2/build/.libs/libSDL2.a
+			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/sdl2/build/.libs/libSDL2.a
 		)
 		if(CMAKE_SYSTEM MATCHES "Darwin")
-			set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl2/build/libSDL2main.a")
+			set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_CURRENT_LIST_DIR}/sdl2/build/libSDL2main.a")
 		endif(CMAKE_SYSTEM MATCHES "Darwin")
-		set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_SOURCE_DIR}/libs/sdl2/build/.libs/libSDL2.a" PARENT_SCOPE)
-		set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/sdl2/include" PARENT_SCOPE)
+		set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_CURRENT_LIST_DIR}/sdl2/build/.libs/libSDL2.a")
+		set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
 	endif(BUNDLED_SDL)
 
 	#-----------------------------------------------------------------
@@ -382,16 +398,16 @@ elseif(UNIX)
 				set(LUA_MAKE_TARGET "posix32bit")
 			endif()
 		endif()
-		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/lua/src/liblua.a
+		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
 			COMMAND make clean || true
 			COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/lua
+			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua
 		)
-		set(LUA_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/lua/src/liblua.a" PARENT_SCOPE)
-		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/lua/src" PARENT_SCOPE)
+		set(LUA_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a")
+		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
 
 		add_custom_target(bundled_lua
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/lua/src/liblua.a
+			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
 		)
 	endif(BUNDLED_LUA)
 
@@ -400,38 +416,38 @@ elseif(UNIX)
 	#-----------------------------------------------------------------
 	if(BUNDLED_OGG_VORBIS)
 		# OGG
-		add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/libs/ogg/src/.libs/libogg.a
+		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs/libogg.a
 			COMMAND make clean || true
 			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/ogg
+			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/ogg
 		)
 		add_custom_target(bundled_ogg
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/ogg/src/.libs/libogg.a
+			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs/libogg.a
 		)
-		set(OGG_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/ogg/src/.libs/libogg.a" PARENT_SCOPE)
-		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/ogg/include" PARENT_SCOPE)
+		set(OGG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs/libogg.a")
+		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/ogg/include")
 
 		# OGG Vorbis File
 		if(CROSS_COMPILE32)
-			set(CFLAGS "-m32 -I${CMAKE_SOURCE_DIR}/libs/ogg/include")
-			set(LDFLAGS "-m32 -L${CMAKE_SOURCE_DIR}/libs/ogg/src/.libs")
+			set(CFLAGS "-m32 -I${CMAKE_CURRENT_LIST_DIR}/ogg/include")
+			set(LDFLAGS "-m32 -L${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs")
 		else()
-			set(CFLAGS "-I${CMAKE_SOURCE_DIR}/libs/ogg/include")
-			set(LDFLAGS "-L${CMAKE_SOURCE_DIR}/libs/ogg/src/.libs")
+			set(CFLAGS "-I${CMAKE_CURRENT_LIST_DIR}/ogg/include")
+			set(LDFLAGS "-L${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs")
 		endif()
 
 		add_custom_command(
-			OUTPUT ${CMAKE_SOURCE_DIR}/libs/vorbis/lib/.libs/libvorbisfile.a
+			OUTPUT ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a
 			COMMAND make clean || true
 			COMMAND eval \"CFLAGS=${CFLAGS} LDFLAGS=${LDFLAGS} ./configure --disable-oggtest && make\"
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/vorbis
+			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/vorbis
 		)
 		add_custom_target(bundled_ogg_vorbis
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/vorbis/lib/.libs/libvorbisfile.a
-			DEPENDS ${CMAKE_SOURCE_DIR}/libs/vorbis/lib/.libs/libvorbis.a
+			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a
+			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbis.a
 		)
-		set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_SOURCE_DIR}/libs/vorbis/lib/.libs/libvorbisfile.a" "${CMAKE_SOURCE_DIR}/libs/vorbis/lib/.libs/libvorbis.a" PARENT_SCOPE)
-		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/vorbis/include" PARENT_SCOPE)
+		set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a" "${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbis.a")
+		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/vorbis/include")
 
 		add_dependencies(bundled_ogg_vorbis bundled_ogg)
 	endif(BUNDLED_OGG_VORBIS)
@@ -441,15 +457,18 @@ endif()
 # Build bundled GLEW library
 #-----------------------------------------------------------------
 if(BUNDLED_GLEW)
-	include(${CMAKE_SOURCE_DIR}/libs/glew/CMakeLists.txt)
-	set(BUNDLED_GLEW_LIBRARIES glew PARENT_SCOPE)
-	set(BUNDLED_GLEW_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/glew/include" PARENT_SCOPE)
+	include(${CMAKE_CURRENT_LIST_DIR}/glew/CMakeLists.txt)
+	set(BUNDLED_GLEW_LIBRARIES bundled_glew)
+	set(BUNDLED_GLEW_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/glew/include")
 endif(BUNDLED_GLEW)
 
+#-----------------------------------------------------------------
+# Build bundled Freetype library
+#-----------------------------------------------------------------
 if(BUNDLED_FREETYPE)
 	ExternalProject_Add(bundled_freetype
-		SOURCE_DIR	${CMAKE_SOURCE_DIR}/libs/freetype
-		BINARY_DIR	${PROJECT_BINARY_DIR}/libs/freetype
+		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/freetype
+		BINARY_DIR	${LIBS_BINARYDIR_DIR}/freetype
 		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
 		INSTALL_COMMAND  ""
 	)
@@ -457,19 +476,22 @@ if(BUNDLED_FREETYPE)
 	ExternalProject_Get_Property(bundled_freetype binary_dir)
 
 	if(VSTUDIO)
-		set(BUNDLED_FREETYPE_LIBRARIES optimized "${binary_dir}/Release/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}" PARENT_SCOPE)
+		set(BUNDLED_FREETYPE_LIBRARIES optimized "${binary_dir}/Release/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	elseif(NMAKE_BUILD)
-		set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}" PARENT_SCOPE)
+		set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	else(VSTUDIO)
-		set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/libfreetype${CMAKE_STATIC_LIBRARY_SUFFIX}" PARENT_SCOPE)
+		set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/libfreetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	endif(VSTUDIO)
-	set(BUNDLED_FREETYPE_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/freetype/include" PARENT_SCOPE)
+	set(BUNDLED_FREETYPE_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/freetype/include")
 endif(BUNDLED_FREETYPE)
 
+#-----------------------------------------------------------------
+# Build bundled JANSSON library
+#-----------------------------------------------------------------
 if(BUNDLED_JANSSON)
 	ExternalProject_Add(bundled_jansson
-		SOURCE_DIR	${CMAKE_SOURCE_DIR}/libs/jansson
-		BINARY_DIR	${PROJECT_BINARY_DIR}/libs/jansson
+		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/jansson
+		BINARY_DIR	${LIBS_BINARYDIR_DIR}/jansson
 		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}  -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DJANSSON_WITHOUT_TESTS=1 -DBUILD_DOCS=0 -DJANSSON_STATIC_CRT=1 -DJANSSON_BUILD_DOCS=0
 		INSTALL_COMMAND  ""
 	)
@@ -483,11 +505,11 @@ if(BUNDLED_JANSSON)
 	endif(WIN32 AND DEBUG_BUILD)
 	
 	if(VSTUDIO)
-		set(BUNDLED_JASSON_LIBRARIES optimized "${binary_dir}/lib/Release/jansson${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/jansson_d${CMAKE_STATIC_LIBRARY_SUFFIX}" PARENT_SCOPE)
+		set(BUNDLED_JASSON_LIBRARIES optimized "${binary_dir}/lib/Release/jansson${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/jansson_d${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	elseif(NMAKE_BUILD)
-		set(BUNDLED_JASSON_LIBRARIES "${binary_dir}/lib/${jansson_name}" PARENT_SCOPE)
+		set(BUNDLED_JASSON_LIBRARIES "${binary_dir}/lib/${jansson_name}")
 	else(VSTUDIO)
-		set(BUNDLED_JASSON_LIBRARIES "${binary_dir}/lib/lib${jansson_name}" PARENT_SCOPE)
+		set(BUNDLED_JASSON_LIBRARIES "${binary_dir}/lib/lib${jansson_name}")
 	endif(VSTUDIO)
-	set(BUNDLED_JASSON_INCLUDE_DIR "${binary_dir}/include" PARENT_SCOPE)
+	set(BUNDLED_JASSON_INCLUDE_DIR "${binary_dir}/include")
 endif(BUNDLED_JANSSON)

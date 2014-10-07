@@ -23,8 +23,8 @@ FILE(GLOB GLEW_FILES
 	${GLEW_SOURCE_DIR}/src/glew.c
 )
 
-add_library(glew STATIC ${GLEW_FILES})
-set_target_properties(glew PROPERTIES
+add_library(bundled_glew STATIC ${GLEW_FILES})
+set_target_properties(bundled_glew PROPERTIES
 	LINKER_LANGUAGE C
 	COMPILE_DEFINITIONS "GLEW_STATIC"
 	#ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
