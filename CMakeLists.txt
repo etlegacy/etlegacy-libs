@@ -155,9 +155,13 @@ if(WIN32)
 		)
 
 		add_library(bundled_lua STATIC ${LUA_LIB_SRC} ${LUA_LIB_HEADERS})
-		set_target_properties(bundled_lua
-			PROPERTIES COMPILE_DEFINITIONS "LUA_ANSI"
-		)
+
+		# If LUA_ANSI is enabled on windows the library loading functionality is disabled
+		if(NOT WIN32)
+			set_target_properties(bundled_lua
+				PROPERTIES COMPILE_DEFINITIONS "LUA_ANSI"
+			)
+		endif()
 
 		set(LUA_BUNDLED_LIBRARIES bundled_lua)
 		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
