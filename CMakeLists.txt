@@ -416,7 +416,7 @@ elseif(UNIX)
 			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
 		)
 		set(LUA_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a")
-		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
+		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua")
 
 		add_custom_target(bundled_lua
 			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
