@@ -119,8 +119,10 @@ if(WIN32)
 	if(BUNDLED_LUA)
 		set(LUA_LIB "${CMAKE_CURRENT_LIST_DIR}/lua/src")
 		FILE(GLOB LUA_LIB_SRC
+			#core
 			${LUA_LIB}/lapi.c
 			${LUA_LIB}/lcode.c
+			${LUA_LIB}/lctype.c
 			${LUA_LIB}/ldebug.c
 			${LUA_LIB}/ldo.c
 			${LUA_LIB}/ldump.c
@@ -138,16 +140,19 @@ if(WIN32)
 			${LUA_LIB}/lundump.c
 			${LUA_LIB}/lvm.c
 			${LUA_LIB}/lzio.c
+			#lib
 			${LUA_LIB}/lauxlib.c
 			${LUA_LIB}/lbaselib.c
+			${LUA_LIB}/lbitlib.c
+			${LUA_LIB}/lcorolib.c
 			${LUA_LIB}/ldblib.c
 			${LUA_LIB}/liolib.c
 			${LUA_LIB}/lmathlib.c
 			${LUA_LIB}/loslib.c
-			${LUA_LIB}/ltablib.c
 			${LUA_LIB}/lstrlib.c
-			${LUA_LIB}/loadlib.c
+			${LUA_LIB}/ltablib.c
 			${LUA_LIB}/linit.c
+			${LUA_LIB}/loadlib.c
 		)
 
 		FILE(GLOB LUA_LIB_HEADERS
