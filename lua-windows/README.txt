@@ -1,3 +1,3 @@
-Precompiled binaries taken from the "Lua for Windows" project.
+Precompiled binaries taken from the "LuaBinaries" project.
 
-http://code.google.com/p/luaforwindows/
+http://luabinaries.sourceforge.net/
