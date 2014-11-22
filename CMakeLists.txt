@@ -370,16 +370,24 @@ elseif(UNIX)
 	# Build bundled JPEG library
 	#-----------------------------------------------------------------
 	if(BUNDLED_JPEG)
-		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/jpeg/.libs/libjpeg.a
-			COMMAND make clean || true
-			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
-			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/jpeg
-		)
+		if(CROSS_COMPILE32)
+			add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/jpegturbo/.libs/libturbojpeg.a
+				COMMAND make clean || true
+				COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --with-jpeg8 --host i686-pc-linux-gnu && make
+				WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/jpegturbo
+			)
+		else(CROSS_COMPILE32)
+			add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/jpegturbo/.libs/libturbojpeg.a
+				COMMAND make clean || true
+				COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --with-jpeg8 && make
+				WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/jpegturbo
+			)
+		endif()
 		add_custom_target(bundled_jpeg
-			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/jpeg/.libs/libjpeg.a
+			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/jpegturbo/.libs/libturbojpeg.a
 		)
-		set(JPEG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/jpeg/.libs/libjpeg.a")
-		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpeg")
+		set(JPEG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/jpegturbo/.libs/libturbojpeg.a")
+		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
 	endif(BUNDLED_JPEG)
 
 	#-----------------------------------------------------------------
