@@ -11,7 +11,7 @@ if(WIN32)
 		check_include_file ( stddef.h HAVE_STDDEF_H )
 		check_include_file ( stdlib.h HAVE_STDLIB_H )
 
-		set(JPEG_LIB "${CMAKE_CURRENT_LIST_DIR}/jpeg")
+		set(JPEG_LIB "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
 		if(MSVC)
     		add_definitions ( -D_CRT_SECURE_NO_WARNINGS )
   		endif()
@@ -19,8 +19,10 @@ if(WIN32)
 		if(WIN32 AND NOT CYGWIN)
 		  set(TWO_FILE_COMMANDLINE true)
 		endif()
+		set(WITH_JPEG8 true)
 
 		configure_file (${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
+		configure_file (${JPEG_LIB}/config.h.cmake ${JPEG_LIB}/config.h)
 
 		#include_directories(${CMAKE_CURRENT_BINARY_DIR})
 		FILE(GLOB JPEG_LIB_HEADERS
@@ -28,6 +30,7 @@ if(WIN32)
 		  ${JPEG_LIB}/jmorecfg.h
 		  ${JPEG_LIB}/jpeglib.h
 		  ${JPEG_LIB}/jconfig.h
+		  ${JPEG_LIB}/turbojpeg.h
 		)
 
 		FILE(GLOB JPEG_LIB_SRC
@@ -46,8 +49,10 @@ if(WIN32)
 		  ${JPEG_LIB}/jcmaster.c
 		  ${JPEG_LIB}/jcomapi.c
 		  ${JPEG_LIB}/jcparam.c
+		  ${JPEG_LIB}/jcphuff.c
 		  ${JPEG_LIB}/jcprepct.c
 		  ${JPEG_LIB}/jcsample.c
+		  ${JPEG_LIB}/jctest.c
 		  ${JPEG_LIB}/jctrans.c
 		  ${JPEG_LIB}/jdapimin.c
 		  ${JPEG_LIB}/jdapistd.c
@@ -63,6 +68,7 @@ if(WIN32)
 		  ${JPEG_LIB}/jdmarker.c
 		  ${JPEG_LIB}/jdmaster.c
 		  ${JPEG_LIB}/jdmerge.c
+		  ${JPEG_LIB}/jdphuff.c
 		  ${JPEG_LIB}/jdpostct.c
 		  ${JPEG_LIB}/jdsample.c
 		  ${JPEG_LIB}/jdtrans.c
@@ -73,10 +79,14 @@ if(WIN32)
 		  ${JPEG_LIB}/jidctflt.c
 		  ${JPEG_LIB}/jidctfst.c
 		  ${JPEG_LIB}/jidctint.c
+		  ${JPEG_LIB}/jidctred.c
+		  ${JPEG_LIB}/jmemmgr.c
+		  ${JPEG_LIB}/jmemnobs.c
 		  ${JPEG_LIB}/jquant1.c
 		  ${JPEG_LIB}/jquant2.c
+		  ${JPEG_LIB}/jsimd_none.c
 		  ${JPEG_LIB}/jutils.c
-		  ${JPEG_LIB}/jmemmgr.c
+		  ${JPEG_LIB}/turbojpeg.c
 		  ${JPEG_LIB}/cderror.h
 		  ${JPEG_LIB}/cdjpeg.h
 		  ${JPEG_LIB}/jdct.h
@@ -89,7 +99,7 @@ if(WIN32)
 
 		add_library (bundled_jpeg STATIC ${JPEG_LIB_SRC} ${JPEG_LIB_HEADERS})
 		set(JPEG_BUNDLED_LIBRARIES bundled_jpeg)
-		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpeg")
+		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
 	endif(BUNDLED_JPEG)
 
 	#-----------------------------------------------------------------
