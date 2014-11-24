@@ -383,7 +383,7 @@ elseif(UNIX)
 		if(CROSS_COMPILE32)
 			add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/jpegturbo/.libs/libturbojpeg.a
 				COMMAND make clean || true
-				COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --with-jpeg8 --host i686-pc-linux-gnu && make
+				COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --with-jpeg8 --build i686-pc-linux-gnu && make
 				WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/jpegturbo
 			)
 		else(CROSS_COMPILE32)
