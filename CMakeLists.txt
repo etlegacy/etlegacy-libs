@@ -481,6 +481,10 @@ elseif(UNIX)
 			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a
 			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbis.a
 		)
+
+		# Custom dummy target to make the errors go away
+		add_custom_target(bundled_ogg_vorbis_file)
+
 		set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a" "${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbis.a")
 		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/vorbis/include")
 
