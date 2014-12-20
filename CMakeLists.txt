@@ -381,11 +381,19 @@ elseif(UNIX)
 	#-----------------------------------------------------------------
 	if(BUNDLED_JPEG)
 		if(CROSS_COMPILE32)
-			add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/jpegturbo/.libs/libturbojpeg.a
-				COMMAND make clean || true
-				COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --with-jpeg8 --build i686-pc-linux-gnu && make
-				WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/jpegturbo
-			)
+			if(APPLE)
+				add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/jpegturbo/.libs/libturbojpeg.a
+					COMMAND make clean || true
+					COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --with-jpeg8 --build i686-apple-darwin && make
+					WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/jpegturbo
+				)
+			else()
+				add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/jpegturbo/.libs/libturbojpeg.a
+					COMMAND make clean || true
+					COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --with-jpeg8 --build i686-pc-linux-gnu && make
+					WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/jpegturbo
+				)
+			endif()
 		else(CROSS_COMPILE32)
 			add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/jpegturbo/.libs/libturbojpeg.a
 				COMMAND make clean || true
