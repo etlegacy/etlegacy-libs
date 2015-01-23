@@ -14,17 +14,17 @@ endif
 
 # Edit the path below to point to the base of your Zlib sources.
 ifndef ZLIB_PATH
-ZLIB_PATH = ../../../zlib-1.2.7
+ZLIB_PATH = ../../../zlib-1.2.8
 endif
 
 # Edit the path below to point to the base of your OpenSSL package.
 ifndef OPENSSL_PATH
-OPENSSL_PATH = ../../../openssl-0.9.8x
+OPENSSL_PATH = ../../../openssl-0.9.8zc
 endif
 
 # Edit the path below to point to the base of your LibSSH2 package.
 ifndef LIBSSH2_PATH
-LIBSSH2_PATH = ../../../libssh2-1.4.2
+LIBSSH2_PATH = ../../../libssh2-1.4.3
 endif
 
 # Edit the path below to point to the base of your axTLS package.
@@ -211,9 +211,6 @@ endif
 ifeq ($(findstring -idn,$(CFG)),-idn)
 WITH_IDN = 1
 endif
-ifeq ($(findstring -spnego,$(CFG)),-spnego)
-WITH_SPNEGO = 1
-endif
 ifeq ($(findstring -ipv6,$(CFG)),-ipv6)
 ENABLE_IPV6 = 1
 endif
@@ -247,10 +244,6 @@ ifdef WITH_SSL
 	LDLIBS += $(OPENSSL_PATH)/out_nw_$(LIBARCH_L)/ssl.$(LIBEXT)
 	LDLIBS += $(OPENSSL_PATH)/out_nw_$(LIBARCH_L)/crypto.$(LIBEXT)
 	IMPORTS += GetProcessSwitchCount RunningProcess
-ifdef WITH_SPNEGO
-	# INCLUDES += -I$(FBOPENSSL_PATH)/include
-	LDLIBS += $(FBOPENSSL_PATH)/nw/fbopenssl.$(LIBEXT)
-endif
 else
 ifdef WITH_AXTLS
 	INCLUDES += -I$(AXTLS_PATH)/inc

@@ -5,6 +5,7 @@
  *                | (__| |_| |  _ <| |___
  *                 \___|\___/|_| \_\_____|
  *
+ * Copyright (C) 2012 - 2014, Daniel Stenberg, <daniel@haxx.se>, et al.
  * Copyright (C) 2010, Howard Chu, <hyc@highlandsun.com>
  *
  * This software is licensed as described in the file COPYING, which
@@ -20,7 +21,7 @@
  *
  ***************************************************************************/
 
-#include "setup.h"
+#include "curl_setup.h"
 
 #ifdef USE_LIBRTMP
 
@@ -28,6 +29,7 @@
 #include "nonblock.h" /* for curlx_nonblock */
 #include "progress.h" /* for Curl_pgrsSetUploadSize */
 #include "transfer.h"
+#include "warnless.h"
 #include <curl/curl.h>
 #include <librtmp/rtmp.h>
 
@@ -47,7 +49,7 @@
 
 #define DEF_BUFTIME    (2*60*60*1000)    /* 2 hours */
 
-static CURLcode rtmp_setup(struct connectdata *conn);
+static CURLcode rtmp_setup_connection(struct connectdata *conn);
 static CURLcode rtmp_do(struct connectdata *conn, bool *done);
 static CURLcode rtmp_done(struct connectdata *conn, CURLcode, bool premature);
 static CURLcode rtmp_connect(struct connectdata *conn, bool *done);
@@ -62,7 +64,7 @@ static Curl_send rtmp_send;
 
 const struct Curl_handler Curl_handler_rtmp = {
   "RTMP",                               /* scheme */
-  rtmp_setup,                           /* setup_connection */
+  rtmp_setup_connection,                /* setup_connection */
   rtmp_do,                              /* do_it */
   rtmp_done,                            /* done */
   ZERO_NULL,                            /* do_more */
@@ -82,7 +84,7 @@ const struct Curl_handler Curl_handler_rtmp = {
 
 const struct Curl_handler Curl_handler_rtmpt = {
   "RTMPT",                              /* scheme */
-  rtmp_setup,                           /* setup_connection */
+  rtmp_setup_connection,                /* setup_connection */
   rtmp_do,                              /* do_it */
   rtmp_done,                            /* done */
   ZERO_NULL,                            /* do_more */
@@ -102,7 +104,7 @@ const struct Curl_handler Curl_handler_rtmpt = {
 
 const struct Curl_handler Curl_handler_rtmpe = {
   "RTMPE",                              /* scheme */
-  rtmp_setup,                           /* setup_connection */
+  rtmp_setup_connection,                /* setup_connection */
   rtmp_do,                              /* do_it */
   rtmp_done,                            /* done */
   ZERO_NULL,                            /* do_more */
@@ -122,7 +124,7 @@ const struct Curl_handler Curl_handler_rtmpe = {
 
 const struct Curl_handler Curl_handler_rtmpte = {
   "RTMPTE",                             /* scheme */
-  rtmp_setup,                           /* setup_connection */
+  rtmp_setup_connection,                /* setup_connection */
   rtmp_do,                              /* do_it */
   rtmp_done,                            /* done */
   ZERO_NULL,                            /* do_more */
@@ -142,7 +144,7 @@ const struct Curl_handler Curl_handler_rtmpte = {
 
 const struct Curl_handler Curl_handler_rtmps = {
   "RTMPS",                              /* scheme */
-  rtmp_setup,                           /* setup_connection */
+  rtmp_setup_connection,                /* setup_connection */
   rtmp_do,                              /* do_it */
   rtmp_done,                            /* done */
   ZERO_NULL,                            /* do_more */
@@ -162,7 +164,7 @@ const struct Curl_handler Curl_handler_rtmps = {
 
 const struct Curl_handler Curl_handler_rtmpts = {
   "RTMPTS",                             /* scheme */
-  rtmp_setup,                           /* setup_connection */
+  rtmp_setup_connection,                /* setup_connection */
   rtmp_do,                              /* do_it */
   rtmp_done,                            /* done */
   ZERO_NULL,                            /* do_more */
@@ -180,10 +182,9 @@ const struct Curl_handler Curl_handler_rtmpts = {
   PROTOPT_NONE                          /* flags*/
 };
 
-static CURLcode rtmp_setup(struct connectdata *conn)
+static CURLcode rtmp_setup_connection(struct connectdata *conn)
 {
   RTMP *r = RTMP_Alloc();
-
   if(!r)
     return CURLE_OUT_OF_MEMORY;
 
@@ -215,7 +216,7 @@ static CURLcode rtmp_connect(struct connectdata *conn, bool *done)
      !(r->Link.protocol & RTMP_FEATURE_HTTP))
     r->Link.lFlags |= RTMP_LF_BUFX;
 
-  curlx_nonblock(r->m_sb.sb_socket, FALSE);
+  (void)curlx_nonblock(r->m_sb.sb_socket, FALSE);
   setsockopt(r->m_sb.sb_socket, SOL_SOCKET, SO_RCVTIMEO,
              (char *)&tv, sizeof(tv));
 
@@ -239,7 +240,7 @@ static CURLcode rtmp_do(struct connectdata *conn, bool *done)
     return CURLE_FAILED_INIT;
 
   if(conn->data->set.upload) {
-    Curl_pgrsSetUploadSize(conn->data, conn->data->set.infilesize);
+    Curl_pgrsSetUploadSize(conn->data, conn->data->state.infilesize);
     Curl_setup_transfer(conn, -1, -1, FALSE, NULL, FIRSTSOCKET, NULL);
   }
   else
@@ -279,7 +280,7 @@ static ssize_t rtmp_recv(struct connectdata *conn, int sockindex, char *buf,
 
   (void)sockindex; /* unused */
 
-  nread = RTMP_Read(r, buf, len);
+  nread = RTMP_Read(r, buf, curlx_uztosi(len));
   if(nread < 0) {
     if(r->m_read.status == RTMP_READ_COMPLETE ||
         r->m_read.status == RTMP_READ_EOF) {
@@ -300,7 +301,7 @@ static ssize_t rtmp_send(struct connectdata *conn, int sockindex,
 
   (void)sockindex; /* unused */
 
-  num = RTMP_Write(r, (char *)buf, len);
+  num = RTMP_Write(r, (char *)buf, curlx_uztosi(len));
   if(num < 0)
     *err = CURLE_SEND_ERROR;
 

@@ -24,10 +24,6 @@
 #ifndef HAVE_GETPASS_R
 /* this file is only for systems without getpass_r() */
 
-#ifdef HAVE_UNISTD_H
-#  include <unistd.h>
-#endif
-
 #ifdef HAVE_FCNTL_H
 #  include <fcntl.h>
 #endif
@@ -121,7 +117,7 @@ char *getpass_r(const char *prompt, char *buffer, size_t buflen)
       if(buffer[i] == '\b')
         /* remove this letter and if this is not the first key, remove the
            previous one as well */
-        i = i - (i >= 1) ? 2 : 1;
+        i = i - (i >= 1 ? 2 : 1);
   }
 #ifndef __SYMBIAN32__
   /* since echo is disabled, print a newline */

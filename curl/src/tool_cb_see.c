@@ -21,10 +21,6 @@
  ***************************************************************************/
 #include "tool_setup.h"
 
-#ifdef HAVE_UNISTD_H
-#  include <unistd.h>
-#endif
-
 #define ENABLE_CURLX_PRINTF
 /* use our own printf() functions */
 #include "curlx.h"
@@ -106,6 +102,14 @@ int tool_seek_cb(void *userdata, curl_off_t offset, int whence)
 #  else
 #    define _lseeki64(hnd,ofs,whence) _lseek64(hnd,ofs,whence)
 #  endif
+#endif
+
+#ifdef _WIN32_WCE
+/* 64-bit lseek-like function unavailable */
+#  undef _lseeki64
+#  define _lseeki64(hnd,ofs,whence) lseek(hnd,ofs,whence)
+#  undef _get_osfhandle
+#  define _get_osfhandle(fd) (fd)
 #endif
 
 /*

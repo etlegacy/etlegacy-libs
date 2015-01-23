@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2011, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2014, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -20,11 +20,8 @@
  *
  ***************************************************************************/
 
-#include "setup.h"
+#include "curl_setup.h"
 
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
@@ -33,9 +30,6 @@
 #endif
 #ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
-#endif
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>     /* for the close() proto */
 #endif
 #ifdef __VMS
 #include <in.h>
@@ -81,7 +75,7 @@ CURLcode Curl_addrinfo_callback(struct connectdata *conn,
                                 struct Curl_addrinfo *ai)
 {
   struct Curl_dns_entry *dns = NULL;
-  CURLcode rc = CURLE_OK;
+  CURLcode result = CURLE_OK;
 
   conn->async.status = status;
 
@@ -98,14 +92,14 @@ CURLcode Curl_addrinfo_callback(struct connectdata *conn,
       if(!dns) {
         /* failed to store, cleanup and return error */
         Curl_freeaddrinfo(ai);
-        rc = CURLE_OUT_OF_MEMORY;
+        result = CURLE_OUT_OF_MEMORY;
       }
 
       if(data->share)
         Curl_share_unlock(data, CURL_LOCK_DATA_DNS);
     }
     else {
-      rc = CURLE_OUT_OF_MEMORY;
+      result = CURLE_OUT_OF_MEMORY;
     }
   }
 
@@ -116,9 +110,9 @@ CURLcode Curl_addrinfo_callback(struct connectdata *conn,
     async struct */
   conn->async.done = TRUE;
 
-  /* ipv4: The input hostent struct will be freed by ares when we return from
+  /* IPv4: The input hostent struct will be freed by ares when we return from
      this function */
-  return rc;
+  return result;
 }
 
 /* Call this function after Curl_connect() has returned async=TRUE and

@@ -58,8 +58,18 @@ int main(void)
   struct WriteThis pooh;
 
   pooh.readptr = data;
-  pooh.sizeleft = strlen(data);
+  pooh.sizeleft = (long)strlen(data);
 
+  /* In windows, this will init the winsock stuff */
+  res = curl_global_init(CURL_GLOBAL_DEFAULT);
+  /* Check for errors */
+  if(res != CURLE_OK) {
+    fprintf(stderr, "curl_global_init() failed: %s\n",
+            curl_easy_strerror(res));
+    return 1;
+  }
+
+  /* get a curl handle */
   curl = curl_easy_init();
   if(curl) {
     /* First set the URL that is about to receive our POST. */
@@ -120,9 +130,14 @@ int main(void)
 
     /* Perform the request, res will get the return code */
     res = curl_easy_perform(curl);
+    /* Check for errors */
+    if(res != CURLE_OK)
+      fprintf(stderr, "curl_easy_perform() failed: %s\n",
+              curl_easy_strerror(res));
 
     /* always cleanup */
     curl_easy_cleanup(curl);
   }
+  curl_global_cleanup();
   return 0;
 }

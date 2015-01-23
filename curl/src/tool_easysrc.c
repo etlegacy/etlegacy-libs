@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2012, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2014, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -140,7 +140,7 @@ CURLcode easysrc_perform(void)
     const char *c;
     CHKRET(easysrc_add(&easysrc_code, ""));
     /* Preamble comment */
-    for(i=0; ((c = srchard[i]) != '\0'); i++)
+    for(i=0; ((c = srchard[i]) != NULL); i++)
       CHKRET(easysrc_add(&easysrc_code, c));
     /* Each unconverted option */
     for(ptr=easysrc_toohard; ptr; ptr = ptr->next)
@@ -154,18 +154,20 @@ CURLcode easysrc_perform(void)
 
   CHKRET(easysrc_add(&easysrc_code, ""));
   CHKRET(easysrc_add(&easysrc_code, "ret = curl_easy_perform(hnd);"));
+  CHKRET(easysrc_add(&easysrc_code, ""));
+
   return CURLE_OK;
 }
 
 CURLcode easysrc_cleanup(void)
 {
-  CHKRET(easysrc_add(&easysrc_code, ""));
   CHKRET(easysrc_add(&easysrc_code, "curl_easy_cleanup(hnd);"));
   CHKRET(easysrc_add(&easysrc_code, "hnd = NULL;"));
+
   return CURLE_OK;
 }
 
-void dumpeasysrc(struct Configurable *config)
+void dumpeasysrc(struct GlobalConfig *config)
 {
   struct curl_slist *ptr;
   char *o = config->libcurl;
@@ -180,12 +182,12 @@ void dumpeasysrc(struct Configurable *config)
     else
       out = stdout;
     if(!out)
-      warnf(config, "Failed to open %s to write libcurl code!\n", o);
+      warnf(config->current, "Failed to open %s to write libcurl code!\n", o);
     else {
       int i;
       const char *c;
 
-      for(i=0; ((c = srchead[i]) != '\0'); i++)
+      for(i=0; ((c = srchead[i]) != NULL); i++)
         fprintf(out, "%s\n", c);
 
       /* Declare variables used for complex setopt values */
@@ -213,7 +215,7 @@ void dumpeasysrc(struct Configurable *config)
       for(ptr=easysrc_clean; ptr; ptr = ptr->next)
         fprintf(out, "  %s\n", ptr->data);
 
-      for(i=0; ((c = srcend[i]) != '\0'); i++)
+      for(i=0; ((c = srcend[i]) != NULL); i++)
         fprintf(out, "%s\n", c);
 
       if(fopened)

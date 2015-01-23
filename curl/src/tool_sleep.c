@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2012, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2014, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -23,10 +23,6 @@
 
 #ifdef HAVE_SYS_SELECT_H
 #  include <sys/select.h>
-#endif
-
-#ifdef HAVE_SYS_SOCKET_H
-#  include <sys/socket.h>
 #endif
 
 #ifdef HAVE_SYS_POLL_H
@@ -50,7 +46,7 @@ void tool_go_sleep(long ms)
 #elif defined(WIN32)
   Sleep(ms);
 #elif defined(HAVE_POLL_FINE)
-  poll((void *)0, 0, (int)ms);
+  (void)poll((void *)0, 0, (int)ms);
 #else
   struct timeval timeout;
   timeout.tv_sec = ms / 1000L;
