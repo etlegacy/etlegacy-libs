@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    TrueType and OpenType embedded bitmap support (body).                */
 /*                                                                         */
-/*  Copyright 2005-2009, 2013 by                                           */
+/*  Copyright 2005-2009, 2013, 2014 by                                     */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  Copyright 2013 by Google, Inc.                                         */
@@ -150,11 +150,24 @@
           error = FT_THROW( Unknown_File_Format );
           goto Exit;
         }
-        if ( flags != 0x0001 || num_strikes >= 0x10000UL )
+
+        /* Bit 0 must always be `1'.                            */
+        /* Bit 1 controls the overlay of bitmaps with outlines. */
+        /* All other bits should be zero.                       */
+        if ( !( flags == 1 || flags == 3 ) ||
+             num_strikes >= 0x10000UL      )
         {
           error = FT_THROW( Invalid_File_Format );
           goto Exit;
         }
+
+        /* we currently don't support bit 1; however, it is better to */
+        /* draw at least something...                                 */
+        if ( flags == 3 )
+          FT_TRACE1(( "tt_face_load_sbit_strikes:"
+                      " sbix overlay not supported yet\n"
+                      "                          "
+                      " expect bad rendering results\n" ));
 
         /*
          *  Count the number of strikes available in the table.  We are a bit
@@ -256,7 +269,8 @@
     case TT_SBIT_TABLE_TYPE_SBIX:
       {
         FT_Stream       stream = face->root.stream;
-        FT_UInt         offset, ppem, resolution, upem;
+        FT_UInt         offset, upem;
+        FT_UShort       ppem, resolution;
         TT_HoriHeader  *hori;
         FT_ULong        table_size;
 
@@ -380,9 +394,11 @@
       p                          += 34;
       decoder->bit_depth          = *p;
 
-      if ( decoder->strike_index_array > face->sbit_table_size             ||
-           decoder->strike_index_array + 8 * decoder->strike_index_count >
-             face->sbit_table_size                                         )
+      /* decoder->strike_index_array +                               */
+      /*   8 * decoder->strike_index_count > face->sbit_table_size ? */
+      if ( decoder->strike_index_array > face->sbit_table_size           ||
+           decoder->strike_index_count >
+             ( face->sbit_table_size - decoder->strike_index_array ) / 8 )
         error = FT_THROW( Invalid_File_Format );
     }
 
@@ -504,13 +520,20 @@
 
       p += 3;
     }
+    else
+    {
+      /* avoid uninitialized data in case there is no vertical info -- */
+      metrics->vertBearingX = 0;
+      metrics->vertBearingY = 0;
+      metrics->vertAdvance  = 0;
+    }
 
     decoder->metrics_loaded = 1;
     *pp = p;
     return FT_Err_Ok;
 
   Fail:
-    FT_TRACE1(( "tt_sbit_decoder_load_metrics: broken table" ));
+    FT_TRACE1(( "tt_sbit_decoder_load_metrics: broken table\n" ));
     return FT_THROW( Invalid_Argument );
   }
 
@@ -800,12 +823,12 @@
     FT_Error  error = FT_Err_Ok;
     FT_UInt   num_components, nn;
 
-    FT_Char  horiBearingX = decoder->metrics->horiBearingX;
-    FT_Char  horiBearingY = decoder->metrics->horiBearingY;
-    FT_Byte  horiAdvance  = decoder->metrics->horiAdvance;
-    FT_Char  vertBearingX = decoder->metrics->vertBearingX;
-    FT_Char  vertBearingY = decoder->metrics->vertBearingY;
-    FT_Byte  vertAdvance  = decoder->metrics->vertAdvance;
+    FT_Char  horiBearingX = (FT_Char)decoder->metrics->horiBearingX;
+    FT_Char  horiBearingY = (FT_Char)decoder->metrics->horiBearingY;
+    FT_Byte  horiAdvance  = (FT_Byte)decoder->metrics->horiAdvance;
+    FT_Char  vertBearingX = (FT_Char)decoder->metrics->vertBearingX;
+    FT_Char  vertBearingY = (FT_Char)decoder->metrics->vertBearingY;
+    FT_Byte  vertAdvance  = (FT_Byte)decoder->metrics->vertAdvance;
 
 
     if ( p + 2 > limit )
@@ -967,7 +990,6 @@
         break;
 
       case 2:
-      case 5:
       case 7:
         {
           /* Don't trust `glyph_format'.  For example, Apple's main Korean */
@@ -976,15 +998,29 @@
           /* an excessive number of bytes in the image: If it is equal to  */
           /* the value for a byte-aligned glyph, use the other loading     */
           /* routine.                                                      */
+          /*                                                               */
+          /* Note that for some (width,height) combinations, where the     */
+          /* width is not a multiple of 8, the sizes for bit- and          */
+          /* byte-aligned data are equal, for example (7,7) or (15,6).  We */
+          /* then prefer what `glyph_format' specifies.                    */
+
           FT_UInt  width  = decoder->metrics->width;
           FT_UInt  height = decoder->metrics->height;
 
+          FT_UInt  bit_size  = ( width * height + 7 ) >> 3;
+          FT_UInt  byte_size = height * ( ( width + 7 ) >> 3 );
 
-          if ( height * ( ( width + 7 ) >> 3 ) == (FT_UInt)( p_limit - p ) )
+
+          if ( bit_size < byte_size                  &&
+               byte_size == (FT_UInt)( p_limit - p ) )
             loader = tt_sbit_decoder_load_byte_aligned;
           else
             loader = tt_sbit_decoder_load_bit_aligned;
         }
+        break;
+
+      case 5:
+        loader = tt_sbit_decoder_load_bit_aligned;
         break;
 
       case 8:
@@ -1003,10 +1039,11 @@
       case 19: /* metrics in EBLC, PNG image data */
 #ifdef FT_CONFIG_OPTION_USE_PNG
         loader = tt_sbit_decoder_load_png;
+        break;
 #else
         error = FT_THROW( Unimplemented_Feature );
+        goto Fail;
 #endif /* FT_CONFIG_OPTION_USE_PNG */
-        break;
 
       default:
         error = FT_THROW( Invalid_Table );
@@ -1133,7 +1170,8 @@
         num_glyphs = FT_NEXT_ULONG( p );
 
         /* overflow check for p + ( num_glyphs + 1 ) * 4 */
-        if ( num_glyphs > (FT_ULong)( ( ( p_limit - p ) >> 2 ) - 1 ) )
+        if ( p + 4 > p_limit                                         ||
+             num_glyphs > (FT_ULong)( ( ( p_limit - p ) >> 2 ) - 1 ) )
           goto NoBitmap;
 
         for ( mm = 0; mm < num_glyphs; mm++ )
@@ -1233,11 +1271,11 @@
                            FT_Bitmap           *map,
                            TT_SBit_MetricsRec  *metrics )
   {
-    FT_UInt     sbix_pos, strike_offset, glyph_start, glyph_end;
-    FT_ULong    table_size, data_size;
-    FT_Int      originOffsetX, originOffsetY;
-    FT_Tag      graphicType;
-    FT_Int      recurse_depth = 0;
+    FT_UInt   sbix_pos, strike_offset, glyph_start, glyph_end;
+    FT_ULong  table_size;
+    FT_Int    originOffsetX, originOffsetY;
+    FT_Tag    graphicType;
+    FT_Int    recurse_depth = 0;
 
     FT_Error  error;
     FT_Byte*  p;
@@ -1288,7 +1326,6 @@
     originOffsetY = FT_GET_SHORT();
 
     graphicType = FT_GET_TAG4();
-    data_size   = glyph_end - glyph_start - 8;
 
     switch ( graphicType )
     {
@@ -1312,7 +1349,7 @@
                              metrics,
                              stream->memory,
                              stream->cursor,
-                             data_size,
+                             glyph_end - glyph_start - 8,
                              TRUE );
 #else
       error = FT_THROW( Unimplemented_Feature );
@@ -1321,6 +1358,7 @@
 
     case FT_MAKE_TAG( 'j', 'p', 'g', ' ' ):
     case FT_MAKE_TAG( 't', 'i', 'f', 'f' ):
+    case FT_MAKE_TAG( 'r', 'g', 'b', 'l' ): /* used on iOS 7.1 */
       error = FT_THROW( Unknown_File_Format );
       break;
 
@@ -1339,10 +1377,11 @@
 
       tt_face_get_metrics( face, FALSE, glyph_index, &abearing, &aadvance );
 
-      metrics->horiBearingX = originOffsetX;
-      metrics->horiBearingY = -originOffsetY + metrics->height;
-      metrics->horiAdvance  = aadvance * face->root.size->metrics.x_ppem /
-                                face->header.Units_Per_EM;
+      metrics->horiBearingX = (FT_Short)originOffsetX;
+      metrics->horiBearingY = (FT_Short)( -originOffsetY + metrics->height );
+      metrics->horiAdvance  = (FT_Short)( aadvance *
+                                          face->root.size->metrics.x_ppem /
+                                          face->header.Units_Per_EM );
     }
 
     return error;

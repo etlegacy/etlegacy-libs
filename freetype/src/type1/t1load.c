@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Type 1 font loader (body).                                           */
 /*                                                                         */
-/*  Copyright 1996-2013 by                                                 */
+/*  Copyright 1996-2014 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -377,8 +377,6 @@
     if ( blend && blend->num_axis == num_coords )
     {
       /* recompute the weight vector from the blend coordinates */
-      error = FT_Err_Ok;
-
       for ( n = 0; n < blend->num_designs; n++ )
       {
         FT_Fixed  result = 0x10000L;  /* 1.0 fixed */
@@ -1107,7 +1105,7 @@
 
     result = T1_ToFixedArray( parser, 6, temp, 3 );
 
-    if ( result < 0 )
+    if ( result < 6 )
     {
       parser->root.error = FT_THROW( Invalid_File_Format );
       return;
@@ -1213,7 +1211,7 @@
         char*  notdef = (char *)".notdef";
 
 
-        T1_Add_Table( char_table, n, notdef, 8 );
+        (void)T1_Add_Table( char_table, n, notdef, 8 );
       }
 
       /* Now we need to read records of the form                */
@@ -1274,6 +1272,13 @@
           {
             charcode = (FT_Int)T1_ToInt( parser );
             T1_Skip_Spaces( parser );
+
+            /* protect against invalid charcode */
+            if ( cur == parser->root.cursor )
+            {
+              parser->root.error = FT_THROW( Unknown_File_Format );
+              return;
+            }
           }
 
           cur = parser->root.cursor;
@@ -1591,6 +1596,11 @@
       }
 
       T1_Skip_PS_Token( parser );
+      if ( parser->root.cursor >= limit )
+      {
+        error = FT_THROW( Invalid_File_Format );
+        goto Fail;
+      }
       if ( parser->root.error )
         return;
 
@@ -1599,7 +1609,7 @@
         FT_PtrDist  len;
 
 
-        if ( cur + 1 >= limit )
+        if ( cur + 2 >= limit )
         {
           error = FT_THROW( Invalid_File_Format );
           goto Fail;

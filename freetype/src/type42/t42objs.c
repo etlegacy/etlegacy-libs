@@ -47,6 +47,12 @@
     if ( FT_ALLOC( face->ttf_data, 12 ) )
       goto Exit;
 
+    /* while parsing the font we always update `face->ttf_size' so that */
+    /* even in case of buggy data (which might lead to premature end of */
+    /* scanning without causing an error) the call to `FT_Open_Face' in */
+    /* `T42_Face_Init' passes the correct size                          */
+    face->ttf_size = 12;
+
     error = t42_parser_init( parser,
                              face->root.stream,
                              memory,
@@ -218,9 +224,9 @@
     root->num_charmaps = 0;
     root->face_index   = 0;
 
-    root->face_flags = FT_FACE_FLAG_SCALABLE    |
-                       FT_FACE_FLAG_HORIZONTAL  |
-                       FT_FACE_FLAG_GLYPH_NAMES;
+    root->face_flags |= FT_FACE_FLAG_SCALABLE    |
+                        FT_FACE_FLAG_HORIZONTAL  |
+                        FT_FACE_FLAG_GLYPH_NAMES;
 
     if ( info->is_fixed_pitch )
       root->face_flags |= FT_FACE_FLAG_FIXED_WIDTH;
@@ -286,7 +292,9 @@
       FT_Open_Args  args;
 
 
-      args.flags       = FT_OPEN_MEMORY;
+      args.flags       = FT_OPEN_MEMORY | FT_OPEN_DRIVER;
+      args.driver      = FT_Get_Module( FT_FACE_LIBRARY( face ),
+                                        "truetype" );
       args.memory_base = face->ttf_data;
       args.memory_size = face->ttf_size;
 

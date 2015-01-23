@@ -3,7 +3,7 @@
 #
 
 
-# Copyright 1996-2006, 2008, 2013 by
+# Copyright 1996-2006, 2008, 2013, 2014 by
 # David Turner, Robert Wilhelm, and Werner Lemberg.
 #
 # This file is part of the FreeType project, and may only be used, modified,
@@ -126,6 +126,14 @@ INCLUDES := $(subst /,$(COMPILER_SEP),$(OBJ_DIR) \
 
 INCLUDE_FLAGS := $(INCLUDES:%=$I%)
 
+ifdef DEVEL_DIR
+  # We assume that all library dependencies for FreeType are fulfilled for a
+  # development build, so we directly access the necessary include directory
+  # information using `pkg-config'.
+  INCLUDE_FLAGS += $(shell pkg-config --cflags libpng \
+                                               harfbuzz )
+endif
+
 
 # C flags used for the compilation of an object file.  This must include at
 # least the paths for the `base' and `builds/<system>' directories;
@@ -147,13 +155,14 @@ ifneq ($(wildcard $(OBJ_DIR)/ftoption.h),)
   FTOPTION_FLAG := $DFT_CONFIG_OPTIONS_H="<ftoption.h>"
 endif
 
+# Note that a build with the `configure' script uses $(CFLAGS) only.
+#
 FT_CFLAGS  = $(CPPFLAGS) \
              $(INCLUDE_FLAGS) \
              $(CFLAGS) \
              $DFT2_BUILD_LIBRARY \
              $DFT_CONFIG_MODULES_H="<ftmodule.h>" \
              $(FTOPTION_FLAG)
-FT_CC      = $(CC) $(FT_CFLAGS)
 FT_COMPILE = $(CC) $(ANSIFLAGS) $(FT_CFLAGS)
 
 
@@ -288,19 +297,16 @@ ifneq ($(findstring refdoc,$(MAKECMDGOALS)),)
   version := $(major).$(minor).$(patch)
 endif
 
-# We write-protect the docmaker directory to suppress generation
-# of .pyc files.
+# Option `-B' disables generation of .pyc files (available since python 2.6)
 #
 refdoc:
-	-chmod -w $(SRC_DIR)/tools/docmaker
-	python $(SRC_DIR)/tools/docmaker/docmaker.py \
-               --prefix=ft2                          \
-               --title=FreeType-$(version)           \
-               --output=$(DOC_DIR)                   \
-               $(PUBLIC_DIR)/*.h                     \
-               $(PUBLIC_DIR)/config/*.h              \
-               $(PUBLIC_DIR)/cache/*.h
-	-chmod +w $(SRC_DIR)/tools/docmaker
+	python -B $(SRC_DIR)/tools/docmaker/docmaker.py \
+                  --prefix=ft2                          \
+                  --title=FreeType-$(version)           \
+                  --output=$(DOC_DIR)                   \
+                  $(PUBLIC_DIR)/*.h                     \
+                  $(PUBLIC_DIR)/config/*.h              \
+                  $(PUBLIC_DIR)/cache/*.h
 
 
 .PHONY: clean_project_std distclean_project_std

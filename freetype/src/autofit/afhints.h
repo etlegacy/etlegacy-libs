@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Auto-fitter hinting routines (specification).                        */
 /*                                                                         */
-/*  Copyright 2003-2008, 2010-2012 by                                      */
+/*  Copyright 2003-2008, 2010-2012, 2014 by                                */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -27,7 +27,7 @@ FT_BEGIN_HEADER
 
   /*
    *  The definition of outline glyph hints.  These are shared by all
-   *  script analysis routines (until now).
+   *  writing system analysis routines (until now).
    */
 
   typedef enum  AF_Dimension_
@@ -72,13 +72,9 @@ FT_BEGIN_HEADER
    *    `af_{cjk,latin,...}_hints_compute_segments' are the functions to
    *    find segments in an outline.
    *
-   *    A segment is a series of consecutive points that are approximately
-   *    aligned along a coordinate axis.  The analysis to do so is specific
-   *    to a writing system.
-   *
-   *    A segment must have at least two points, except in the case of
-   *    `fake' segments that are generated to hint metrics appropriately,
-   *    and which consist of a single point.
+   *    A segment is a series of at least two consecutive points that are
+   *    approximately aligned along a coordinate axis.  The analysis to do
+   *    so is specific to a writing system.
    *
    *
    *  Edges
@@ -148,7 +144,7 @@ FT_BEGIN_HEADER
    *    Serifs are detected by `af_{cjk,latin,...}_hint_edges'.
    *
    *    In comparison to a stem, a serif (as handled by the auto-hinter
-   *    module which takes care of the `latin' writing system) has
+   *    module that takes care of the `latin' writing system) has
    *
    *      best segment_1 = segment_2 && best segment_2 != segment_1
    *
@@ -178,19 +174,19 @@ FT_BEGIN_HEADER
    *
    *  Strong Points
    *
-   *    Experience has shown that points which are not part of an edge need
-   *    to be interpolated linearly between their two closest edges, even if
-   *    these are not part of the contour of those particular points.
-   *    Typical candidates for this are
+   *    Experience has shown that points not part of an edge need to be
+   *    interpolated linearly between their two closest edges, even if these
+   *    are not part of the contour of those particular points.  Typical
+   *    candidates for this are
    *
    *    - angle points (i.e., points where the `in' and `out' direction
    *      differ greatly)
    *
    *    - inflection points (i.e., where the `in' and `out' angles are the
    *      same, but the curvature changes sign) [currently, such points
-   *      aren't handled in the auto-hinter]
+   *      aren't handled specially in the auto-hinter]
    *
-   *    `af_glyph_hints_align_strong_points' is the function which takes
+   *    `af_glyph_hints_align_strong_points' is the function that takes
    *    care of such situations; it is equivalent to the TrueType `IP'
    *    hinting instruction.
    *
@@ -220,26 +216,12 @@ FT_BEGIN_HEADER
     AF_FLAG_CUBIC   = 1 << 1,
     AF_FLAG_CONTROL = AF_FLAG_CONIC | AF_FLAG_CUBIC,
 
-    /* point extremum flags */
-    AF_FLAG_EXTREMA_X = 1 << 2,
-    AF_FLAG_EXTREMA_Y = 1 << 3,
-
-    /* point roundness flags */
-    AF_FLAG_ROUND_X = 1 << 4,
-    AF_FLAG_ROUND_Y = 1 << 5,
-
     /* point touch flags */
-    AF_FLAG_TOUCH_X = 1 << 6,
-    AF_FLAG_TOUCH_Y = 1 << 7,
+    AF_FLAG_TOUCH_X = 1 << 2,
+    AF_FLAG_TOUCH_Y = 1 << 3,
 
     /* candidates for weak interpolation have this flag set */
-    AF_FLAG_WEAK_INTERPOLATION = 1 << 8,
-
-    /* all inflection points in the outline have this flag set */
-    AF_FLAG_INFLECTION = 1 << 9,
-
-    /* the current point is very near to another one */
-    AF_FLAG_NEAR = 1 << 10
+    AF_FLAG_WEAK_INTERPOLATION = 1 << 4
 
   } AF_Flags;
 
@@ -247,10 +229,11 @@ FT_BEGIN_HEADER
   /* edge hint flags */
   typedef enum  AF_Edge_Flags_
   {
-    AF_EDGE_NORMAL = 0,
-    AF_EDGE_ROUND  = 1 << 0,
-    AF_EDGE_SERIF  = 1 << 1,
-    AF_EDGE_DONE   = 1 << 2
+    AF_EDGE_NORMAL  = 0,
+    AF_EDGE_ROUND   = 1 << 0,
+    AF_EDGE_SERIF   = 1 << 1,
+    AF_EDGE_DONE    = 1 << 2,
+    AF_EDGE_NEUTRAL = 1 << 3  /* set if edge aligns to a neutral blue zone */
 
   } AF_Edge_Flags;
 
@@ -343,31 +326,31 @@ FT_BEGIN_HEADER
 
   typedef struct  AF_GlyphHintsRec_
   {
-    FT_Memory         memory;
+    FT_Memory        memory;
 
-    FT_Fixed          x_scale;
-    FT_Pos            x_delta;
+    FT_Fixed         x_scale;
+    FT_Pos           x_delta;
 
-    FT_Fixed          y_scale;
-    FT_Pos            y_delta;
+    FT_Fixed         y_scale;
+    FT_Pos           y_delta;
 
-    FT_Int            max_points;    /* number of allocated points */
-    FT_Int            num_points;    /* number of used points      */
-    AF_Point          points;        /* points array               */
+    FT_Int           max_points;    /* number of allocated points */
+    FT_Int           num_points;    /* number of used points      */
+    AF_Point         points;        /* points array               */
 
-    FT_Int            max_contours;  /* number of allocated contours */
-    FT_Int            num_contours;  /* number of used contours      */
-    AF_Point*         contours;      /* contours array               */
+    FT_Int           max_contours;  /* number of allocated contours */
+    FT_Int           num_contours;  /* number of used contours      */
+    AF_Point*        contours;      /* contours array               */
 
-    AF_AxisHintsRec   axis[AF_DIMENSION_MAX];
+    AF_AxisHintsRec  axis[AF_DIMENSION_MAX];
 
-    FT_UInt32         scaler_flags;  /* copy of scaler flags     */
-    FT_UInt32         other_flags;   /* free for script-specific */
-                                     /* implementations          */
-    AF_ScriptMetrics  metrics;
+    FT_UInt32        scaler_flags;  /* copy of scaler flags    */
+    FT_UInt32        other_flags;   /* free for style-specific */
+                                    /* implementations         */
+    AF_StyleMetrics  metrics;
 
-    FT_Pos            xmin_delta;    /* used for warping */
-    FT_Pos            xmax_delta;
+    FT_Pos           xmin_delta;    /* used for warping */
+    FT_Pos           xmax_delta;
 
   } AF_GlyphHintsRec;
 
@@ -429,8 +412,8 @@ FT_BEGIN_HEADER
                        FT_Memory      memory );
 
   FT_LOCAL( void )
-  af_glyph_hints_rescale( AF_GlyphHints     hints,
-                          AF_ScriptMetrics  metrics );
+  af_glyph_hints_rescale( AF_GlyphHints    hints,
+                          AF_StyleMetrics  metrics );
 
   FT_LOCAL( FT_Error )
   af_glyph_hints_reload( AF_GlyphHints  hints,

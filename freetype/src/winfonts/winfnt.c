@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    FreeType font driver for Windows FNT/FON files                       */
 /*                                                                         */
-/*  Copyright 1996-2004, 2006-2013 by                                      */
+/*  Copyright 1996-2004, 2006-2014 by                                      */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*  Copyright 2003 Huw D M Davies for Codeweavers                          */
 /*  Copyright 2007 Dmitry Timoshkov for Codeweavers                        */
@@ -72,12 +72,12 @@
 
     FT_FRAME_START( 248 ),
       FT_FRAME_ULONG_LE  ( magic ),   /* PE00 */
-      FT_FRAME_USHORT_LE ( machine ), /* 0x014c - i386 */
+      FT_FRAME_USHORT_LE ( machine ), /* 0x014C - i386 */
       FT_FRAME_USHORT_LE ( number_of_sections ),
       FT_FRAME_SKIP_BYTES( 12 ),
       FT_FRAME_USHORT_LE ( size_of_optional_header ),
       FT_FRAME_SKIP_BYTES( 2 ),
-      FT_FRAME_USHORT_LE ( magic32 ), /* 0x10b */
+      FT_FRAME_USHORT_LE ( magic32 ), /* 0x10B */
       FT_FRAME_SKIP_BYTES( 110 ),
       FT_FRAME_ULONG_LE  ( rsrc_virtual_address ),
       FT_FRAME_ULONG_LE  ( rsrc_size ),
@@ -412,9 +412,9 @@
                     pe32_header.rsrc_size ));
 
         if ( pe32_header.magic != WINFNT_PE_MAGIC /* check full signature */ ||
-             pe32_header.machine != 0x014c /* i386 */                        ||
-             pe32_header.size_of_optional_header != 0xe0 /* FIXME */         ||
-             pe32_header.magic32 != 0x10b                                    )
+             pe32_header.machine != 0x014C /* i386 */                        ||
+             pe32_header.size_of_optional_header != 0xE0 /* FIXME */         ||
+             pe32_header.magic32 != 0x10B                                    )
         {
           FT_TRACE2(( "this file has an invalid PE header\n" ));
           error = FT_THROW( Invalid_File_Format );
@@ -591,10 +591,13 @@
 
 
   static FT_Error
-  fnt_cmap_init( FNT_CMap  cmap )
+  fnt_cmap_init( FNT_CMap    cmap,
+                 FT_Pointer  pointer )
   {
     FNT_Face  face = (FNT_Face)FT_CMAP_FACE( cmap );
     FNT_Font  font = face->font;
+
+    FT_UNUSED( pointer );
 
 
     cmap->first = (FT_UInt32)  font->header.first_char;
@@ -743,8 +746,8 @@
 
       root->face_index = face_index;
 
-      root->face_flags = FT_FACE_FLAG_FIXED_SIZES |
-                         FT_FACE_FLAG_HORIZONTAL;
+      root->face_flags |= FT_FACE_FLAG_FIXED_SIZES |
+                          FT_FACE_FLAG_HORIZONTAL;
 
       if ( font->header.avg_width == font->header.max_width )
         root->face_flags |= FT_FACE_FLAG_FIXED_WIDTH;
@@ -971,13 +974,13 @@
 
     if ( !face )
     {
-      error = FT_THROW( Invalid_Argument );
+      error = FT_THROW( Invalid_Face_Handle );
       goto Exit;
     }
 
     font = face->font;
 
-    if ( !font ||
+    if ( !font                                                   ||
          glyph_index >= (FT_UInt)( FT_FACE( face )->num_glyphs ) )
     {
       error = FT_THROW( Invalid_Argument );
@@ -989,16 +992,26 @@
     if ( glyph_index > 0 )
       glyph_index--;                           /* revert to real index */
     else
-      glyph_index = font->header.default_char; /* the .notdef glyph */
+      glyph_index = font->header.default_char; /* the `.notdef' glyph  */
 
     new_format = FT_BOOL( font->header.version == 0x300 );
     len        = new_format ? 6 : 4;
 
-    /* jump to glyph entry */
-    p = font->fnt_frame + ( new_format ? 148 : 118 ) + len * glyph_index;
+    /* get glyph width and offset */
+    offset = ( new_format ? 148 : 118 ) + len * glyph_index;
+
+    if ( offset >= font->header.file_size - 2 - ( new_format ? 4 : 2 ) )
+    {
+      FT_TRACE2(( "invalid FNT offset\n" ));
+      error = FT_THROW( Invalid_File_Format );
+      goto Exit;
+    }
+
+    p = font->fnt_frame + offset;
 
     bitmap->width = FT_NEXT_SHORT_LE( p );
 
+    /* jump to glyph entry */
     if ( new_format )
       offset = FT_NEXT_ULONG_LE( p );
     else

@@ -2,7 +2,7 @@
 
     FreeType font driver for bdf files
 
-    Copyright (C) 2001-2008, 2011, 2013 by
+    Copyright (C) 2001-2008, 2011, 2013, 2014 by
     Francesco Zappa Nardelli
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -182,7 +182,7 @@ THE SOFTWARE.
   }
 
 
-  FT_CALLBACK_TABLE_DEF
+  static
   const FT_CMap_ClassRec  bdf_cmap_class =
   {
     sizeof ( BDF_CMapRec ),
@@ -242,8 +242,6 @@ THE SOFTWARE.
          prop->value.atom && *(prop->value.atom)                       &&
          !( *(prop->value.atom) == 'N' || *(prop->value.atom) == 'n' ) )
       strings[0] = (char *)(prop->value.atom);
-
-    len = 0;
 
     for ( len = 0, nn = 0; nn < 4; nn++ )
     {
@@ -386,7 +384,7 @@ THE SOFTWARE.
       BDF_Face_Done( bdfface );
       return FT_THROW( Invalid_Argument );
     }
- 
+
     {
       bdf_property_t*  prop = NULL;
 
@@ -400,9 +398,10 @@ THE SOFTWARE.
 
       bdfface->num_faces  = 1;
       bdfface->face_index = 0;
-      bdfface->face_flags = FT_FACE_FLAG_FIXED_SIZES |
-                            FT_FACE_FLAG_HORIZONTAL  |
-                            FT_FACE_FLAG_FAST_GLYPHS;
+
+      bdfface->face_flags |= FT_FACE_FLAG_FIXED_SIZES |
+                             FT_FACE_FLAG_HORIZONTAL  |
+                             FT_FACE_FLAG_FAST_GLYPHS;
 
       prop = bdf_get_font_property( font, "SPACING" );
       if ( prop && prop->format == BDF_ATOM                             &&
@@ -680,7 +679,13 @@ THE SOFTWARE.
     FT_UNUSED( load_flags );
 
 
-    if ( !face || glyph_index >= (FT_UInt)face->num_glyphs )
+    if ( !face )
+    {
+      error = FT_THROW( Invalid_Face_Handle );
+      goto Exit;
+    }
+
+    if ( glyph_index >= (FT_UInt)face->num_glyphs )
     {
       error = FT_THROW( Invalid_Argument );
       goto Exit;
