@@ -13,16 +13,17 @@ if(WIN32)
 
 		set(JPEG_LIB "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
 		if(MSVC)
-    		add_definitions ( -D_CRT_SECURE_NO_WARNINGS )
-  		endif()
+			add_definitions ( -D_CRT_SECURE_NO_WARNINGS )
+		endif()
 
 		if(WIN32 AND NOT CYGWIN)
 		  set(TWO_FILE_COMMANDLINE true)
 		endif()
 		set(WITH_JPEG8 true)
 
-		configure_file (${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
 		configure_file (${JPEG_LIB}/config.h.cmake ${JPEG_LIB}/config.h)
+		configure_file (${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
+		configure_file (${JPEG_LIB}/jconfigint.h.cmake ${JPEG_LIB}/jconfigint.h)
 
 		#include_directories(${CMAKE_CURRENT_BINARY_DIR})
 		FILE(GLOB JPEG_LIB_HEADERS
@@ -60,6 +61,7 @@ if(WIN32)
 		  ${JPEG_LIB}/jdatadst.c
 		  ${JPEG_LIB}/jdatasrc.c
 		  ${JPEG_LIB}/jdcoefct.c
+		  ${JPEG_LIB}/jdcol565.c
 		  ${JPEG_LIB}/jdcolor.c
 		  ${JPEG_LIB}/jddctmgr.c
 		  ${JPEG_LIB}/jdhuff.c
@@ -68,6 +70,7 @@ if(WIN32)
 		  ${JPEG_LIB}/jdmarker.c
 		  ${JPEG_LIB}/jdmaster.c
 		  ${JPEG_LIB}/jdmerge.c
+		  ${JPEG_LIB}/jdmrg565.c
 		  ${JPEG_LIB}/jdphuff.c
 		  ${JPEG_LIB}/jdpostct.c
 		  ${JPEG_LIB}/jdsample.c
@@ -85,6 +88,7 @@ if(WIN32)
 		  ${JPEG_LIB}/jquant1.c
 		  ${JPEG_LIB}/jquant2.c
 		  ${JPEG_LIB}/jsimd_none.c
+		  ${JPEG_LIB}/jstdhuff.c
 		  ${JPEG_LIB}/jutils.c
 		  ${JPEG_LIB}/turbojpeg.c
 		  ${JPEG_LIB}/cderror.h
@@ -93,6 +97,7 @@ if(WIN32)
 		  ${JPEG_LIB}/jinclude.h
 		  ${JPEG_LIB}/jmemsys.h
 		  ${JPEG_LIB}/jpegint.h
+		  ${JPEG_LIB}/jpeg_nbits_table.h
 		  ${JPEG_LIB}/jversion.h
 		  ${JPEG_LIB}/transupp.h
 		)
@@ -101,6 +106,7 @@ if(WIN32)
 		set(JPEG_BUNDLED_LIBRARIES bundled_jpeg)
 		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
 	endif(BUNDLED_JPEG)
+
 
 	#-----------------------------------------------------------------
 	# Build bundled cURL library
