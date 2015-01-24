@@ -484,18 +484,16 @@ elseif(UNIX)
 			COMMAND eval \"CFLAGS=${CFLAGS} LDFLAGS=${LDFLAGS} ./configure --disable-oggtest && make\"
 			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/vorbis
 		)
-		add_custom_target(bundled_ogg_vorbis
+		add_custom_target(bundled_ogg_vorbis_file
 			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a
+		)
+		add_custom_target(bundled_ogg_vorbis
 			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbis.a
 		)
-
-		# Custom dummy target to make the errors go away
-		add_custom_target(bundled_ogg_vorbis_file)
-
+		add_dependencies(bundled_ogg_vorbis_file bundled_ogg)
+		add_dependencies(bundled_ogg_vorbis bundled_ogg_vorbis_file)
 		set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a" "${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbis.a")
 		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/vorbis/include")
-
-		add_dependencies(bundled_ogg_vorbis bundled_ogg)
 	endif(BUNDLED_OGG_VORBIS)
 endif()
 
