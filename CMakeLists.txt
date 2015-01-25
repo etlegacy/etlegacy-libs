@@ -17,7 +17,7 @@ if(WIN32)
 		endif()
 
 		if(WIN32 AND NOT CYGWIN)
-		  set(TWO_FILE_COMMANDLINE true)
+			set(TWO_FILE_COMMANDLINE true)
 		endif()
 		set(WITH_JPEG8 true)
 
@@ -27,79 +27,78 @@ if(WIN32)
 
 		#include_directories(${CMAKE_CURRENT_BINARY_DIR})
 		FILE(GLOB JPEG_LIB_HEADERS
-		  ${JPEG_LIB}/jerror.h
-		  ${JPEG_LIB}/jmorecfg.h
-		  ${JPEG_LIB}/jpeglib.h
-		  ${JPEG_LIB}/jconfig.h
-		  ${JPEG_LIB}/turbojpeg.h
+			${JPEG_LIB}/config.h
+			${JPEG_LIB}/jerror.h
+			${JPEG_LIB}/jmorecfg.h
+			${JPEG_LIB}/jpeglib.h
+			${JPEG_LIB}/jconfig.h
+			${JPEG_LIB}/jconfigiint.h
+			${JPEG_LIB}/turbojpeg.h
 		)
 
 		FILE(GLOB JPEG_LIB_SRC
-		  ${JPEG_LIB}/jmemnobs.c
-		  ${JPEG_LIB}/jaricom.c
-		  ${JPEG_LIB}/jcapimin.c
-		  ${JPEG_LIB}/jcapistd.c
-		  ${JPEG_LIB}/jcarith.c
-		  ${JPEG_LIB}/jccoefct.c
-		  ${JPEG_LIB}/jccolor.c
-		  ${JPEG_LIB}/jcdctmgr.c
-		  ${JPEG_LIB}/jchuff.c
-		  ${JPEG_LIB}/jcinit.c
-		  ${JPEG_LIB}/jcmainct.c
-		  ${JPEG_LIB}/jcmarker.c
-		  ${JPEG_LIB}/jcmaster.c
-		  ${JPEG_LIB}/jcomapi.c
-		  ${JPEG_LIB}/jcparam.c
-		  ${JPEG_LIB}/jcphuff.c
-		  ${JPEG_LIB}/jcprepct.c
-		  ${JPEG_LIB}/jcsample.c
-		  ${JPEG_LIB}/jctest.c
-		  ${JPEG_LIB}/jctrans.c
-		  ${JPEG_LIB}/jdapimin.c
-		  ${JPEG_LIB}/jdapistd.c
-		  ${JPEG_LIB}/jdarith.c
-		  ${JPEG_LIB}/jdatadst.c
-		  ${JPEG_LIB}/jdatasrc.c
-		  ${JPEG_LIB}/jdcoefct.c
-		  ${JPEG_LIB}/jdcol565.c
-		  ${JPEG_LIB}/jdcolor.c
-		  ${JPEG_LIB}/jddctmgr.c
-		  ${JPEG_LIB}/jdhuff.c
-		  ${JPEG_LIB}/jdinput.c
-		  ${JPEG_LIB}/jdmainct.c
-		  ${JPEG_LIB}/jdmarker.c
-		  ${JPEG_LIB}/jdmaster.c
-		  ${JPEG_LIB}/jdmerge.c
-		  ${JPEG_LIB}/jdmrg565.c
-		  ${JPEG_LIB}/jdphuff.c
-		  ${JPEG_LIB}/jdpostct.c
-		  ${JPEG_LIB}/jdsample.c
-		  ${JPEG_LIB}/jdtrans.c
-		  ${JPEG_LIB}/jerror.c
-		  ${JPEG_LIB}/jfdctflt.c
-		  ${JPEG_LIB}/jfdctfst.c
-		  ${JPEG_LIB}/jfdctint.c
-		  ${JPEG_LIB}/jidctflt.c
-		  ${JPEG_LIB}/jidctfst.c
-		  ${JPEG_LIB}/jidctint.c
-		  ${JPEG_LIB}/jidctred.c
-		  ${JPEG_LIB}/jmemmgr.c
-		  ${JPEG_LIB}/jmemnobs.c
-		  ${JPEG_LIB}/jquant1.c
-		  ${JPEG_LIB}/jquant2.c
-		  ${JPEG_LIB}/jsimd_none.c
-		  ${JPEG_LIB}/jstdhuff.c
-		  ${JPEG_LIB}/jutils.c
-		  ${JPEG_LIB}/turbojpeg.c
-		  ${JPEG_LIB}/cderror.h
-		  ${JPEG_LIB}/cdjpeg.h
-		  ${JPEG_LIB}/jdct.h
-		  ${JPEG_LIB}/jinclude.h
-		  ${JPEG_LIB}/jmemsys.h
-		  ${JPEG_LIB}/jpegint.h
-		  ${JPEG_LIB}/jpeg_nbits_table.h
-		  ${JPEG_LIB}/jversion.h
-		  ${JPEG_LIB}/transupp.h
+			${JPEG_LIB}/jmemnobs.c
+			${JPEG_LIB}/jaricom.c
+			${JPEG_LIB}/jcapimin.c
+			${JPEG_LIB}/jcapistd.c
+			${JPEG_LIB}/jcarith.c
+			${JPEG_LIB}/jccoefct.c
+			${JPEG_LIB}/jccolor.c
+			${JPEG_LIB}/jcdctmgr.c
+			${JPEG_LIB}/jchuff.c
+			${JPEG_LIB}/jcinit.c
+			${JPEG_LIB}/jcmainct.c
+			${JPEG_LIB}/jcmarker.c
+			${JPEG_LIB}/jcmaster.c
+			${JPEG_LIB}/jcomapi.c
+			${JPEG_LIB}/jcparam.c
+			${JPEG_LIB}/jcphuff.c
+			${JPEG_LIB}/jcprepct.c
+			${JPEG_LIB}/jcsample.c
+			${JPEG_LIB}/jctest.c
+			${JPEG_LIB}/jctrans.c
+			${JPEG_LIB}/jdapimin.c
+			${JPEG_LIB}/jdapistd.c
+			${JPEG_LIB}/jdarith.c
+			${JPEG_LIB}/jdatadst.c
+			${JPEG_LIB}/jdatasrc.c
+			${JPEG_LIB}/jdcoefct.c
+			${JPEG_LIB}/jdcolor.c
+			${JPEG_LIB}/jddctmgr.c
+			${JPEG_LIB}/jdhuff.c
+			${JPEG_LIB}/jdinput.c
+			${JPEG_LIB}/jdmainct.c
+			${JPEG_LIB}/jdmarker.c
+			${JPEG_LIB}/jdmaster.c
+			${JPEG_LIB}/jdmerge.c
+			${JPEG_LIB}/jdphuff.c
+			${JPEG_LIB}/jdpostct.c
+			${JPEG_LIB}/jdsample.c
+			${JPEG_LIB}/jdtrans.c
+			${JPEG_LIB}/jerror.c
+			${JPEG_LIB}/jfdctflt.c
+			${JPEG_LIB}/jfdctfst.c
+			${JPEG_LIB}/jfdctint.c
+			${JPEG_LIB}/jidctflt.c
+			${JPEG_LIB}/jidctfst.c
+			${JPEG_LIB}/jidctint.c
+			${JPEG_LIB}/jidctred.c
+			${JPEG_LIB}/jmemmgr.c
+			${JPEG_LIB}/jmemnobs.c
+			${JPEG_LIB}/jquant1.c
+			${JPEG_LIB}/jquant2.c
+			${JPEG_LIB}/jsimd_none.c
+			${JPEG_LIB}/jutils.c
+			${JPEG_LIB}/turbojpeg.c
+			${JPEG_LIB}/cderror.h
+			${JPEG_LIB}/cdjpeg.h
+			${JPEG_LIB}/jdct.h
+			${JPEG_LIB}/jinclude.h
+			${JPEG_LIB}/jmemsys.h
+			${JPEG_LIB}/jpegint.h
+			${JPEG_LIB}/jpeg_nbits_table.h
+			${JPEG_LIB}/jversion.h
+			${JPEG_LIB}/transupp.h
 		)
 
 		add_library (bundled_jpeg STATIC ${JPEG_LIB_SRC} ${JPEG_LIB_HEADERS})
