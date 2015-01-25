@@ -32,7 +32,7 @@ if(WIN32)
 			${JPEG_LIB}/jmorecfg.h
 			${JPEG_LIB}/jpeglib.h
 			${JPEG_LIB}/jconfig.h
-			${JPEG_LIB}/jconfigiint.h
+			${JPEG_LIB}/jconfigint.h
 			${JPEG_LIB}/turbojpeg.h
 		)
 
