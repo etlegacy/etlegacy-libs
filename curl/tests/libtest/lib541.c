@@ -36,13 +36,13 @@ int test(char *URL)
   CURL *curl;
   CURLcode res = CURLE_OK;
   FILE *hd_src ;
-  int hd;
+  int hd ;
   struct_stat file_info;
   int error;
 
   if (!libtest_arg2) {
     fprintf(stderr, "Usage: <url> <file-to-upload>\n");
-    return TEST_ERR_USAGE;
+    return -1;
   }
 
   hd_src = fopen(libtest_arg2, "rb");
@@ -63,13 +63,13 @@ int test(char *URL)
             error, strerror(error));
     fprintf(stderr, "ERROR: cannot open file %s\n", libtest_arg2);
     fclose(hd_src);
-    return TEST_ERR_MAJOR_BAD;
+    return -1;
   }
 
   if(! file_info.st_size) {
     fprintf(stderr, "ERROR: file %s has zero size!\n", libtest_arg2);
     fclose(hd_src);
-    return TEST_ERR_MAJOR_BAD;
+    return -4;
   }
 
   if (curl_global_init(CURL_GLOBAL_ALL) != CURLE_OK) {
@@ -96,7 +96,7 @@ int test(char *URL)
   test_setopt(curl,CURLOPT_URL, URL);
 
   /* now specify which file to upload */
-  test_setopt(curl, CURLOPT_READDATA, hd_src);
+  test_setopt(curl, CURLOPT_INFILE, hd_src);
 
   /* Now run off and do what you've been told! */
   res = curl_easy_perform(curl);

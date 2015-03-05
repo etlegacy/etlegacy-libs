@@ -20,7 +20,7 @@
  *
  ***************************************************************************/
 
-#include "curl_setup.h"
+#include "setup.h"
 
 #if defined(__AMIGA__) && !defined(__ixemul__)
 

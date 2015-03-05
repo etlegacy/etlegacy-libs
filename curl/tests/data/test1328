@@ -3,8 +3,7 @@
 <keywords>
 HTTP
 HTTP GET
-globbing
---fail
+-f
 </keywords>
 </info>
 

@@ -20,7 +20,7 @@
  *
  ***************************************************************************/
 
-#include "curl_setup.h"
+#include "setup.h"
 
 #include "curl_fnmatch.h"
 

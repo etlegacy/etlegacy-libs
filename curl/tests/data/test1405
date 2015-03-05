@@ -5,6 +5,7 @@
 FTP
 post-quote
 pre-quote
+quote
 --libcurl
 </keywords>
 </info>
@@ -30,7 +31,7 @@ REPLY FAIL 500 this might not be a failure!
 ftp
 </server>
  <name>
---libcurl for FTP with quote ops
+FTP with quote ops
  </name>
  <command>
 ftp://%HOSTIP:%FTPPORT/1405 -Q "NOOP 1" -Q "+NOOP 2" -Q "-NOOP 3" -Q "*FAIL" -Q "+*FAIL HARD" --libcurl log/test1405.c
@@ -102,8 +103,6 @@ int main(int argc, char *argv[])
   CURLOPT_STDERR set to a objectpointer
   CURLOPT_DEBUGFUNCTION set to a functionpointer
   CURLOPT_DEBUGDATA set to a objectpointer
-  CURLOPT_HEADERFUNCTION set to a functionpointer
-  CURLOPT_HEADERDATA set to a objectpointer
 
   */
 

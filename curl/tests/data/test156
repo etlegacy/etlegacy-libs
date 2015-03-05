@@ -1,12 +1,4 @@
 <testcase>
-<info>
-<keywords>
-HTTP
-HTTP PUT
---anyauth
-</keywords>
-</info>
-
 # Server-side
 <reply>
 <data>

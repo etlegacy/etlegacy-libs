@@ -47,7 +47,6 @@ done
 
 #       Build in each directory.
 
-# for SUBDIR in include lib src tests
-for SUBDIR in include lib src
+for SUBDIR in include lib src tests
 do      "${SCRIPTDIR}/make-${SUBDIR}.sh"
 done

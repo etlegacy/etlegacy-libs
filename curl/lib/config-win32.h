@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2014, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2011, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -53,11 +53,6 @@
 #define HAVE_GETOPT_H 1
 #endif
 
-/* Define to 1 if you have the <inttypes.h> header file. */
-#if defined(_MSC_VER) && (_MSC_VER >= 1800)
-#define HAVE_INTTYPES_H 1
-#endif
-
 /* Define if you have the <io.h> header file. */
 #define HAVE_IO_H 1
 
@@ -91,11 +86,6 @@
 
 /* Define if you have the <ssl.h> header file. */
 /* #define HAVE_SSL_H 1 */
-
-/* Define to 1 if you have the <stdbool.h> header file. */
-#if defined(_MSC_VER) && (_MSC_VER >= 1800)
-#define HAVE_STDBOOL_H 1
-#endif
 
 /* Define if you have the <stdlib.h> header file. */
 #define HAVE_STDLIB_H 1
@@ -169,11 +159,6 @@
 
 /* Define if you can safely include both <sys/time.h> and <time.h>. */
 /* #define TIME_WITH_SYS_TIME 1 */
-
-/* Define to 1 if bool is an available type. */
-#if defined(_MSC_VER) && (_MSC_VER >= 1800)
-#define HAVE_BOOL_T 1
-#endif
 
 /* ---------------------------------------------------------------- */
 /*                             FUNCTIONS                            */
@@ -265,8 +250,7 @@
 #define HAVE_STRSTR 1
 
 /* Define if you have the strtoll function. */
-#if defined(__MINGW32__) || defined(__WATCOMC__) || defined(__POCC__) || \
-    (defined(_MSC_VER) && (_MSC_VER >= 1800))
+#if defined(__MINGW32__) || defined(__WATCOMC__) || defined(__POCC__)
 #define HAVE_STRTOLL 1
 #endif
 
@@ -407,6 +391,21 @@
 #endif
 
 /* ---------------------------------------------------------------- */
+/*                          STRUCT RELATED                          */
+/* ---------------------------------------------------------------- */
+
+/* Define if you have struct sockaddr_storage. */
+#if !defined(__SALFORDC__) && !defined(__BORLANDC__)
+#define HAVE_STRUCT_SOCKADDR_STORAGE 1
+#endif
+
+/* Define if you have struct timeval. */
+#define HAVE_STRUCT_TIMEVAL 1
+
+/* Define if struct sockaddr_in6 has the sin6_scope_id member. */
+#define HAVE_SOCKADDR_IN6_SIN6_SCOPE_ID 1
+
+/* ---------------------------------------------------------------- */
 /*               BSD-style lwIP TCP/IP stack SPECIFIC               */
 /* ---------------------------------------------------------------- */
 
@@ -481,8 +480,7 @@
 #endif
 
 /* Define if the compiler supports the 'long long' data type. */
-#if defined(__MINGW32__) || defined(__WATCOMC__) || \
-    (defined(_MSC_VER) && (_MSC_VER >= 1310))
+#if defined(__MINGW32__) || defined(__WATCOMC__)
 #define HAVE_LONGLONG 1
 #endif
 
@@ -502,39 +500,26 @@
 #  endif
 #endif
 
-/* Define some minimum and default build targets for Visual Studio */
-#if defined(_MSC_VER)
-   /* Officially, Microsoft's Windows SDK versions 6.X does not support Windows
-      2000 as a supported build target. VS2008 default installations provides
-      an embedded Windows SDK v6.0A along with the claim that Windows 2000 is a
-      valid build target for VS2008. Popular belief is that binaries built with
-      VS2008 using Windows SDK versions v6.X and Windows 2000 as a build target
-      are functional. */
+/* Officially, Microsoft's Windows SDK versions 6.X do not support Windows
+   2000 as a supported build target. VS2008 default installations provide
+   an embedded Windows SDK v6.0A along with the claim that Windows 2000 is
+   a valid build target for VS2008. Popular belief is that binaries built
+   with VS2008 using Windows SDK versions 6.X and Windows 2000 as a build
+   target are functional. */
+#if defined(_MSC_VER) && (_MSC_VER >= 1500)
 #  define VS2008_MIN_TARGET 0x0500
+#endif
 
-   /* The minimum build target for VS2012 is Vista unless Update 1 is installed
-      and the v110_xp toolset is choosen. */
-#  if defined(_USING_V110_SDK71_)
-#    define VS2012_MIN_TARGET 0x0501
-#  else
-#    define VS2012_MIN_TARGET 0x0600
-#  endif
-
-   /* VS2008 default build target is Windows Vista. We override default target
-      to be Windows XP. */
-#  define VS2008_DEF_TARGET 0x0501
-
-   /* VS2012 default build target is Windows Vista unless Update 1 is installed
-      and the v110_xp toolset is choosen. */
-#  if defined(_USING_V110_SDK71_)
-#    define VS2012_DEF_TARGET 0x0501
-#  else
-#    define VS2012_DEF_TARGET 0x0600
-#  endif
+/* When no build target is specified VS2008 default build target is Windows
+   Vista, which leaves out even Winsows XP. If no build target has been given
+   for VS2008 we will target the minimum Officially supported build target,
+   which happens to be Windows XP. */
+#if defined(_MSC_VER) && (_MSC_VER >= 1500)
+#  define VS2008_DEF_TARGET  0x0501
 #endif
 
 /* VS2008 default target settings and minimum build target check. */
-#if defined(_MSC_VER) && (_MSC_VER >= 1500) && (_MSC_VER <= 1600)
+#if defined(_MSC_VER) && (_MSC_VER >= 1500)
 #  ifndef _WIN32_WINNT
 #    define _WIN32_WINNT VS2008_DEF_TARGET
 #  endif
@@ -543,24 +528,6 @@
 #  endif
 #  if (_WIN32_WINNT < VS2008_MIN_TARGET) || (WINVER < VS2008_MIN_TARGET)
 #    error VS2008 does not support Windows build targets prior to Windows 2000
-#  endif
-#endif
-
-/* VS2012 default target settings and minimum build target check. */
-#if defined(_MSC_VER) && (_MSC_VER >= 1700)
-#  ifndef _WIN32_WINNT
-#    define _WIN32_WINNT VS2012_DEF_TARGET
-#  endif
-#  ifndef WINVER
-#    define WINVER VS2012_DEF_TARGET
-#  endif
-#  if (_WIN32_WINNT < VS2012_MIN_TARGET) || (WINVER < VS2012_MIN_TARGET)
-#    if defined(_USING_V110_SDK71_)
-#      error VS2012 does not support Windows build targets prior to Windows XP
-#    else
-#      error VS2012 does not support Windows build targets prior to Windows \
-Vista
-#    endif
 #  endif
 #endif
 
@@ -606,25 +573,6 @@ Vista
 #endif
 
 /* ---------------------------------------------------------------- */
-/*                          STRUCT RELATED                          */
-/* ---------------------------------------------------------------- */
-
-/* Define if you have struct sockaddr_storage. */
-#if !defined(__SALFORDC__) && !defined(__BORLANDC__)
-#define HAVE_STRUCT_SOCKADDR_STORAGE 1
-#endif
-
-/* Define if you have struct timeval. */
-#define HAVE_STRUCT_TIMEVAL 1
-
-/* Define if struct sockaddr_in6 has the sin6_scope_id member. */
-#define HAVE_SOCKADDR_IN6_SIN6_SCOPE_ID 1
-
-#if HAVE_WINSOCK2_H && defined(_WIN32_WINNT) && (_WIN32_WINNT >= 0x0600)
-#define HAVE_STRUCT_POLLFD 1
-#endif
-
-/* ---------------------------------------------------------------- */
 /*                        LARGE FILE SUPPORT                        */
 /* ---------------------------------------------------------------- */
 
@@ -663,11 +611,8 @@ Vista
 /* Define to enable c-ares asynchronous DNS lookups. */
 /* #define USE_ARES 1 */
 
-/* Default define to enable threaded asynchronous DNS lookups. */
-#if !defined(USE_SYNC_DNS) && !defined(USE_ARES) && \
-    !defined(USE_THREADS_WIN32)
-#  define USE_THREADS_WIN32 1
-#endif
+/* Define to enable threaded asynchronous DNS lookups. */
+#define USE_THREADS_WIN32 1
 
 #if defined(USE_ARES) && defined(USE_THREADS_WIN32)
 #  error "Only one DNS lookup specialty may be defined at most"
@@ -698,11 +643,6 @@ Vista
 
 #if defined(__POCC__) && defined(CURL_LDAP_WIN)
 #  define CURL_DISABLE_LDAP 1
-#endif
-
-/* Define to use the Windows crypto library. */
-#if !defined(USE_SSLEAY) && !defined(USE_NSS)
-#define USE_WIN32_CRYPTO
 #endif
 
 /* ---------------------------------------------------------------- */

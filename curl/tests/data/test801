@@ -2,7 +2,6 @@
 <info>
 <keywords>
 IMAP
-Clear Text
 FETCH
 </keywords>
 </info>
@@ -11,6 +10,9 @@ FETCH
 # Server-side
 <reply>
 <data>
+From: me@somewhere
+To: fake@nowhere
+
 body
 
 --
@@ -25,10 +27,10 @@ body
 imap
 </server>
  <name>
-IMAP FETCH message by UID and SECTION
+IMAP FETCH
  </name>
  <command>
-'imap://%HOSTIP:%IMAPPORT/801/;UID=123/;SECTION=1' -u user:secret
+imap://%HOSTIP:%IMAPPORT/801 -u user:secret
 </command>
 </client>
 
@@ -36,11 +38,10 @@ IMAP FETCH message by UID and SECTION
 # Verify data after the test has been "shot"
 <verify>
 <protocol>
-A001 CAPABILITY
-A002 LOGIN user secret
-A003 SELECT 801
-A004 FETCH 123 BODY[1]
-A005 LOGOUT
+B LOGIN user secret
+C SELECT 801
+D FETCH 1 BODY[TEXT]
+A LOGOUT
 </protocol>
 </verify>
 </testcase>

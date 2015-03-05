@@ -14,17 +14,17 @@ endif
 
 # Edit the path below to point to the base of your Zlib sources.
 ifndef ZLIB_PATH
-ZLIB_PATH = ../../zlib-1.2.8
+ZLIB_PATH = ../../zlib-1.2.7
 endif
 
 # Edit the path below to point to the base of your OpenSSL package.
 ifndef OPENSSL_PATH
-OPENSSL_PATH = ../../openssl-0.9.8zc
+OPENSSL_PATH = ../../openssl-0.9.8x
 endif
 
 # Edit the path below to point to the base of your LibSSH2 package.
 ifndef LIBSSH2_PATH
-LIBSSH2_PATH = ../../libssh2-1.4.3
+LIBSSH2_PATH = ../../libssh2-1.4.2
 endif
 
 # Edit the path below to point to the base of your axTLS package.
@@ -42,29 +42,9 @@ ifndef LIBRTMP_PATH
 LIBRTMP_PATH = ../../librtmp-2.3
 endif
 
-# Edit the path below to point to the base of your nghttp2 package.
-ifndef NGHTTP2_PATH
-NGHTTP2_PATH = ../../nghttp2-0.6.7
-endif
-
 # Edit the path below to point to the base of your fbopenssl package.
 ifndef FBOPENSSL_PATH
 FBOPENSSL_PATH = ../../fbopenssl-0.4
-endif
-
-# Edit the path below to point to the base of your libmetalink package.
-ifndef LIBMETALINK_PATH
-LIBMETALINK_PATH = ../../libmetalink-0.1.2
-endif
-
-# Edit the path below to point to the base of your libexpat package.
-ifndef LIBEXPAT_PATH
-LIBEXPAT_PATH = ../../expat-2.1.0
-endif
-
-# Edit the path below to point to the base of your libXML2 package.
-ifndef LIBXML2_PATH
-LIBXML2_PATH = ../../libxml2-2.8.0
 endif
 
 # Edit the path below to point to the base of your c-ares package.
@@ -231,12 +211,8 @@ endif
 ifeq ($(findstring -idn,$(CFG)),-idn)
 WITH_IDN = 1
 endif
-ifeq ($(findstring -metalink,$(CFG)),-metalink)
-WITH_METALINK = 1
-WITH_SSL = 1
-endif
-ifeq ($(findstring -nghttp2,$(CFG)),-nghttp2)
-WITH_NGHTTP2 = 1
+ifeq ($(findstring -spnego,$(CFG)),-spnego)
+WITH_SPNEGO = 1
 endif
 ifeq ($(findstring -ipv6,$(CFG)),-ipv6)
 ENABLE_IPV6 = 1
@@ -271,6 +247,10 @@ ifdef WITH_SSL
 	LDLIBS += $(OPENSSL_PATH)/out_nw_$(LIBARCH_L)/ssl.$(LIBEXT)
 	LDLIBS += $(OPENSSL_PATH)/out_nw_$(LIBARCH_L)/crypto.$(LIBEXT)
 	IMPORTS += GetProcessSwitchCount RunningProcess
+ifdef WITH_SPNEGO
+	# INCLUDES += -I$(FBOPENSSL_PATH)/include
+	LDLIBS += $(FBOPENSSL_PATH)/nw/fbopenssl.$(LIBEXT)
+endif
 else
 ifdef WITH_AXTLS
 	# INCLUDES += -I$(AXTLS_PATH)/inc
@@ -294,30 +274,6 @@ endif
 ifdef WITH_IDN
 	# INCLUDES += -I$(LIBIDN_PATH)/include
 	LDLIBS += $(LIBIDN_PATH)/lib/libidn.$(LIBEXT)
-endif
-ifdef WITH_NGHTTP2
-	INCLUDES += -I$(NGHTTP2_PATH)/include
-	LDLIBS += $(NGHTTP2_PATH)/lib/libnghttp2.$(LIBEXT)
-endif
-ifdef WITH_METALINK
-	CFLAGS += -DUSE_METALINK
-	INCLUDES += -I$(OPENSSL_PATH)/outinc_nw_$(LIBARCH_L)
-	INCLUDES += -I$(LIBMETALINK_PATH)/include
-	LDLIBS += $(LIBMETALINK_PATH)/lib/libmetalink.$(LIBEXT)
-ifdef WITH_LIBEXPAT
-	ifeq ($(LIBARCH),LIBC)
-		IMPORTS += @$(LIBEXPAT_PATH)/imports/expatlbc.imp
-		MODULES += expatlbc
-	else
-		IMPORTS += @$(LIBEXPAT_PATH)/imports/expatlib.imp
-		MODULES += expatlib
-	endif
-else
-ifdef WITH_LIBXML2
-	IMPORTS += @$(LIBXML2_PATH)/lib/libxml2.imp
-	MODULES += libxml2
-endif
-endif
 endif
 
 ifeq ($(LIBARCH),LIBC)
@@ -357,7 +313,7 @@ endif
 # Makefile.inc provides the CSOURCES and HHEADERS defines
 include Makefile.inc
 
-OBJX	:= $(patsubst %.c,$(OBJDIR)/%.o,$(notdir $(strip $(CURLX_CFILES))))
+OBJX	:= $(patsubst %.c,$(OBJDIR)/%.o,$(notdir $(strip $(CURLX_ONES))))
 OBJS	:= $(patsubst %.c,$(OBJDIR)/%.o,$(strip $(CURL_CFILES)))
 ifndef LINK_STATIC
 OBJS	+= $(OBJX)
@@ -383,8 +339,8 @@ install: $(INSTDIR) all
 	@$(CP) $(TARGET).nlm $(INSTDIR)
 
 clean:
-ifeq "$(wildcard tool_hugehelp.c.cvs)" "tool_hugehelp.c.cvs"
-	-$(RM) tool_hugehelp.c
+ifeq "$(wildcard hugehelp.c.cvs)" "hugehelp.c.cvs"
+	-$(RM) hugehelp.c
 endif
 	-$(RM) -r $(OBJDIR)
 
@@ -492,9 +448,9 @@ endif
 	@echo $(DL)output $(TARGET).nlm$(DL) >> $@
 endif
 
-tool_hugehelp.c:
+hugehelp.c:
 	@echo Creating $@
-	@$(CP) tool_hugehelp.c.cvs $@
+	@$(CP) hugehelp.c.cvs $@
 
 $(LIBCARES_PATH)/libcares.$(LIBEXT):
 	$(MAKE) -C $(LIBCARES_PATH) -f Makefile.netware lib

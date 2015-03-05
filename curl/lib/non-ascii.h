@@ -21,7 +21,7 @@
  * KIND, either express or implied.
  *
  ***************************************************************************/
-#include "curl_setup.h"
+#include "setup.h"
 
 #ifdef CURL_DOES_CONVERSIONS
 

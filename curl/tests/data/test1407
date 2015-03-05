@@ -1,9 +1,8 @@
 <testcase>
-# Based on test851
+# Based on test808
 <info>
 <keywords>
 POP3
-Clear Text
 LIST
 --libcurl
 </keywords>
@@ -13,7 +12,7 @@ LIST
 # Server-side
 <reply>
 <servercmd>
-REPLY LIST +OK 1407 100\r\n.
+REPLY LIST +OK 1407 100
 </servercmd>
 </reply>
 
@@ -24,7 +23,7 @@ REPLY LIST +OK 1407 100\r\n.
 pop3
 </server>
  <name>
---libcurl for POP3 LIST one message
+POP3 LIST one message
  </name>
  <command>
 pop3://%HOSTIP:%POP3PORT/1407 -l -u user:secret --libcurl log/test1407.c
@@ -35,7 +34,6 @@ pop3://%HOSTIP:%POP3PORT/1407 -l -u user:secret --libcurl log/test1407.c
 # Verify data after the test has been "shot"
 <verify>
 <protocol>
-CAPA
 USER user
 PASS secret
 LIST 1407
@@ -77,8 +75,6 @@ int main(int argc, char *argv[])
   CURLOPT_STDERR set to a objectpointer
   CURLOPT_DEBUGFUNCTION set to a functionpointer
   CURLOPT_DEBUGDATA set to a objectpointer
-  CURLOPT_HEADERFUNCTION set to a functionpointer
-  CURLOPT_HEADERDATA set to a objectpointer
 
   */
 

@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2014, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2011, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -20,20 +20,16 @@
  *
  ***************************************************************************/
 
-#include "curl_setup.h"
+#include "setup.h"
 
 #ifdef CURL_DOES_CONVERSIONS
-
-#include <curl/curl.h>
 
 #include "non-ascii.h"
 #include "formdata.h"
 #include "sendf.h"
 #include "urldata.h"
 
-#include "curl_memory.h"
-/* The last #include file should be: */
-#include "memdebug.h"
+#include <curl/curl.h>
 
 #ifdef HAVE_ICONV
 #include <iconv.h>
@@ -82,16 +78,17 @@ CURLcode Curl_convert_clone(struct SessionHandle *data,
 CURLcode Curl_convert_to_network(struct SessionHandle *data,
                                  char *buffer, size_t length)
 {
+  CURLcode rc;
+
   if(data->set.convtonetwork) {
     /* use translation callback */
-    CURLcode result = data->set.convtonetwork(buffer, length);
-    if(result) {
+    rc = data->set.convtonetwork(buffer, length);
+    if(rc != CURLE_OK) {
       failf(data,
             "CURLOPT_CONV_TO_NETWORK_FUNCTION callback returned %d: %s",
-            (int)result, curl_easy_strerror(result));
+            (int)rc, curl_easy_strerror(rc));
     }
-
-    return result;
+    return rc;
   }
   else {
 #ifdef HAVE_ICONV
@@ -142,16 +139,17 @@ CURLcode Curl_convert_to_network(struct SessionHandle *data,
 CURLcode Curl_convert_from_network(struct SessionHandle *data,
                                    char *buffer, size_t length)
 {
+  CURLcode rc;
+
   if(data->set.convfromnetwork) {
     /* use translation callback */
-    CURLcode result = data->set.convfromnetwork(buffer, length);
-    if(result) {
+    rc = data->set.convfromnetwork(buffer, length);
+    if(rc != CURLE_OK) {
       failf(data,
             "CURLOPT_CONV_FROM_NETWORK_FUNCTION callback returned %d: %s",
-            (int)result, curl_easy_strerror(result));
+            (int)rc, curl_easy_strerror(rc));
     }
-
-    return result;
+    return rc;
   }
   else {
 #ifdef HAVE_ICONV
@@ -202,16 +200,17 @@ CURLcode Curl_convert_from_network(struct SessionHandle *data,
 CURLcode Curl_convert_from_utf8(struct SessionHandle *data,
                                 char *buffer, size_t length)
 {
+  CURLcode rc;
+
   if(data->set.convfromutf8) {
     /* use translation callback */
-    CURLcode result = data->set.convfromutf8(buffer, length);
-    if(result) {
+    rc = data->set.convfromutf8(buffer, length);
+    if(rc != CURLE_OK) {
       failf(data,
             "CURLOPT_CONV_FROM_UTF8_FUNCTION callback returned %d: %s",
-            (int)result, curl_easy_strerror(result));
+            (int)rc, curl_easy_strerror(rc));
     }
-
-    return result;
+    return rc;
   }
   else {
 #ifdef HAVE_ICONV
@@ -316,22 +315,24 @@ void Curl_convert_close(struct SessionHandle *data)
  */
 CURLcode Curl_convert_form(struct SessionHandle *data, struct FormData *form)
 {
-  CURLcode result;
+  struct FormData *next;
+  CURLcode rc;
+
+  if(!form)
+    return CURLE_OK;
 
   if(!data)
     return CURLE_BAD_FUNCTION_ARGUMENT;
 
-  while(form) {
+  do {
+    next=form->next;  /* the following form line */
     if(form->type == FORM_DATA) {
-      result = Curl_convert_to_network(data, form->line, form->length);
+      rc = Curl_convert_to_network(data, form->line, form->length);
       /* Curl_convert_to_network calls failf if unsuccessful */
-      if(result)
-        return result;
+      if(rc != CURLE_OK)
+        return rc;
     }
-
-    form = form->next;
-  }
-
+  } while((form = next) != NULL); /* continue */
   return CURLE_OK;
 }
 

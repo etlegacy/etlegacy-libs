@@ -1,5 +1,6 @@
-#ifndef HEADER_CURL_FILE_H
-#define HEADER_CURL_FILE_H
+#ifndef __FILE_H
+#define __FILE_H
+
 /***************************************************************************
  *                                  _   _ ____  _
  *  Project                     ___| | | |  _ \| |
@@ -36,6 +37,4 @@ struct FILEPROTO {
 #ifndef CURL_DISABLE_FILE
 extern const struct Curl_handler Curl_handler_file;
 #endif
-
-#endif /* HEADER_CURL_FILE_H */
-
+#endif

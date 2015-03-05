@@ -22,7 +22,7 @@
  *
  ***************************************************************************/
 
-#include "curl_setup.h"
+#include "setup.h"
 
 #ifndef CURL_DISABLE_CRYPTO_AUTH
 

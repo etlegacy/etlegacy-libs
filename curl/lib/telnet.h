@@ -1,5 +1,6 @@
-#ifndef HEADER_CURL_TELNET_H
-#define HEADER_CURL_TELNET_H
+#ifndef __TELNET_H
+#define __TELNET_H
+
 /***************************************************************************
  *                                  _   _ ____  _
  *  Project                     ___| | | |  _ \| |
@@ -24,6 +25,4 @@
 #ifndef CURL_DISABLE_TELNET
 extern const struct Curl_handler Curl_handler_telnet;
 #endif
-
-#endif /* HEADER_CURL_TELNET_H */
-
+#endif

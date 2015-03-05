@@ -1,38 +1,30 @@
 <testcase>
 <info>
 <keywords>
-IMAP
-Clear Text
-EXAMINE
-CUSTOMREQUEST
+POP3
+LIST
 </keywords>
 </info>
 
 #
 # Server-side
 <reply>
-<data>
-* 17 EXISTS
-* 2 RECENT
-* OK [UNSEEN 8] Message 8 is first unseen
-* OK [UIDVALIDITY 3857529045] UIDs valid
-* OK [UIDNEXT 4392] Predicted next UID
-* FLAGS (\Answered \Flagged \Deleted \Seen \Draft)
-* OK [PERMANENTFLAGS ()] No permanent flags permitted
-</data>
+<servercmd>
+REPLY LIST +OK 808 100
+</servercmd>
 </reply>
 
 #
 # Client-side
 <client>
 <server>
-imap
+pop3
 </server>
  <name>
-IMAP EXAMINE mailbox (CUSTOMREQUEST)
+POP3 LIST one message
  </name>
  <command>
-imap://%HOSTIP:%IMAPPORT -u user:secret -X 'EXAMINE 808'
+pop3://%HOSTIP:%POP3PORT/808 -l -u user:secret
 </command>
 </client>
 
@@ -40,10 +32,10 @@ imap://%HOSTIP:%IMAPPORT -u user:secret -X 'EXAMINE 808'
 # Verify data after the test has been "shot"
 <verify>
 <protocol>
-A001 CAPABILITY
-A002 LOGIN user secret
-A003 EXAMINE 808
-A004 LOGOUT
+USER user
+PASS secret
+LIST 808
+QUIT
 </protocol>
 </verify>
 </testcase>

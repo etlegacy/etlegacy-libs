@@ -42,7 +42,6 @@ Content-Length: 26
 http
 </server>
 <features>
-!SSPI
 crypto
 </features>
  <name>

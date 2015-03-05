@@ -3,8 +3,9 @@
 #  Gisle Vanem <gvanem@broadpark.no>
 #
 
-DEPEND_PREREQ = # tool_hugehelp.c
+DEPEND_PREREQ = # hugehelp.c
 
+top_srcdir = ..
 TOPDIR = ..
 
 include ../packages/DOS/common.dj
@@ -45,14 +46,14 @@ $(PROGRAM): $(OBJECTS) ../lib/libcurl.a
 #
 # groff 1.18+ requires "-P -c"
 #
-tool_hugehelp.c: ../docs/MANUAL ../docs/curl.1 mkhelp.pl
+hugehelp.c: ../docs/MANUAL ../docs/curl.1 mkhelp.pl
 	groff -Tascii -man ../docs/curl.1 | \
 	perl -w mkhelp.pl ../docs/MANUAL > $@
 
 # clean generated files
 #
 genclean:
-	- $(DELETE) tool_hugehelp.c
+	- $(DELETE) hugehelp.c
 
 # clean object files and subdir
 #

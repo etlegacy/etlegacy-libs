@@ -6,14 +6,13 @@ RETR
 LIST
 wildcardmatch
 ftplistparser
-flaky
 </keywords>
 </info>
 
 #
 # Server-side
 <reply>
-<data>
+<data mode="text">
 </data>
 </reply>
 
@@ -83,7 +82,7 @@ EPSV
 RETR someothertext.txt
 QUIT
 </protocol>
-<stdout>
+<stdout mode="text">
 This file should have permissions 444
 This file should have permissions 666
 This file should have permissions 777

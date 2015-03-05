@@ -27,9 +27,7 @@
 #  ifdef __VMS
      typedef int intptr_t;
 #  endif
-#  if !defined(_AIX) && !defined(__sgi) && !defined(__osf__)
-#    include <stdint.h>
-#  endif
+#  include <stdint.h>
 #  include <unistd.h>
 #endif
 #include <sys/types.h>
@@ -51,12 +49,6 @@
 
 #ifndef TRUE
 #define TRUE 1
-#endif
-
-#if defined(_AIX) || defined(__sgi) || defined(__osf__)
-#ifndef intptr_t
-#define intptr_t long
-#endif
 #endif
 
 /*
@@ -170,10 +162,6 @@ int main(int argc, char **argv)
 
     /* Now run off and do what you've been told! */
     res = curl_easy_perform(curl);
-    /* Check for errors */
-    if(res != CURLE_OK)
-      fprintf(stderr, "curl_easy_perform() failed: %s\n",
-              curl_easy_strerror(res));
 
     /* always cleanup */
     curl_easy_cleanup(curl);

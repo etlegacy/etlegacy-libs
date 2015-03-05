@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2014, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2012, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -175,15 +175,6 @@
 /* Define if you have GSS API. */
 #define HAVE_GSSAPI
 
-/* Define if you have the GNU gssapi libraries */
-#undef HAVE_GSSGNU
-
-/* Define if you have the Heimdal gssapi libraries */
-#define HAVE_GSSHEIMDAL
-
-/* Define if you have the MIT gssapi libraries */
-#undef HAVE_GSSMIT
-
 /* Define if you have the `ucb' library (-lucb). */
 #undef HAVE_LIBUCB
 
@@ -286,32 +277,29 @@
 /* Define if you have the <stdlib.h> header file. */
 #define HAVE_STDLIB_H
 
-
-/* The following define is needed on OS400 to enable strcmpi(), stricmp() and
-   strdup(). */
-#define __cplusplus__strings__
-
 /* Define if you have the `strcasecmp' function. */
 #undef HAVE_STRCASECMP
 
 /* Define if you have the `strcmpi' function. */
-#define HAVE_STRCMPI
-
-/* Define if you have the `stricmp' function. */
-#define HAVE_STRICMP
+#undef HAVE_STRCMPI
 
 /* Define if you have the `strdup' function. */
-#define HAVE_STRDUP
-
+#undef HAVE_STRDUP
 
 /* Define if you have the `strftime' function. */
 #define HAVE_STRFTIME
+
+/* Define if you have the `stricmp' function. */
+#undef HAVE_STRICMP
 
 /* Define if you have the <strings.h> header file. */
 #define HAVE_STRINGS_H
 
 /* Define if you have the <string.h> header file. */
 #define HAVE_STRING_H
+
+/* Define if you have the `strlcat' function. */
+#undef HAVE_STRLCAT
 
 /* Define if you have the `strlcpy' function. */
 #undef HAVE_STRLCPY
@@ -537,14 +525,8 @@
 /* Define to the function return type for send. */
 #define SEND_TYPE_RETV int
 
-/* Define to use the GSKit package. */
-#define USE_GSKIT
-
-/* Define to use the OS/400 crypto library. */
-#define USE_OS400CRYPTO
-
-/* Define to use Unix sockets. */
-#define USE_UNIX_SOCKETS
+/* Define to use the QsoSSL package. */
+#define USE_QSOSSL
 
 /* Use the system keyring as the default CA bundle. */
 #define CURL_CA_BUNDLE  "/QIBM/UserData/ICSS/Cert/Server/DEFAULT.KDB"

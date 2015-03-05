@@ -41,9 +41,7 @@ static char *parse_filename(const char *ptr, size_t len);
 
 size_t tool_header_cb(void *ptr, size_t size, size_t nmemb, void *userdata)
 {
-  struct HdrCbData *hdrcbdata = userdata;
-  struct OutStruct *outs = hdrcbdata->outs;
-  struct OutStruct *heads = hdrcbdata->heads;
+  struct OutStruct *outs = userdata;
   const char *str = ptr;
   const size_t cb = size * nmemb;
   const char *end = (char*)ptr + cb;
@@ -56,35 +54,17 @@ size_t tool_header_cb(void *ptr, size_t size, size_t nmemb, void *userdata)
    */
   size_t failure = (size * nmemb) ? 0 : 1;
 
-  if(!heads->config)
+  if(!outs->config)
     return failure;
 
 #ifdef DEBUGBUILD
   if(size * nmemb > (size_t)CURL_MAX_HTTP_HEADER) {
-    warnf(heads->config, "Header data exceeds single call write limit!\n");
+    warnf(outs->config, "Header data exceeds single call write limit!\n");
     return failure;
   }
 #endif
 
-  /*
-   * Write header data when curl option --dump-header (-D) is given.
-   */
-
-  if(heads->config->headerfile && heads->stream) {
-    size_t rc = fwrite(ptr, size, nmemb, heads->stream);
-    if(rc != cb)
-      return rc;
-  }
-
-  /*
-   * This callback sets the filename where output shall be written when
-   * curl options --remote-name (-O) and --remote-header-name (-J) have
-   * been simultaneously given and additionally server returns an HTTP
-   * Content-Disposition header specifying a filename property.
-   */
-
-  if(hdrcbdata->honor_cd_filename &&
-     (cb > 20) && checkprefix("Content-disposition:", str)) {
+  if((cb > 20) && checkprefix("Content-disposition:", str)) {
     const char *p = str + 20;
 
     /* look for the 'filename=' parameter
@@ -114,11 +94,9 @@ size_t tool_header_cb(void *ptr, size_t size, size_t nmemb, void *userdata)
       if(filename) {
         outs->filename = filename;
         outs->alloc_filename = TRUE;
-        outs->is_cd_filename = TRUE;
         outs->s_isreg = TRUE;
         outs->fopened = FALSE;
         outs->stream = NULL;
-        hdrcbdata->honor_cd_filename = FALSE;
         break;
       }
       else

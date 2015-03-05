@@ -1,10 +1,7 @@
 <testcase>
 <info>
 <keywords>
-IMAP
-Clear Text
-CHECK
-CUSTOMREQUEST
+SMTP
 </keywords>
 </info>
 
@@ -17,13 +14,19 @@ CUSTOMREQUEST
 # Client-side
 <client>
 <server>
-imap
+smtp
 </server>
  <name>
-IMAP CHECK mailbox (CUSTOMREQUEST)
+SMTP without --mail-from
  </name>
+<stdin>
+From: different
+To: another
+
+body
+</stdin>
  <command>
-imap://%HOSTIP:%IMAPPORT/814 -u user:secret -X 'CHECK'
+smtp://%HOSTIP:%SMTPPORT/user --mail-rcpt 814@foo -T -
 </command>
 </client>
 
@@ -31,11 +34,19 @@ imap://%HOSTIP:%IMAPPORT/814 -u user:secret -X 'CHECK'
 # Verify data after the test has been "shot"
 <verify>
 <protocol>
-A001 CAPABILITY
-A002 LOGIN user secret
-A003 SELECT 814
-A004 CHECK
-A005 LOGOUT
+EHLO user
+MAIL FROM:<>
+RCPT TO:<814@foo>
+DATA
+QUIT
 </protocol>
+<upload>
+From: different
+To: another
+
+body
+
+.
+</upload>
 </verify>
 </testcase>

@@ -4,7 +4,6 @@ EXTRA_DIST = README 			\
 	DOS/README 			\
 	DOS/common.dj 			\
 	NetWare/get_ver.awk 		\
-	NetWare/get_exp.awk 		\
 	OS400/README.OS400 		\
 	OS400/ccsidcurl.c 		\
 	OS400/ccsidcurl.h 		\
@@ -29,5 +28,5 @@ EXTRA_DIST = README 			\
 	Symbian/readme.txt 		\
 	TPF/curl.mak 			\
 	TPF/maketpf.env_curl 		\
-	TPF/maketpf.env_curllib         \
-	Android/Android.mk
+	TPF/maketpf.env_curllib
+

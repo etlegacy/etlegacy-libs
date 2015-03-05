@@ -16,12 +16,15 @@
  * SOFTWARE.
  */
 
-#include "curl_setup.h"
+#include "setup.h"
 
 #ifndef HAVE_INET_PTON
 
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
 #endif
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>

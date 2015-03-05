@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <unistd.h>
+
 #include <curl/curl.h>
 
 /*
@@ -57,6 +59,7 @@ int main(int argc, char **argv)
   CURL *curl;
   CURLcode res;
   FILE * hd_src ;
+  int hd ;
   struct stat file_info;
 
   char *file;
@@ -69,7 +72,9 @@ int main(int argc, char **argv)
   url = argv[2];
 
   /* get the file size of the local file */
-  stat(file, &file_info);
+  hd = open(file, O_RDONLY) ;
+  fstat(hd, &file_info);
+  close(hd) ;
 
   /* get a FILE * of the same file, could also be made with
      fdopen() from the previous descriptor, but hey this is just
@@ -105,10 +110,6 @@ int main(int argc, char **argv)
 
     /* Now run off and do what you've been told! */
     res = curl_easy_perform(curl);
-    /* Check for errors */
-    if(res != CURLE_OK)
-      fprintf(stderr, "curl_easy_perform() failed: %s\n",
-              curl_easy_strerror(res));
 
     /* always cleanup */
     curl_easy_cleanup(curl);

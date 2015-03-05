@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2014, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2012, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -25,15 +25,15 @@
 #define CURL_NO_OLDIES
 
 /*
- * curl_setup.h may define preprocessor macros such as _FILE_OFFSET_BITS and
+ * setup.h may define preprocessor macros such as _FILE_OFFSET_BITS and
  * _LARGE_FILES in order to support files larger than 2 GB. On platforms
  * where this happens it is mandatory that these macros are defined before
  * any system header file is included, otherwise file handling function
  * prototypes will be misdeclared and curl tool may not build properly;
- * therefore we must include curl_setup.h before curl.h when building curl.
+ * therefore we must include setup.h before curl.h when building curl.
  */
 
-#include "curl_setup.h" /* from the lib directory */
+#include "setup.h" /* from the lib directory */
 
 /*
  * curl tool certainly uses libcurl's external interface.
@@ -67,7 +67,8 @@
 #endif
 
 #ifndef HAVE_STRDUP
-#  include "tool_strdup.h"
+#  include "strdup.h"
+#  define strdup(ptr) curlx_strdup(ptr)
 #endif
 
 #endif /* HEADER_CURL_TOOL_SETUP_H */

@@ -1,5 +1,5 @@
-#ifndef HEADER_CURL_NONBLOCK_H
-#define HEADER_CURL_NONBLOCK_H
+#ifndef __NONBLOCK_H
+#define __NONBLOCK_H
 /***************************************************************************
  *                                  _   _ ____  _
  *  Project                     ___| | | |  _ \| |
@@ -27,5 +27,4 @@
 int curlx_nonblock(curl_socket_t sockfd,    /* operate on this */
                    int nonblock   /* TRUE or FALSE */);
 
-#endif /* HEADER_CURL_NONBLOCK_H */
-
+#endif

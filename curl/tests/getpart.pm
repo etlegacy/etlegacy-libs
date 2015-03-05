@@ -5,7 +5,7 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1998 - 2012, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 1998 - 2011, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
@@ -56,7 +56,7 @@ sub getpartattr {
             $inside++;
             my $attr=$1;
 
-            while($attr =~ s/ *([^=]*)= *(\"([^\"]*)\"|([^\> ]*))//) {
+            while($attr =~ s/ *([^=]*)= *(\"([^\"]*)\"|([^\"> ]*))//) {
                 my ($var, $cont)=($1, $2);
                 $cont =~ s/^\"(.*)\"$/$1/;
                 $hash{$var}=$cont;
@@ -88,27 +88,21 @@ sub getpart {
         if(!$inside && ($_ =~ /^ *\<$section/)) {
             $inside++;
         }
-        elsif(($inside >= 1) && ($_ =~ /^ *\<$part[ \>]/)) {
-            if($inside > 1) {
-                push @this, $_;
-            }
-            elsif($_ =~ /$part [^>]*base64=/) {
-                # attempt to detect our base64 encoded part
+        elsif((1 ==$inside) && ($_ =~ /^ *\<$part[ \>]/)) {
+            if($_ =~ /$part [^>]*base64=/) {
+                # attempt to detect base64 encoded parts
                 $base64=1;
             }
             $inside++;
         }
-        elsif(($inside >= 2) && ($_ =~ /^ *\<\/$part[ \>]/)) {
-            if($inside > 2) {
-                push @this, $_;
-            }
+        elsif((2 ==$inside) && ($_ =~ /^ *\<\/$part/)) {
             $inside--;
         }
-        elsif(($inside >= 1) && ($_ =~ /^ *\<\/$section/)) {
-            if($trace && @this) {
+        elsif((1==$inside) && ($_ =~ /^ *\<\/$section/)) {
+            if($trace) {
                 print STDERR "*** getpart.pm: $section/$part returned data!\n";
             }
-            if($warning && !@this) {
+            if(!@this && $warning) {
                 print STDERR "*** getpart.pm: $section/$part returned empty!\n";
             }
             if($base64) {
@@ -120,40 +114,14 @@ sub getpart {
             }
             return @this;
         }
-        elsif($inside >= 2) {
+        elsif(2==$inside) {
             push @this, $_;
         }
     }
-    if($trace && @this) {
-        # section/part has data but end of section not detected,
-        # end of file implies end of section.
-        print STDERR "*** getpart.pm: $section/$part returned data!\n";
-    }
-    if($warning && !@this) {
-        # section/part does not exist or has no data without an end of
-        # section; end of file implies end of section.
+    if($warning) {
         print STDERR "*** getpart.pm: $section/$part returned empty!\n";
     }
-    return @this;
-}
-
-sub partexists {
-    my ($section, $part)=@_;
-
-    my $inside = 0;
-
-    for(@xml) {
-        if(!$inside && ($_ =~ /^ *\<$section/)) {
-            $inside++;
-        }
-        elsif((1 == $inside) && ($_ =~ /^ *\<$part[ \>]/)) {
-            return 1; # exists
-        }
-        elsif((1 == $inside) && ($_ =~ /^ *\<\/$section/)) {
-            return 0; # does not exist
-        }
-    }
-    return 0; # does not exist
+    return @this; #empty!
 }
 
 # Return entire document as list of lines
@@ -239,7 +207,7 @@ sub writearray {
 }
 
 #
-# Load a specified file and return it as an array
+# Load a specified file an return it as an array
 #
 sub loadarray {
     my ($filename)=@_;
@@ -264,21 +232,13 @@ sub showdiff {
 
     open(TEMP, ">$file1");
     for(@$firstref) {
-        my $l = $_;
-        $l =~ s/\r/[CR]/g;
-        $l =~ s/\n/[LF]/g;
-        print TEMP $l;
-        print TEMP "\n";
+        print TEMP $_;
     }
     close(TEMP);
 
     open(TEMP, ">$file2");
     for(@$secondref) {
-        my $l = $_;
-        $l =~ s/\r/[CR]/g;
-        $l =~ s/\n/[LF]/g;
-        print TEMP $l;
-        print TEMP "\n";
+        print TEMP $_;
     }
     close(TEMP);
     my @out = `diff -u $file2 $file1 2>/dev/null`;

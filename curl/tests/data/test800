@@ -1,9 +1,8 @@
 <testcase>
 <info>
 <keywords>
-IMAP
-Clear Text
-FETCH
+POP3
+RETR
 </keywords>
 </info>
 
@@ -25,13 +24,13 @@ body
 # Client-side
 <client>
 <server>
-imap
+pop3
 </server>
  <name>
-IMAP FETCH message
+POP3 RETR
  </name>
  <command>
-'imap://%HOSTIP:%IMAPPORT/800/;UID=1' -u user:secret
+pop3://%HOSTIP:%POP3PORT/800 -u user:secret
 </command>
 </client>
 
@@ -39,11 +38,10 @@ IMAP FETCH message
 # Verify data after the test has been "shot"
 <verify>
 <protocol>
-A001 CAPABILITY
-A002 LOGIN user secret
-A003 SELECT 800
-A004 FETCH 1 BODY[]
-A005 LOGOUT
+USER user
+PASS secret
+RETR 800
+QUIT
 </protocol>
 </verify>
 </testcase>

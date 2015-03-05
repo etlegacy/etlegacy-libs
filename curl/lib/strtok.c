@@ -20,7 +20,7 @@
  *
  ***************************************************************************/
 
-#include "curl_setup.h"
+#include "setup.h"
 
 #ifndef HAVE_STRTOK_R
 #include <stddef.h>

@@ -13,13 +13,6 @@ multi
 
 # Server-side
 <reply>
-<servercmd>
-connection-monitor
-</servercmd>
-<connect>
-HTTP/1.1 200 Mighty fine indeed
-
-</connect>
 <data>
 HTTP/1.1 200 OK swsclose
 Date: Thu, 09 Nov 2010 14:49:00 GMT
@@ -55,7 +48,7 @@ lib503
 simple multi http:// through proxytunnel with authentication info
  </name>
  <command>
-http://machine.503:%HTTPPORT/503 %HOSTIP:%PROXYPORT
+http://%HOSTIP:%HTTPPORT/503 %HOSTIP:%PROXYPORT
 </command>
 <file name="log/test503.txt">
 foo
@@ -69,8 +62,8 @@ moo
 # Verify data after the test has been "shot"
 <verify>
 <proxy>
-CONNECT machine.503:%HTTPPORT HTTP/1.1
-Host: machine.503:%HTTPPORT
+CONNECT %HOSTIP:%HTTPPORT HTTP/1.1
+Host: %HOSTIP:%HTTPPORT
 Proxy-Authorization: Basic dGVzdDppbmc=
 Proxy-Connection: Keep-Alive
 
@@ -78,10 +71,9 @@ Proxy-Connection: Keep-Alive
 <protocol>
 GET /503 HTTP/1.1
 Authorization: Basic dGVzdDppbmc=
-Host: machine.503:%HTTPPORT
+Host: %HOSTIP:%HTTPPORT
 Accept: */*
 
-[DISCONNECT]
 </protocol>
 </verify>
 </testcase>

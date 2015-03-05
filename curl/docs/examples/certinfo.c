@@ -52,30 +52,25 @@ int main(void)
     res = curl_easy_perform(curl);
 
     if(!res) {
-      union {
-        struct curl_slist    *to_info;
-        struct curl_certinfo *to_certinfo;
-      } ptr;
+      struct curl_certinfo *ci = NULL;
 
-      ptr.to_info = NULL;
+      res = curl_easy_getinfo(curl, CURLINFO_CERTINFO, &ci);
 
-      res = curl_easy_getinfo(curl, CURLINFO_CERTINFO, &ptr.to_info);
-
-      if(!res && ptr.to_info) {
+      if(!res && ci) {
         int i;
+        printf("%d certs!\n", ci->num_of_certs);
 
-        printf("%d certs!\n", ptr.to_certinfo->num_of_certs);
-
-        for(i = 0; i < ptr.to_certinfo->num_of_certs; i++) {
+        for(i=0; i<ci->num_of_certs; i++) {
           struct curl_slist *slist;
 
-          for(slist = ptr.to_certinfo->certinfo[i]; slist; slist = slist->next)
+          for(slist = ci->certinfo[i]; slist; slist = slist->next)
             printf("%s\n", slist->data);
 
         }
       }
 
     }
+
 
     curl_easy_cleanup(curl);
   }

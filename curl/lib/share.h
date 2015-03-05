@@ -22,7 +22,7 @@
  *
  ***************************************************************************/
 
-#include "curl_setup.h"
+#include "setup.h"
 #include <curl/curl.h>
 #include "cookie.h"
 #include "urldata.h"

@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2012, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2011, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -21,8 +21,15 @@
  ***************************************************************************/
 #include "test.h"
 
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
 #endif
 
 #include "memdebug.h"
@@ -50,7 +57,7 @@ int test(char *URL)
 
   if (!libtest_arg2) {
     fprintf(stderr, "Usage: <url> <file-to-upload>\n");
-    return TEST_ERR_USAGE;
+    return -1;
   }
 
   hd_src = fopen(libtest_arg2, "rb");
@@ -59,7 +66,7 @@ int test(char *URL)
     fprintf(stderr, "fopen() failed with error: %d %s\n",
             error, strerror(error));
     fprintf(stderr, "Error opening file: %s\n", libtest_arg2);
-    return TEST_ERR_MAJOR_BAD; /* if this happens things are major weird */
+    return -2; /* if this happens things are major weird */
   }
 
   /* get the file size of the local file */
@@ -71,13 +78,13 @@ int test(char *URL)
             error, strerror(error));
     fprintf(stderr, "ERROR: cannot open file %s\n", libtest_arg2);
     fclose(hd_src);
-    return TEST_ERR_MAJOR_BAD;
+    return -1;
   }
 
   if(! file_info.st_size) {
     fprintf(stderr, "ERROR: file %s has zero size!\n", libtest_arg2);
     fclose(hd_src);
-    return TEST_ERR_MAJOR_BAD;
+    return -4;
   }
 
   if (curl_global_init(CURL_GLOBAL_ALL) != CURLE_OK) {
@@ -126,7 +133,7 @@ int test(char *URL)
   test_setopt(curl, CURLOPT_POSTQUOTE, headerlist);
 
   /* now specify which file to upload */
-  test_setopt(curl, CURLOPT_READDATA, hd_src);
+  test_setopt(curl, CURLOPT_INFILE, hd_src);
 
   /* and give the size of the upload (optional) */
   test_setopt(curl, CURLOPT_INFILESIZE_LARGE,

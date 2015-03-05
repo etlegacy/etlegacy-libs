@@ -22,8 +22,7 @@
 #***************************************************************************
 
 BEGIN {
-    push(@INC, $ENV{'srcdir'}) if(defined $ENV{'srcdir'});
-    push(@INC, ".");
+    @INC=(@INC, $ENV{'srcdir'}, '.');
 }
 
 use strict;
@@ -36,7 +35,6 @@ use serverhelp qw(
 
 my $verbose = 0;     # set to 1 for debugging
 my $port = 8990;     # just a default
-my $unix_socket;     # location to place a listening Unix socket
 my $ipvnum = 4;      # default IP version of http server
 my $idnum = 1;       # dafault http server instance number
 my $proto = 'http';  # protocol the http server speaks
@@ -44,6 +42,7 @@ my $pidfile;         # http server pid file
 my $logfile;         # http server log file
 my $connect;         # IP to connect to on CONNECT
 my $srcdir;
+my $fork;
 my $gopher = 0;
 
 my $flags  = "";
@@ -75,13 +74,6 @@ while(@ARGV) {
     elsif($ARGV[0] eq '--ipv6') {
         $ipvnum = 6;
     }
-    elsif($ARGV[0] eq '--unix-socket') {
-        $ipvnum = 'unix';
-        if($ARGV[1]) {
-            $unix_socket = $ARGV[1];
-            shift @ARGV;
-        }
-    }
     elsif($ARGV[0] eq '--gopher') {
         $gopher = 1;
     }
@@ -106,6 +98,9 @@ while(@ARGV) {
     elsif($ARGV[0] eq '--verbose') {
         $verbose = 1;
     }
+    elsif($ARGV[0] eq '--fork') {
+        $fork = $ARGV[0];
+    }
     else {
         print STDERR "\nWarning: httpserver.pl unknown parameter: $ARGV[0]\n";
     }
@@ -124,13 +119,9 @@ if(!$logfile) {
 
 $flags .= "--pidfile \"$pidfile\" --logfile \"$logfile\" ";
 $flags .= "--gopher " if($gopher);
+$flags .= "--fork " if(defined($fork));
 $flags .= "--connect $connect " if($connect);
-if($ipvnum eq 'unix') {
-    $flags .= "--unix-socket '$unix_socket' ";
-} else {
-    $flags .= "--ipv$ipvnum --port $port ";
-}
-$flags .= "--srcdir \"$srcdir\"";
+$flags .= "--ipv$ipvnum --port $port --srcdir \"$srcdir\"";
 
 if($verbose) {
     print STDERR "RUN: server/sws $flags\n";

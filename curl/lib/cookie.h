@@ -21,7 +21,7 @@
  * KIND, either express or implied.
  *
  ***************************************************************************/
-#include "curl_setup.h"
+#include "setup.h"
 
 #include <curl/curl.h>
 
@@ -29,8 +29,7 @@ struct Cookie {
   struct Cookie *next; /* next in the chain */
   char *name;        /* <this> = value */
   char *value;       /* name = <this> */
-  char *path;         /* path = <this> which is in Set-Cookie: */
-  char *spath;        /* sanitized cookie path */
+  char *path;         /* path = <this> */
   char *domain;      /* domain = <this> */
   curl_off_t expires;  /* expires = <this> */
   char *expirestr;   /* the plain text version */

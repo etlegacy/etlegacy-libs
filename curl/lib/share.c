@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2013, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2012, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -20,12 +20,12 @@
  *
  ***************************************************************************/
 
-#include "curl_setup.h"
+#include "setup.h"
 
 #include <curl/curl.h>
 #include "urldata.h"
 #include "share.h"
-#include "vtls/vtls.h"
+#include "sslgen.h"
 #include "curl_memory.h"
 
 /* The last #include file should be: */
@@ -51,7 +51,6 @@ curl_share_setopt(CURLSH *sh, CURLSHoption option, ...)
   curl_lock_function lockfunc;
   curl_unlock_function unlockfunc;
   void *ptr;
-  CURLSHcode res = CURLSHE_OK;
 
   if(share->dirty)
     /* don't allow setting options while one or more handles are already
@@ -70,7 +69,7 @@ curl_share_setopt(CURLSH *sh, CURLSHoption option, ...)
       if(!share->hostcache) {
         share->hostcache = Curl_mk_dnscache();
         if(!share->hostcache)
-          res = CURLSHE_NOMEM;
+          return CURLSHE_NOMEM;
       }
       break;
 
@@ -79,12 +78,12 @@ curl_share_setopt(CURLSH *sh, CURLSHoption option, ...)
       if(!share->cookies) {
         share->cookies = Curl_cookie_init(NULL, NULL, NULL, TRUE );
         if(!share->cookies)
-          res = CURLSHE_NOMEM;
+          return CURLSHE_NOMEM;
       }
-#else   /* CURL_DISABLE_HTTP */
-      res = CURLSHE_NOT_BUILT_IN;
-#endif
       break;
+#else   /* CURL_DISABLE_HTTP */
+      return CURLSHE_NOT_BUILT_IN;
+#endif
 
     case CURL_LOCK_DATA_SSL_SESSION:
 #ifdef USE_SSL
@@ -94,18 +93,17 @@ curl_share_setopt(CURLSH *sh, CURLSHoption option, ...)
                                    sizeof(struct curl_ssl_session));
         share->sessionage = 0;
         if(!share->sslsession)
-          res = CURLSHE_NOMEM;
+          return CURLSHE_NOMEM;
       }
-#else
-      res = CURLSHE_NOT_BUILT_IN;
-#endif
       break;
+#else
+      return CURLSHE_NOT_BUILT_IN;
+#endif
 
     case CURL_LOCK_DATA_CONNECT:     /* not supported (yet) */
-      break;
 
     default:
-      res = CURLSHE_BAD_OPTION;
+      return CURLSHE_BAD_OPTION;
     }
     break;
 
@@ -127,25 +125,24 @@ curl_share_setopt(CURLSH *sh, CURLSHoption option, ...)
         Curl_cookie_cleanup(share->cookies);
         share->cookies = NULL;
       }
-#else   /* CURL_DISABLE_HTTP */
-      res = CURLSHE_NOT_BUILT_IN;
-#endif
       break;
+#else   /* CURL_DISABLE_HTTP */
+      return CURLSHE_NOT_BUILT_IN;
+#endif
 
     case CURL_LOCK_DATA_SSL_SESSION:
 #ifdef USE_SSL
       Curl_safefree(share->sslsession);
-#else
-      res = CURLSHE_NOT_BUILT_IN;
-#endif
       break;
+#else
+      return CURLSHE_NOT_BUILT_IN;
+#endif
 
     case CURL_LOCK_DATA_CONNECT:
       break;
 
     default:
-      res = CURLSHE_BAD_OPTION;
-      break;
+      return CURLSHE_BAD_OPTION;
     }
     break;
 
@@ -165,13 +162,10 @@ curl_share_setopt(CURLSH *sh, CURLSHoption option, ...)
     break;
 
   default:
-    res = CURLSHE_BAD_OPTION;
-    break;
+    return CURLSHE_BAD_OPTION;
   }
 
-  va_end(param);
-
-  return res;
+  return CURLSHE_OK;
 }
 
 CURLSHcode

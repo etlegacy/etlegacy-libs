@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2014, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2012, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -39,7 +39,6 @@
 /* and finally any "NONE" value. */
 
 #define NV(e) {#e, e}
-#define NV1(e, v) {#e, (v)}
 #define NVEND {NULL, 0}         /* sentinel to mark end of list */
 
 const NameValue setopt_nv_CURLPROXY[] = {
@@ -78,9 +77,6 @@ const NameValue setopt_nv_CURL_SSLVERSION[] = {
   NV(CURL_SSLVERSION_TLSv1),
   NV(CURL_SSLVERSION_SSLv2),
   NV(CURL_SSLVERSION_SSLv3),
-  NV(CURL_SSLVERSION_TLSv1_0),
-  NV(CURL_SSLVERSION_TLSv1_1),
-  NV(CURL_SSLVERSION_TLSv1_2),
   NVEND,
 };
 
@@ -96,21 +92,6 @@ const NameValue setopt_nv_CURLFTPSSL_CCC[] = {
   NV(CURLFTPSSL_CCC_NONE),
   NV(CURLFTPSSL_CCC_PASSIVE),
   NV(CURLFTPSSL_CCC_ACTIVE),
-  NVEND,
-};
-
-const NameValue setopt_nv_CURLUSESSL[] = {
-  NV(CURLUSESSL_NONE),
-  NV(CURLUSESSL_TRY),
-  NV(CURLUSESSL_CONTROL),
-  NV(CURLUSESSL_ALL),
-  NVEND,
-};
-
-const NameValue setopt_nv_CURL_NETRC[] = {
-  NV(CURL_NETRC_IGNORED),
-  NV(CURL_NETRC_OPTIONAL),
-  NV(CURL_NETRC_REQUIRED),
   NVEND,
 };
 
@@ -134,22 +115,11 @@ const NameValue setopt_nv_CURLPROTO[] = {
   NV(CURLPROTO_RTSP),
   NV(CURLPROTO_SCP),
   NV(CURLPROTO_SFTP),
-  NV(CURLPROTO_SMB),
-  NV(CURLPROTO_SMBS),
   NV(CURLPROTO_SMTP),
   NV(CURLPROTO_SMTPS),
   NV(CURLPROTO_TELNET),
   NV(CURLPROTO_TFTP),
   NVEND,
-};
-
-/* These options have non-zero default values. */
-static const NameValue setopt_nv_CURLNONZERODEFAULTS[] = {
-  NV1(CURLOPT_SSL_VERIFYPEER, 1),
-  NV1(CURLOPT_SSL_VERIFYHOST, 1),
-  NV1(CURLOPT_SSL_ENABLE_NPN, 1),
-  NV1(CURLOPT_SSL_ENABLE_ALPN, 1),
-  NVEND
 };
 
 /* Format and add code; jump to nomem on malloc error */
@@ -221,7 +191,7 @@ static char *c_escape(const char *str)
       e += 2;
     }
     else if(! isprint(c)) {
-      snprintf(e, 4, "\\%03o", c);
+      sprintf(e, "\\%03o", c);
       e += 4;
     }
     else
@@ -232,7 +202,7 @@ static char *c_escape(const char *str)
 }
 
 /* setopt wrapper for enum types */
-CURLcode tool_setopt_enum(CURL *curl, struct GlobalConfig *config,
+CURLcode tool_setopt_enum(CURL *curl, struct Configurable *config,
                           const char *name, CURLoption tag,
                           const NameValue *nvlist, long lval)
 {
@@ -265,7 +235,7 @@ CURLcode tool_setopt_enum(CURL *curl, struct GlobalConfig *config,
 }
 
 /* setopt wrapper for flags */
-CURLcode tool_setopt_flags(CURL *curl, struct GlobalConfig *config,
+CURLcode tool_setopt_flags(CURL *curl, struct Configurable *config,
                            const char *name, CURLoption tag,
                            const NameValue *nvlist, long lval)
 {
@@ -292,7 +262,7 @@ CURLcode tool_setopt_flags(CURL *curl, struct GlobalConfig *config,
         if(!rest)
           break;                /* handled them all */
         /* replace with all spaces for continuation line */
-        snprintf(preamble, sizeof(preamble), "%*s", strlen(preamble), "");
+        sprintf(preamble, "%*s", strlen(preamble), "");
       }
     }
     /* If any bits have no definition, output an explicit value.
@@ -307,7 +277,7 @@ CURLcode tool_setopt_flags(CURL *curl, struct GlobalConfig *config,
 }
 
 /* setopt wrapper for bitmasks */
-CURLcode tool_setopt_bitmask(CURL *curl, struct GlobalConfig *config,
+CURLcode tool_setopt_bitmask(CURL *curl, struct Configurable *config,
                              const char *name, CURLoption tag,
                              const NameValueUnsigned *nvlist,
                              long lval)
@@ -335,7 +305,7 @@ CURLcode tool_setopt_bitmask(CURL *curl, struct GlobalConfig *config,
         if(!rest)
           break;                /* handled them all */
         /* replace with all spaces for continuation line */
-        snprintf(preamble, sizeof(preamble), "%*s", strlen(preamble), "");
+        sprintf(preamble, "%*s", strlen(preamble), "");
       }
     }
     /* If any bits have no definition, output an explicit value.
@@ -350,7 +320,7 @@ CURLcode tool_setopt_bitmask(CURL *curl, struct GlobalConfig *config,
 }
 
 /* setopt wrapper for CURLOPT_HTTPPOST */
-CURLcode tool_setopt_httppost(CURL *curl, struct GlobalConfig *config,
+CURLcode tool_setopt_httppost(CURL *curl, struct Configurable *config,
                               const char *name, CURLoption tag,
                               struct curl_httppost *post)
 {
@@ -426,7 +396,7 @@ CURLcode tool_setopt_httppost(CURL *curl, struct GlobalConfig *config,
 }
 
 /* setopt wrapper for curl_slist options */
-CURLcode tool_setopt_slist(CURL *curl, struct GlobalConfig *config,
+CURLcode tool_setopt_slist(CURL *curl, struct Configurable *config,
                            const char *name, CURLoption tag,
                            struct curl_slist *list)
 {
@@ -466,7 +436,7 @@ CURLcode tool_setopt_slist(CURL *curl, struct GlobalConfig *config,
 
 /* generic setopt wrapper for all other options.
  * Some type information is encoded in the tag value. */
-CURLcode tool_setopt(CURL *curl, bool str, struct GlobalConfig *config,
+CURLcode tool_setopt(CURL *curl, bool str, struct Configurable *config,
                      const char *name, CURLoption tag, ...)
 {
   va_list arg;
@@ -483,19 +453,10 @@ CURLcode tool_setopt(CURL *curl, bool str, struct GlobalConfig *config,
   if(tag < CURLOPTTYPE_OBJECTPOINT) {
     /* Value is expected to be a long */
     long lval = va_arg(arg, long);
-    long defval = 0L;
-    const NameValue *nv = NULL;
-    for(nv=setopt_nv_CURLNONZERODEFAULTS; nv->name; nv++) {
-      if(!strcmp(name, nv->name)) {
-        defval = nv->value;
-        break; /* found it */
-      }
-    }
-
     snprintf(buf, sizeof(buf), "%ldL", lval);
     value = buf;
     ret = curl_easy_setopt(curl, tag, lval);
-    if(lval == defval)
+    if(!lval)
       skip = TRUE;
   }
   else if(tag < CURLOPTTYPE_OFF_T) {

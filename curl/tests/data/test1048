@@ -2,8 +2,6 @@
 <info>
 <keywords>
 FTP
-FTP-ipv6
-IPv6
 PASV
 LIST
 --interface

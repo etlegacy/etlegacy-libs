@@ -1,5 +1,6 @@
-#ifndef HEADER_CURL_LDAP_H
-#define HEADER_CURL_LDAP_H
+#ifndef __CURL_LDAP_H
+#define __CURL_LDAP_H
+
 /***************************************************************************
  *                                  _   _ ____  _
  *  Project                     ___| | | |  _ \| |
@@ -31,5 +32,4 @@ extern const struct Curl_handler Curl_handler_ldaps;
 #endif
 
 #endif
-#endif /* HEADER_CURL_LDAP_H */
-
+#endif /* __CURL_LDAP_H */

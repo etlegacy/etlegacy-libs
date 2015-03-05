@@ -1,8 +1,8 @@
 /* GSSAPI/krb5 support for FTP - loosely based on old krb4.c
  *
- * Copyright (c) 1995, 1996, 1997, 1998, 1999, 2013 Kungliga Tekniska Högskolan
+ * Copyright (c) 1995, 1996, 1997, 1998, 1999 Kungliga Tekniska Högskolan
  * (Royal Institute of Technology, Stockholm, Sweden).
- * Copyright (c) 2004 - 2014 Daniel Stenberg
+ * Copyright (c) 2004 - 2012 Daniel Stenberg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.  */
 
-#include "curl_setup.h"
+#include "setup.h"
 
 #ifndef CURL_DISABLE_FTP
 #ifdef HAVE_GSSAPI
@@ -51,9 +51,8 @@
 #include "ftp.h"
 #include "curl_gssapi.h"
 #include "sendf.h"
-#include "curl_sec.h"
+#include "krb4.h"
 #include "curl_memory.h"
-#include "warnless.h"
 
 #define _MPRINTF_REPLACE /* use our functions only */
 #include <curl/mprintf.h>
@@ -104,7 +103,7 @@ krb5_decode(void *app_data, void *buf, int len,
   }
 
   memcpy(buf, dec.value, dec.length);
-  len = curlx_uztosi(dec.length);
+  len = dec.length;
   gss_release_buffer(&min, &dec);
 
   return len;
@@ -121,13 +120,17 @@ krb5_overhead(void *app_data, int level, int len)
 }
 
 static int
-krb5_encode(void *app_data, const void *from, int length, int level, void **to)
+krb5_encode(void *app_data, const void *from, int length, int level, void **to,
+            struct connectdata *conn UNUSED_PARAM)
 {
   gss_ctx_id_t *context = app_data;
   gss_buffer_desc dec, enc;
   OM_uint32 maj, min;
   int state;
   int len;
+
+  /* shut gcc up */
+  conn = NULL;
 
   /* NOTE that the cast is safe, neither of the krb5, gnu gss and heimdal
    * libraries modify the input buffer in gss_seal()
@@ -148,7 +151,7 @@ krb5_encode(void *app_data, const void *from, int length, int level, void **to)
   if(!*to)
     return -1;
   memcpy(*to, enc.value, enc.length);
-  len = curlx_uztosi(enc.length);
+  len = enc.length;
   gss_release_buffer(&min, &enc);
   return len;
 }
@@ -232,11 +235,9 @@ krb5_auth(void *app_data, struct connectdata *conn)
                                       &min,
                                       context,
                                       gssname,
-                                      &Curl_krb5_mech_oid,
                                       &chan,
                                       gssresp,
                                       &output_buffer,
-                                      TRUE,
                                       NULL);
 
       if(gssresp) {

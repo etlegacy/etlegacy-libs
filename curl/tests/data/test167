@@ -43,7 +43,6 @@ Nice auth sir!
 http
 </server>
 <features>
-!SSPI
 crypto
 </features>
  <name>

@@ -6,14 +6,14 @@
 
                                libcurl bindings
 
- Creative people have written bindings or interfaces for various environments
- and programming languages. Using one of these allows you to take advantage of
- curl powers from within your favourite language or system.
+Creative people have written bindings or interfaces for various environments
+and programming languages. Using one of these allows you to take advantage of
+curl powers from within your favourite language or system.
 
- This is a list of all known interfaces as of this writing.
+This is a list of all known interfaces as of this writing.
 
- The bindings listed below are not part of the curl/libcurl distribution
- archives, but must be downloaded and installed separately.
+The bindings listed below are not part of the curl/libcurl distribution
+archives, but must be downloaded and installed separately.
 
 Ada95
 
@@ -41,10 +41,7 @@ Ch
 
 Cocoa
 
-  BBHTTP: written by Bruno de Carvalho
-  https://github.com/brunodecarvalho/BBHTTP
-
-  curlhandle: Written by Dan Wood
+  Written by Dan Wood
   http://curlhandle.sourceforge.net/
 
 D
@@ -58,7 +55,6 @@ Dylan
   http://dylanlibs.sourceforge.net/
 
 Eiffel
-
   Written by Eiffel Software
   http://curl.haxx.se/libcurl/eiffel/
 
@@ -85,11 +81,6 @@ glib/GTK+
   Written by Richard Atterer
   http://atterer.net/glibcurl/
 
-Guile:
-
-  Written by Michael L. Gran
-  http://www.lonelycactus.com/guile-curl.html
-
 Haskell
 
   Written by Galois, Inc
@@ -99,11 +90,6 @@ Java
 
   Maintained by [blank]
   http://curl.haxx.se/libcurl/java/
-
-Julia
-
-  Written by Paul Howe
-  https://github.com/forio/Curl.jl
 
 Lisp
 
@@ -127,11 +113,6 @@ Mono
 
   libcurl-net by Jeffrey Phillips
   http://sourceforge.net/projects/libcurl-net/
-
-node.js
-
-  node-libcurl by Jonathan Cardoso Machado
-  https://github.com/JCMais/node-libcurl
 
 Object-Pascal
 
