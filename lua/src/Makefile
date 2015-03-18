@@ -26,7 +26,7 @@ MYOBJS=
 
 # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
 
-PLATS= aix ansi bsd freebsd generic linux linux32bit macosx macosx32bit mingw posix posix32bit solaris
+PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
 
 LUA_A=	liblua.a
 CORE_O=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o \
@@ -115,10 +115,7 @@ mingw:
 	$(MAKE) "LUAC_T=luac.exe" luac.exe
 
 posix:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX -fPIC -DLUA_USE_DLOPEN" SYSLIBS="-ldl"
-
-posix32bit:
-	$(MAKE) $(ALL) SYSCFLAGS="-m32 -DLUA_USE_POSIX -fPIC -DLUA_USE_DLOPEN" SYSLDFLAGS="-m32" SYSLIBS="-ldl"
+	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX"
 
 solaris:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN" SYSLIBS="-ldl"
