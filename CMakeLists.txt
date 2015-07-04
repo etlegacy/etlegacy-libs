@@ -161,13 +161,14 @@ if(WIN32)
 			${LUA_LIB}/lbitlib.c
 			${LUA_LIB}/lcorolib.c
 			${LUA_LIB}/ldblib.c
+			${LUA_LIB}/linit.c
 			${LUA_LIB}/liolib.c
 			${LUA_LIB}/lmathlib.c
+			${LUA_LIB}/loadlib.c
 			${LUA_LIB}/loslib.c
 			${LUA_LIB}/lstrlib.c
 			${LUA_LIB}/ltablib.c
-			${LUA_LIB}/linit.c
-			${LUA_LIB}/loadlib.c
+			${LUA_LIB}/lutf8lib.c
 		)
 
 		FILE(GLOB LUA_LIB_HEADERS
