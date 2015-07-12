@@ -466,6 +466,7 @@ elseif(UNIX)
 		# OGG
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs/libogg.a
 			COMMAND make clean || true
+			COMMAND ./autogen.sh
 			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
 			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/ogg
 		)
@@ -476,18 +477,13 @@ elseif(UNIX)
 		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/ogg/include")
 
 		# OGG Vorbis File
-		if(CROSS_COMPILE32)
-			set(CFLAGS "-m32 -I${CMAKE_CURRENT_LIST_DIR}/ogg/include")
-			set(LDFLAGS "-m32 -L${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs")
-		else()
-			set(CFLAGS "-I${CMAKE_CURRENT_LIST_DIR}/ogg/include")
-			set(LDFLAGS "-L${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs")
-		endif()
+		set(CFLAGS "${CFLAGS} -I${CMAKE_CURRENT_LIST_DIR}/ogg/include")
+		set(LDFLAGS "${LDFLAGS} -L${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs")
 
 		add_custom_command(
 			OUTPUT ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a
 			COMMAND make clean || true
-			COMMAND eval \"CFLAGS=${CFLAGS} LDFLAGS=${LDFLAGS} ./configure --disable-oggtest && make\"
+			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-oggtest && make
 			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/vorbis
 		)
 		add_custom_target(bundled_ogg_vorbis_file
