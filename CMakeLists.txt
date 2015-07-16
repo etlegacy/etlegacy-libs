@@ -479,11 +479,13 @@ elseif(UNIX)
 		# OGG Vorbis File
 		set(CFLAGS "${CFLAGS} -I${CMAKE_CURRENT_LIST_DIR}/ogg/include")
 		set(LDFLAGS "${LDFLAGS} -L${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs")
-
+		
+		# the above set of CFLAGS and LDFLAGS don't trigger on some systems
+		# ensure vorbis configure uses our bundled ogg see --with-ogg-includes & --with-ogg-libraries
 		add_custom_command(
 			OUTPUT ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a
 			COMMAND make clean || true
-			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-oggtest && make
+			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_LIST_DIR}/ogg/include --with-ogg-libraries=${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs && make
 			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/vorbis
 		)
 		add_custom_target(bundled_ogg_vorbis_file
