@@ -122,9 +122,12 @@ if(WIN32)
 
 		if(VSTUDIO)
 			set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/Release/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		elseif(MINGW)
+			set(CURL_BUNDLED_LIBRARY "${binary_dir}/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		else(VSTUDIO)
 			set(CURL_BUNDLED_LIBRARY "${binary_dir}/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		endif(VSTUDIO)
+
 		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/curl/include")
 	endif(BUNDLED_CURL)
 
@@ -193,17 +196,20 @@ if(WIN32)
 	#-----------------------------------------------------------------
 	if(BUNDLED_SDL) # DLL
 		add_custom_target(bundled_sdl) # Dummy target just so cmake does not print warnings
+		# Enable the SDL2main when the windows main function has been removed....
 		if(WIN64)
 			file(COPY ${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
 			set(SDL32_BUNDLED_LIBRARIES
 				"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2.lib"
-				"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2main.lib")
+				#"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2main.lib"
+			)
 			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
 		else(WIN64)
 			file(COPY ${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
 			set(SDL32_BUNDLED_LIBRARIES
 				"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.lib"
-				"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2main.lib")
+				#"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2main.lib"
+			)
 			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
 		endif(WIN64)
 	endif(BUNDLED_SDL)
