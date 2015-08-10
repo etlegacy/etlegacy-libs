@@ -199,6 +199,7 @@ if(WIN32)
 		# Enable the SDL2main when the windows main function has been removed....
 		if(WIN64)
 			file(COPY ${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
+			install(FILES "${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2.dll" DESTINATION "${INSTALL_DEFAULT_BINDIR}")
 			set(SDL32_BUNDLED_LIBRARIES
 				"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2.lib"
 				#"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2main.lib"
@@ -206,6 +207,7 @@ if(WIN32)
 			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
 		else(WIN64)
 			file(COPY ${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
+			install(FILES "${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.dll" DESTINATION "${INSTALL_DEFAULT_BINDIR}")
 			set(SDL32_BUNDLED_LIBRARIES
 				"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.lib"
 				#"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2main.lib"
