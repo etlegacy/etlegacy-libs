@@ -1,0 +1,54 @@
+# Installation directories
+
+# Default prefix
+PREFIX ?= /usr
+
+# Lua version and dirs
+LUA_SYS_VER ?= 5.2
+LUA_LIBDIR ?= $(PREFIX)/lib/lua/$(LUA_SYS_VER)
+LUA_DIR ?= $(PREFIX)/share/lua/$(LUA_SYS_VER)
+LUA_INC ?= $(PREFIX)/include/lua$(LUA_SYS_VER)
+
+# OS dependent
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin) # MacOS
+	LIB_OPTION ?= -bundle -undefined dynamic_lookup -mmacosx-version-min=10.3
+else # Linux/BSD
+	LIB_OPTION ?= -shared
+endif
+
+# driver specific params
+# - MySQL
+#DRIVER_LIBS_mysql ?= -L/usr/local/mysql/lib -lmysqlclient -lz
+#DRIVER_INCS_mysql ?= -I/usr/local/mysql/include
+DRIVER_LIBS_mysql ?= -L/usr/lib -lmysqlclient -lz
+DRIVER_INCS_mysql ?= -I/usr/include/mysql
+# - Oracle OCI8
+DRIVER_LIBS_oci8 ?= -L/home/oracle/OraHome1/lib -lz -lclntsh
+DRIVER_INCS_oci8 ?= -I/home/oracle/OraHome1/rdbms/demo \
+                    -I/home/oracle/OraHome1/rdbms/public
+# - PostgreSQL
+#DRIVER_LIBS_postgres ?= -L/usr/local/pgsql/lib -lpq
+#DRIVER_INCS_postgres ?= -I/usr/local/pgsql/include/
+DRIVER_LIBS_postgres ?= -L/usr/lib -lpq
+DRIVER_INCS_postgres ?= -I/usr/include/postgresql
+# - SQLite
+DRIVER_LIBS_sqlite ?= -lsqlite
+DRIVER_INCS_sqlite ?=
+# - SQLite3 
+DRIVER_LIBS_sqlite3 ?= -L/opt/local/lib -lsqlite3
+DRIVER_INCS_sqlite3 ?= -I/opt/local/include
+# - ODBC
+DRIVER_LIBS_odbc ?= -L/usr/local/lib -lodbc
+DRIVER_INCS_odbc ?= -DUNIXODBC -I/usr/local/include
+# - Firebird
+DRIVER_LIBS_firebird ?= -L/usr/local/firebird -lfbclient
+DRIVER_INCS_firebird ?=
+
+# general compilation parameters
+WARN = -Wall -Wmissing-prototypes -Wmissing-declarations -pedantic
+INCS = -I$(LUA_INC)
+DEFS =
+CFLAGS = -O2 -std=gnu99 $(WARN) -fPIC $(DRIVER_INCS) $(INCS) \
+         -DLUASQL_VERSION_NUMBER='"$V"' $(DEFS)
+CC= gcc
