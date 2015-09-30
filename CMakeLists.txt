@@ -567,9 +567,11 @@ if(BUNDLED_THEORA)
 		LIST(APPEND THEORA_SRC ${THEORA_ASM_SRC})
 	endif()
 
-	INCLUDE_DIRECTORIES("${CMAKE_CURRENT_LIST_DIR}/theora/include")
-
 	add_library(bundled_theora STATIC ${THEORA_SRC})
+	target_include_directories(bundled_theora PUBLIC "${CMAKE_CURRENT_LIST_DIR}/theora/include")
+	#if(UNIX AND NOT APPLE)
+	#	target_include_directories(bundled_theora PUBLIC "${CMAKE_CURRENT_LIST_DIR}/ogg/include")
+	#endif()
 
 	set(THEORA_BUNDLED_LIBRARIES bundled_theora)
 	set(THEORA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/theora/include")
