@@ -547,6 +547,9 @@ if(BUNDLED_THEORA)
 		"${CMAKE_CURRENT_LIST_DIR}/theora/lib/*.h"
 	)
 
+	# This makes the MSVC build a happier
+	LIST(REMOVE_ITEM THEORA_SRC ${CMAKE_CURRENT_LIST_DIR}/theora/lib/encoder_disabled.c)
+
 	if(32BITS)
 		add_definitions("-DOC_X86_ASM")
 		if(MSVC)
