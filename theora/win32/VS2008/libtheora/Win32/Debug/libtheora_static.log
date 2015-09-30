@@ -1,0 +1,66 @@
+﻿  x86state.c
+D:\Programming\libtheora-1.1.1\include\theora/codec.h(64): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  mmxstate.c
+D:\Programming\libtheora-1.1.1\include\theora/codec.h(64): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  mmxidct.c
+D:\Programming\libtheora-1.1.1\include\theora/codec.h(64): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  mmxfrag.c
+D:\Programming\libtheora-1.1.1\include\theora/codec.h(64): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  state.c
+D:\Programming\libtheora-1.1.1\include\theora/codec.h(64): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  internal.c
+D:\Programming\libtheora-1.1.1\include\theora/codec.h(64): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  info.c
+D:\Programming\libtheora-1.1.1\include\theora/codec.h(64): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  huffdec.c
+..\..\..\lib\huffdec.c(20): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  fragment.c
+D:\Programming\libtheora-1.1.1\include\theora/codec.h(64): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  dequant.c
+..\..\..\lib\dequant.c(20): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  decinfo.c
+D:\Programming\libtheora-1.1.1\include\theora/theoradec.h(24): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  decapiwrapper.c
+d:\programming\libtheora-1.1.1\lib\apiwrapper.h(20): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  bitpack.c
+..\..\..\lib\bitpack.c(41): warning C4554: '<<' : check operator precedence for possible error; use parentheses to clarify precedence
+..\..\..\lib\bitpack.c(61): warning C4554: '>>' : check operator precedence for possible error; use parentheses to clarify precedence
+..\..\..\lib\bitpack.c(81): warning C4554: '>>' : check operator precedence for possible error; use parentheses to clarify precedence
+..\..\..\lib\bitpack.c(100): warning C4554: '>>' : check operator precedence for possible error; use parentheses to clarify precedence
+  apiwrapper.c
+d:\programming\libtheora-1.1.1\lib\apiwrapper.h(20): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  x86enc.c
+D:\Programming\libtheora-1.1.1\include\theora/theoraenc.h(24): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  mmxfdct.c
+D:\Programming\libtheora-1.1.1\include\theora/theoraenc.h(24): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  mmxencfrag.c
+D:\Programming\libtheora-1.1.1\include\theora/theoraenc.h(24): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  tokenize.c
+D:\Programming\libtheora-1.1.1\include\theora/theoraenc.h(24): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  rate.c
+D:\Programming\libtheora-1.1.1\include\theora/theoraenc.h(24): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  mcenc.c
+D:\Programming\libtheora-1.1.1\include\theora/theoraenc.h(24): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  Generating Code...
+  Compiling...
+  mathops.c
+d:\programming\libtheora-1.1.1\lib\mathops.h(3): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  huffenc.c
+..\..\..\lib\huffenc.c(3): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  fdct.c
+D:\Programming\libtheora-1.1.1\include\theora/theoraenc.h(24): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  enquant.c
+D:\Programming\libtheora-1.1.1\include\theora/theoraenc.h(24): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  encode.c
+D:\Programming\libtheora-1.1.1\include\theora/theoraenc.h(24): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  encinfo.c
+D:\Programming\libtheora-1.1.1\include\theora/codec.h(64): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  encfrag.c
+D:\Programming\libtheora-1.1.1\include\theora/theoraenc.h(24): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  encapiwrapper.c
+d:\programming\libtheora-1.1.1\lib\apiwrapper.h(20): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  analyze.c
+D:\Programming\libtheora-1.1.1\include\theora/theoraenc.h(24): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  cpu.c
+D:\Programming\libtheora-1.1.1\include\theora/codec.h(64): fatal error C1083: Cannot open include file: 'ogg/ogg.h': No such file or directory
+  Generating Code...

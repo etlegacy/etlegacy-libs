@@ -487,7 +487,7 @@ elseif(UNIX)
 		# OGG Vorbis File
 		set(CFLAGS "${CFLAGS} -I${CMAKE_CURRENT_LIST_DIR}/ogg/include")
 		set(LDFLAGS "${LDFLAGS} -L${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs")
-		
+
 		# the above set of CFLAGS and LDFLAGS don't trigger on some systems
 		# ensure vorbis configure uses our bundled ogg see --with-ogg-includes & --with-ogg-libraries
 		add_custom_command(
@@ -540,6 +540,37 @@ if(BUNDLED_FREETYPE)
 	endif(VSTUDIO)
 	set(BUNDLED_FREETYPE_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/freetype/include")
 endif(BUNDLED_FREETYPE)
+
+if(BUNDLED_THEORA)
+	FILE(GLOB THEORA_SRC
+		"${CMAKE_CURRENT_LIST_DIR}/theora/lib/*.c"
+		"${CMAKE_CURRENT_LIST_DIR}/theora/lib/*.h"
+	)
+
+	if(32BITS)
+		add_definitions("-DOC_X86_ASM")
+		if(MSVC)
+			FILE(GLOB THEORA_ASM_SRC
+				"${CMAKE_CURRENT_LIST_DIR}/theora/lib/x86_vc/*.c"
+				"${CMAKE_CURRENT_LIST_DIR}/theora/lib/x86_vc/*.h"
+			)
+		else()
+			FILE(GLOB THEORA_ASM_SRC
+				"${CMAKE_CURRENT_LIST_DIR}/theora/lib/x86/*.c"
+				"${CMAKE_CURRENT_LIST_DIR}/theora/lib/x86/*.h"
+			)
+		endif()
+
+		LIST(APPEND THEORA_SRC ${THEORA_ASM_SRC})
+	endif()
+
+	INCLUDE_DIRECTORIES("${CMAKE_CURRENT_LIST_DIR}/theora/include")
+
+	add_library(bundled_theora STATIC ${THEORA_SRC})
+
+	set(THEORA_BUNDLED_LIBRARIES bundled_theora)
+	set(THEORA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/theora/include")
+endif()
 
 #-----------------------------------------------------------------
 # Build bundled JANSSON library
