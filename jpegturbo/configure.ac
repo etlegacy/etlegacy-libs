@@ -2,8 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.56])
-AC_INIT([libjpeg-turbo], [1.4.1])
-BUILD=`date +%Y%m%d`
+AC_INIT([libjpeg-turbo], [1.4.2])
 
 AM_INIT_AUTOMAKE([-Wall foreign dist-bzip2])
 AC_PREFIX_DEFAULT(/opt/libjpeg-turbo)
@@ -21,6 +20,10 @@ AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 AC_PROG_LN_S
+
+AC_ARG_WITH([build-date], [Use custom build string to enable reproducible builds (default: YYMMDD)],
+  [BUILD="$with_build_date"],
+  [BUILD=`date +%Y%m%d`])
 
 # When the prefix is /opt/libjpeg-turbo, we assume that an "official" binary is
 # being created, and thus we install things into specific locations.

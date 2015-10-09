@@ -14,11 +14,14 @@ Build Requirements
      provided.  The easiest way to obtain them is from MacPorts
      (http://www.macports.org/).
 
--- NASM (if building x86 or x86-64 SIMD extensions)
-   * 0.98, or 2.01 or later is required for a 32-bit build
-   * NASM 2.00 or later is required for a 64-bit build
-   * NASM 2.07 or later is required for a 64-bit build on OS X.  This can be
-     obtained from MacPorts (http://www.macports.org/).
+-- NASM or YASM (if building x86 or x86-64 SIMD extensions)
+   * NASM 0.98, or 2.01 or later is required for an x86 build (0.99 and 2.00 do
+     not work properly with libjpeg-turbo's x86 SIMD code.)
+   * NASM 2.00 or later is required for an x86-64 build.
+   * NASM 2.07, or 2.11.09 or later is required for an x86-64 Mac build
+     (2.11.08 does not work properly with libjpeg-turbo's x86-64 SIMD code when
+     building macho64 objects.)  NASM or YASM can be obtained from MacPorts
+     (http://www.macports.org/).
 
    The binary RPMs released by the NASM project do not work on older Linux
    systems, such as Red Hat Enterprise Linux 4.  On such systems, you can
@@ -47,7 +50,7 @@ Build Requirements
      code, relative to building libjpeg-turbo with GCC v4.2.  If you are
      running Snow Leopard or earlier, it is suggested that you continue to use
      Xcode v3.2.6, which provides GCC v4.2.  If you are using Lion or later, it
-     is suggested that you install Apple GCC v4.2 through MacPorts.
+     is suggested that you install Apple GCC v4.2 or GCC v5 through MacPorts.
 
 -- If building the TurboJPEG Java wrapper, JDK or OpenJDK 1.5 or later is
    required.  Some systems, such as Solaris 10 and later and Red Hat Enterprise
@@ -332,7 +335,7 @@ libjpeg-turbo for these platforms.
 Additional build requirements:
 
   gas-preprocessor.pl
-  (https://sourceforge.net/p/libjpeg-turbo/code/HEAD/tree/gas-preprocessor)
+  (https://raw.githubusercontent.com/libjpeg-turbo/gas-preprocessor/master/gas-preprocessor.pl)
   should be installed in your PATH.
 
 
