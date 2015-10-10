@@ -76,7 +76,7 @@
 #define LIBJPEG_TURBO_VERSION 0
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
-#undef LT_OBJDIR
+#define LT_OBJDIR "$lt_cv_objdir/"
 
 /* Support in-memory source/destination managers */
 #define MEM_SRCDST_SUPPORTED
