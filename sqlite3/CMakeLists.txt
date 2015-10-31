@@ -2,12 +2,14 @@ cmake_minimum_required(VERSION 2.8)
 
 #project(sqlite3)
 
-option(SQLITE_BUILD_STATIC    "Build SQLite3 static library" ON)
-option(SQLITE_BUILD_SHARED    "Build SQLite3 shared library" OFF)
-option(WITH_SQLITE_DEBUG      "Build SQLite3 debug features" OFF)
-option(WITH_SQLITE_MEMDEBUG   "Build SQLite3 memory debug features" OFF)
-option(WITH_SQLITE_RTREE      "Build R*Tree index extension" OFF)
-option(WITH_SQLITE_THREADSAFE "Build SQLite3 threadsafe" OFF)
+option(SQLITE_BUILD_STATIC        "Build SQLite3 static library" ON)
+option(SQLITE_BUILD_SHARED        "Build SQLite3 shared library" OFF)
+option(WITH_SQLITE_DEBUG          "Build SQLite3 debug features" OFF)
+option(WITH_SQLITE_MEMDEBUG       "Build SQLite3 memory debug features" OFF)
+option(WITH_SQLITE_RTREE          "Build R*Tree index extension" OFF)
+option(WITH_SQLITE_THREADSAFE     "Build SQLite3 threadsafe" OFF)
+option(SQLITE_OMIT_FLOATING_POINT "Build SQLite3 omit floating-point number support" OFF)
+
 #SQLITE_OMIT_LOAD_EXTENSION 
 
 #set(INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin" CACHE PATH "Installation directory for executables")
@@ -77,6 +79,13 @@ if(WITH_SQLITE_THREADSAFE)
 else()
     message("SQLite3 threadsafe is disabled. WARNING: Use with ET:L Lua SQL only!")
     add_definitions(-DSQLITE_THREADSAFE=0)
+endif()
+
+if(SQLITE_OMIT_FLOATING_POINT)
+    add_definitions(-DSQLITE_OMIT_FLOATING_POINT=1)
+else()
+    message("SQLite3 omitting floating-point number support")
+    add_definitions(-DSQLITE_OMIT_FLOATING_POINT=0)
 endif()
 
 if (SQLITE_BUILD_STATIC)
