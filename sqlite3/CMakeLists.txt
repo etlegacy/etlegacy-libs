@@ -3,19 +3,21 @@ cmake_minimum_required(VERSION 2.8)
 #project(sqlite3)
 
 option(SQLITE_BUILD_STATIC    "Build SQLite3 static library" ON)
-option(SQLITE_BUILD_SHARED    "Build SQLite3 shared library" ON)
+option(SQLITE_BUILD_SHARED    "Build SQLite3 shared library" OFF)
 option(WITH_SQLITE_DEBUG      "Build SQLite3 debug features" OFF)
 option(WITH_SQLITE_MEMDEBUG   "Build SQLite3 memory debug features" OFF)
 option(WITH_SQLITE_RTREE      "Build R*Tree index extension" OFF)
 option(WITH_SQLITE_THREADSAFE "Build SQLite3 threadsafe" OFF)
 #SQLITE_OMIT_LOAD_EXTENSION 
 
-set(INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin" CACHE PATH "Installation directory for executables")
+#set(INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin" CACHE PATH "Installation directory for executables")
 set(INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib" CACHE PATH "Installation directory for libraries")
 set(INSTALL_INC_DIR "${CMAKE_INSTALL_PREFIX}/include" CACHE PATH "Installation directory for headers")
 
+set(SQLITE3_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR})
+
 # detect version
-file(STRINGS "${PROJECT_SOURCE_DIR}/src/sqlite3.h" _sqlite_api_h_VER_STRING REGEX ".*#define[ ]+SQLITE_VERSION[ ]+")
+file(STRINGS "${SQLITE3_SOURCE_DIR}/src/sqlite3.h" _sqlite_api_h_VER_STRING REGEX ".*#define[ ]+SQLITE_VERSION[ ]+")
 string(REGEX MATCH "[0-9\\.]+" SQLITE_VER_STRING ${_sqlite_api_h_VER_STRING})
 string(REGEX MATCHALL "[0-9]+" _sqlite_ver_LIST "${SQLITE_VER_STRING}")
 list(LENGTH _sqlite_ver_LIST _sqlite_list_len)
@@ -54,11 +56,10 @@ else()
 endif()
 
 # add include path for project
-include_directories(${PROJECT_SOURCE_DIR}/src)
+include_directories(${SQLITE3_SOURCE_DIR}/src)
 
-set(SRC_LIB_FILE ${PROJECT_SOURCE_DIR}/src/sqlite${SQLITE_VER_MAJOR}.c)
-set(SRC_SHELL_FILE ${PROJECT_SOURCE_DIR}/src/shell.c)
-file(GLOB HDR_FILES ${PROJECT_SOURCE_DIR}/src/*.h)
+set(SRC_LIB_FILE ${SQLITE3_SOURCE_DIR}/src/sqlite${SQLITE_VER_MAJOR}.c)
+file(GLOB HDR_FILES ${SQLITE3_SOURCE_DIR}/src/*.h)
 
 # adding compilation flags depending on options
 if(WITH_SQLITE_DEBUG)
@@ -78,7 +79,6 @@ else()
     add_definitions(-DSQLITE_THREADSAFE=0)
 endif()
 
-
 if (SQLITE_BUILD_STATIC)
     # build static library
     add_library(${SQLITE_STATIC_NAME} STATIC ${SRC_LIB_FILE})
@@ -93,22 +93,6 @@ if (SQLITE_BUILD_SHARED)
     endif()
 endif()
 
-# build shell executable
-add_executable(shell ${SRC_SHELL_FILE} "")
-
-if (SQLITE_BUILD_SHARED)
-    # preferred is shared library
-    target_link_libraries(shell ${SQLITE_DYN_NAME})
-elseif(SQLITE_BUILD_STATIC)
-    target_link_libraries(shell ${SQLITE_STATIC_NAME})
-else()
-    # no static or dynamic option selected
-    message(FATAL_ERROR "either static or dynamic/shared option should be selected")
-endif()
-
-# installation
-list(APPEND TO_INSTALL shell)
-
 if(SQLITE_BUILD_SHARED)
     list(APPEND TO_INSTALL ${SQLITE_DYN_NAME})
 endif()
@@ -116,8 +100,8 @@ if(SQLITE_BUILD_STATIC)
     list(APPEND TO_INSTALL ${SQLITE_STATIC_NAME})
 endif()
 
-install(TARGETS ${TO_INSTALL}
-        RUNTIME DESTINATION "${INSTALL_BIN_DIR}"
-        ARCHIVE DESTINATION "${INSTALL_LIB_DIR}"
-        LIBRARY DESTINATION "${INSTALL_LIB_DIR}" )
-install(FILES ${HDR_FILES} DESTINATION "${INSTALL_INC_DIR}")
+#install(TARGETS ${TO_INSTALL}
+#        RUNTIME DESTINATION "${INSTALL_BIN_DIR}"
+#        ARCHIVE DESTINATION "${INSTALL_LIB_DIR}"
+#        LIBRARY DESTINATION "${INSTALL_LIB_DIR}" )
+#install(FILES ${HDR_FILES} DESTINATION "${INSTALL_INC_DIR}")
