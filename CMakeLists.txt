@@ -519,6 +519,15 @@ if(BUNDLED_GLEW)
 endif(BUNDLED_GLEW)
 
 #-----------------------------------------------------------------
+# Build bundled SQLITE3 library
+#-----------------------------------------------------------------
+if(BUNDLED_SQLITE3)
+	include(${CMAKE_CURRENT_LIST_DIR}/sqlite3/CMakeLists.txt)
+	set(BUNDLED_SQLITE3_LIBRARIES bundled_sqlite3)
+	set(BUNDLED_SQLITE3_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sqlite3/src")
+endif(BUNDLED_SQLITE3)
+
+#-----------------------------------------------------------------
 # Build bundled Freetype library
 #-----------------------------------------------------------------
 if(BUNDLED_FREETYPE)
