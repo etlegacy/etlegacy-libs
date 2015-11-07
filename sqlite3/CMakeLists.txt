@@ -13,8 +13,8 @@ option(SQLITE_OMIT_FLOATING_POINT "Build SQLite3 omit floating-point number supp
 #SQLITE_OMIT_LOAD_EXTENSION 
 
 #set(INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin" CACHE PATH "Installation directory for executables")
-set(INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib" CACHE PATH "Installation directory for libraries")
-set(INSTALL_INC_DIR "${CMAKE_INSTALL_PREFIX}/include" CACHE PATH "Installation directory for headers")
+#set(INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib" CACHE PATH "Installation directory for libraries")
+#set(INSTALL_INC_DIR "${CMAKE_INSTALL_PREFIX}/include" CACHE PATH "Installation directory for headers")
 
 set(SQLITE3_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR})
 
@@ -32,8 +32,8 @@ if(_sqlite_list_len EQUAL 4)
 endif()
 message("SQLite3 version = ${SQLITE_VER_STRING}")
 
-set(SQLITE_DYN_NAME "${PROJECT_NAME}${SQLITE_VER_MAJOR}")
-set(SQLITE_STATIC_NAME "${SQLITE_DYN_NAME}-static")
+set(SQLITE_DYN_NAME "sqlite${SQLITE_VER_MAJOR}")
+set(SQLITE_STATIC_NAME "bundled_${SQLITE_DYN_NAME}")
 
 # os specific
 if(WIN32)
@@ -77,7 +77,7 @@ endif()
 if(WITH_SQLITE_THREADSAFE)
     add_definitions(-DSQLITE_THREADSAFE=1)
 else()
-    message("SQLite3 threadsafe is disabled. WARNING: Use with ET:L Lua SQL only!")
+    message("SQLite3 threadsafe is disabled. WARNING: Use with ET:L only!")
     add_definitions(-DSQLITE_THREADSAFE=0)
 endif()
 
@@ -102,12 +102,12 @@ if (SQLITE_BUILD_SHARED)
     endif()
 endif()
 
-if(SQLITE_BUILD_SHARED)
-    list(APPEND TO_INSTALL ${SQLITE_DYN_NAME})
-endif()
-if(SQLITE_BUILD_STATIC)
-    list(APPEND TO_INSTALL ${SQLITE_STATIC_NAME})
-endif()
+#if(SQLITE_BUILD_SHARED)
+#    list(APPEND TO_INSTALL ${SQLITE_DYN_NAME})
+#endif()
+#if(SQLITE_BUILD_STATIC)
+#    list(APPEND TO_INSTALL ${SQLITE_STATIC_NAME})
+#endif()
 
 #install(TARGETS ${TO_INSTALL}
 #        RUNTIME DESTINATION "${INSTALL_BIN_DIR}"
