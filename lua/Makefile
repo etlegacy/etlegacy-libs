@@ -36,7 +36,7 @@ RM= rm -f
 # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
 
 # Convenience platforms targets.
-PLATS= aix bsd c89 freebsd generic linux macosx mingw posix posix32bit solaris
+PLATS= aix bsd c89 freebsd generic linux macosx mingw posix solaris
 
 # What to install.
 TO_BIN= lua luac
@@ -46,7 +46,7 @@ TO_MAN= lua.1 luac.1
 
 # Lua version and release.
 V= 5.3
-R= $V.1
+R= $V.2
 
 # Targets start here.
 all:	$(PLAT)
