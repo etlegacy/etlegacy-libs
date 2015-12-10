@@ -510,6 +510,60 @@ elseif(UNIX)
 endif()
 
 #-----------------------------------------------------------------
+# Build bundled ZLib library
+#-----------------------------------------------------------------
+if(BUNDLED_ZLIB)
+	set(ZLIB_LIB "${CMAKE_CURRENT_LIST_DIR}/zlib")
+
+	FILE(GLOB ZLIB_LIB_HEADERS
+		${ZLIB_LIB}/crc32.h
+		${ZLIB_LIB}/gzguts.h
+		${ZLIB_LIB}/inffast.h
+		${ZLIB_LIB}/inffixed.h
+		${ZLIB_LIB}/inflate.h
+		${ZLIB_LIB}/inftrees.h
+		${ZLIB_LIB}/zconf.h
+		${ZLIB_LIB}/zlib.h
+		${ZLIB_LIB}/zutil.h
+	)
+
+	FILE(GLOB ZLIB_LIB_SRC
+		${ZLIB_LIB}/adler32.c
+		${ZLIB_LIB}/crc32.c
+		${ZLIB_LIB}/inffast.c
+		${ZLIB_LIB}/inflate.c
+		${ZLIB_LIB}/inftrees.c
+		${ZLIB_LIB}/zutil.c
+	)
+
+	add_library (bundled_zlib STATIC ${ZLIB_LIB_SRC} ${ZLIB_LIB_HEADERS})
+	set(ZLIB_BUNDLED_LIBRARIES bundled_zlib)
+	set(ZLIB_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/zlib")
+endif(BUNDLED_ZLIB)
+
+#-----------------------------------------------------------------
+# Build bundled MiniZip library
+#-----------------------------------------------------------------
+if(BUNDLED_MINIZIP)
+	set(MINIZIP_LIB "${CMAKE_CURRENT_LIST_DIR}/minizip")
+
+	FILE(GLOB MINIZIP_LIB_HEADERS
+		${MINIZIP_LIB}/crypt.h
+		${MINIZIP_LIB}/ioapi.h
+		${MINIZIP_LIB}/unzip.h
+	)
+
+	FILE(GLOB MINIZIP_LIB_SRC
+		${MINIZIP_LIB}/ioapi.c
+		${MINIZIP_LIB}/unzip.c
+	)
+
+	add_library (bundled_minizip STATIC ${MINIZIP_LIB_SRC} ${MINIZIP_LIB_HEADERS})
+	set(MINIZIP_BUNDLED_LIBRARIES bundled_minizip)
+	set(MINIZIP_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/minizip")
+endif(BUNDLED_MINIZIP)
+
+#-----------------------------------------------------------------
 # Build bundled GLEW library
 #-----------------------------------------------------------------
 if(BUNDLED_GLEW)
