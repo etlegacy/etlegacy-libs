@@ -575,17 +575,14 @@ if(BUNDLED_GLEW)
 	set(BUNDLED_GLEW_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/glew/include")
 endif(BUNDLED_GLEW)
 
-if(FEATURE_DBMS)
-	#-----------------------------------------------------------------
-	# Build bundled SQLITE3 library
-	#-----------------------------------------------------------------
-	if(BUNDLED_SQLITE3)
-		include(${CMAKE_CURRENT_LIST_DIR}/sqlite3/CMakeLists.txt)
-		set(SQLITE3_BUNDLED_LIBRARIES bundled_sqlite3)
-		set(SQLITE3_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sqlite3/src")
-	endif(BUNDLED_SQLITE3)
-endif(FEATURE_DBMS)
-
+#-----------------------------------------------------------------
+# Build bundled SQLITE3 library
+#-----------------------------------------------------------------
+if(BUNDLED_SQLITE3)
+	include(${CMAKE_CURRENT_LIST_DIR}/sqlite3/CMakeLists.txt)
+	set(SQLITE3_BUNDLED_LIBRARIES bundled_sqlite3)
+	set(SQLITE3_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sqlite3/src")
+endif(BUNDLED_SQLITE3)
 
 #-----------------------------------------------------------------
 # Build bundled Freetype library
@@ -610,6 +607,9 @@ if(BUNDLED_FREETYPE)
 	set(BUNDLED_FREETYPE_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/freetype/include")
 endif(BUNDLED_FREETYPE)
 
+#-----------------------------------------------------------------
+# Build bundled Theora library
+#-----------------------------------------------------------------
 if(BUNDLED_THEORA)
 	FILE(GLOB THEORA_SRC
 		"${CMAKE_CURRENT_LIST_DIR}/theora/lib/*.c"
@@ -646,6 +646,29 @@ if(BUNDLED_THEORA)
 	set(THEORA_BUNDLED_LIBRARIES bundled_theora)
 	set(THEORA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/theora/include")
 endif()
+
+#-----------------------------------------------------------------
+# Build bundled OpenAL library
+#-----------------------------------------------------------------
+if(BUNDLED_OPENAL)
+	ExternalProject_Add(bundled_openal
+		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
+		BINARY_DIR	${LIBS_BINARYDIR_DIR}/openal
+		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal -DLIBTYPE=STATIC -DALSOFT_UTILS=0 -DALSOFT_EXAMPLES=0 -DALSOFT_TESTS=0 -DALSOFT_CONFIG=0 -DALSOFT_HRTF_DEFS=0
+		INSTALL_COMMAND  ""
+	)
+
+	ExternalProject_Get_Property(bundled_openal binary_dir)
+
+	if(VSTUDIO)
+		set(OPENAL_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/openal${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/openal${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	elseif(NMAKE_BUILD)
+		set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/openal${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	else(VSTUDIO)
+		set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libopenal${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	endif(VSTUDIO)
+	set(OPENAL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/openal/include")
+endif(BUNDLED_OPENAL)
 
 #-----------------------------------------------------------------
 # Build bundled JANSSON library
