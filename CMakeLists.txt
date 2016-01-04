@@ -8,12 +8,12 @@ if(WIN32)
 	# Build bundled JPEG library
 	#-----------------------------------------------------------------
 	if(BUNDLED_JPEG) # static
-		check_include_file ( stddef.h HAVE_STDDEF_H )
-		check_include_file ( stdlib.h HAVE_STDLIB_H )
+		check_include_file(stddef.h HAVE_STDDEF_H)
+		check_include_file(stdlib.h HAVE_STDLIB_H)
 
 		set(JPEG_LIB "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
 		if(MSVC)
-			add_definitions ( -D_CRT_SECURE_NO_WARNINGS )
+			add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 		endif()
 
 		if(WIN32 AND NOT CYGWIN)
@@ -101,11 +101,10 @@ if(WIN32)
 			${JPEG_LIB}/transupp.h
 		)
 
-		add_library (bundled_jpeg STATIC ${JPEG_LIB_SRC} ${JPEG_LIB_HEADERS})
+		add_library(bundled_jpeg STATIC ${JPEG_LIB_SRC} ${JPEG_LIB_HEADERS})
 		set(JPEG_BUNDLED_LIBRARIES bundled_jpeg)
 		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
 	endif(BUNDLED_JPEG)
-
 
 	#-----------------------------------------------------------------
 	# Build bundled cURL library
@@ -352,6 +351,29 @@ if(WIN32)
 		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/vorbis/include")
 	endif(BUNDLED_OGG_VORBIS)
 
+	#-----------------------------------------------------------------
+	# Build bundled OpenAL library
+	#-----------------------------------------------------------------
+	if(BUNDLED_OPENAL)
+		ExternalProject_Add(bundled_openal
+				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
+				BINARY_DIR	${LIBS_BINARYDIR_DIR}/openal
+				CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal -DLIBTYPE=STATIC -DALSOFT_UTILS=0 -DALSOFT_NO_CONFIG_UTIL=1 -DALSOFT_EXAMPLES=0 -DALSOFT_TESTS=0 -DALSOFT_CONFIG=0 -DALSOFT_HRTF_DEFS=0
+				INSTALL_COMMAND  ""
+				)
+
+		ExternalProject_Get_Property(bundled_openal binary_dir)
+
+		if(VSTUDIO)
+			set(OPENAL_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		elseif(NMAKE_BUILD)
+			set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		else(VSTUDIO)
+			set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libOpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		endif(VSTUDIO)
+		set(OPENAL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/openal/include")
+	endif(BUNDLED_OPENAL)
+
 elseif(UNIX)
 
 	if(CROSS_COMPILE32)
@@ -507,6 +529,23 @@ elseif(UNIX)
 		set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a" "${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbis.a")
 		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/vorbis/include")
 	endif(BUNDLED_OGG_VORBIS)
+
+	#-----------------------------------------------------------------
+	# Build bundled OpenAL library
+	#-----------------------------------------------------------------
+	if(BUNDLED_OPENAL)
+		ExternalProject_Add(bundled_openal
+				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
+				BINARY_DIR	${LIBS_BINARYDIR_DIR}/openal
+				CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal -DLIBTYPE=STATIC -DALSOFT_UTILS=0 -DALSOFT_NO_CONFIG_UTIL=1 -DALSOFT_EXAMPLES=0 -DALSOFT_TESTS=0 -DALSOFT_CONFIG=0 -DALSOFT_HRTF_DEFS=0
+				INSTALL_COMMAND  ""
+				)
+
+		ExternalProject_Get_Property(bundled_openal binary_dir)
+
+		set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libopenal${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		set(OPENAL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/openal/include")
+	endif(BUNDLED_OPENAL)
 endif()
 
 #-----------------------------------------------------------------
@@ -536,7 +575,7 @@ if(BUNDLED_ZLIB)
 		${ZLIB_LIB}/zutil.c
 	)
 
-	add_library (bundled_zlib STATIC ${ZLIB_LIB_SRC} ${ZLIB_LIB_HEADERS})
+	add_library(bundled_zlib STATIC ${ZLIB_LIB_SRC} ${ZLIB_LIB_HEADERS})
 	set(ZLIB_BUNDLED_LIBRARIES bundled_zlib)
 	set(ZLIB_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/zlib")
 endif(BUNDLED_ZLIB)
@@ -558,7 +597,7 @@ if(BUNDLED_MINIZIP)
 		${MINIZIP_LIB}/unzip.c
 	)
 
-	add_library (bundled_minizip STATIC ${MINIZIP_LIB_SRC} ${MINIZIP_LIB_HEADERS})
+	add_library(bundled_minizip STATIC ${MINIZIP_LIB_SRC} ${MINIZIP_LIB_HEADERS})
 	if(BUNDLED_ZLIB)
 		target_link_libraries(bundled_minizip bundled_zlib)
 	endif(BUNDLED_ZLIB)
@@ -646,29 +685,6 @@ if(BUNDLED_THEORA)
 	set(THEORA_BUNDLED_LIBRARIES bundled_theora)
 	set(THEORA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/theora/include")
 endif()
-
-#-----------------------------------------------------------------
-# Build bundled OpenAL library
-#-----------------------------------------------------------------
-if(BUNDLED_OPENAL)
-	ExternalProject_Add(bundled_openal
-		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
-		BINARY_DIR	${LIBS_BINARYDIR_DIR}/openal
-		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal -DLIBTYPE=STATIC -DALSOFT_UTILS=0 -DALSOFT_EXAMPLES=0 -DALSOFT_TESTS=0 -DALSOFT_CONFIG=0 -DALSOFT_HRTF_DEFS=0
-		INSTALL_COMMAND  ""
-	)
-
-	ExternalProject_Get_Property(bundled_openal binary_dir)
-
-	if(VSTUDIO)
-		set(OPENAL_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
-	elseif(NMAKE_BUILD)
-		set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
-	else(VSTUDIO)
-		set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libopenal${CMAKE_STATIC_LIBRARY_SUFFIX}")
-	endif(VSTUDIO)
-	set(OPENAL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/openal/include")
-endif(BUNDLED_OPENAL)
 
 #-----------------------------------------------------------------
 # Build bundled JANSSON library
