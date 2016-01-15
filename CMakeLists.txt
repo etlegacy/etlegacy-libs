@@ -545,6 +545,8 @@ elseif(UNIX)
 
 		set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libopenal${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		set(OPENAL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/openal/include")
+	elseif(BUNDLED_OPENAL_INCLUDE)
+		include_directories(SYSTEM "${CMAKE_CURRENT_LIST_DIR}/openal/include")
 	endif(BUNDLED_OPENAL)
 endif()
 
