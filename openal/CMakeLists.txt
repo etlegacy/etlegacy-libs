@@ -5,8 +5,11 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 PROJECT(OpenAL)
 
 IF(COMMAND CMAKE_POLICY)
-  CMAKE_POLICY(SET CMP0003 NEW)
-  CMAKE_POLICY(SET CMP0005 NEW)
+    CMAKE_POLICY(SET CMP0003 NEW)
+    CMAKE_POLICY(SET CMP0005 NEW)
+    IF(POLICY CMP0042)
+        CMAKE_POLICY(SET CMP0042 NEW)
+    ENDIF(POLICY CMP0042)
 ENDIF(COMMAND CMAKE_POLICY)
 
 SET(CMAKE_MODULE_PATH "${OpenAL_SOURCE_DIR}/cmake")
@@ -39,6 +42,9 @@ OPTION(ALSOFT_TESTS     "Build and install test programs"     ON)
 OPTION(ALSOFT_CONFIG "Install alsoft.conf sample configuration file" ON)
 OPTION(ALSOFT_HRTF_DEFS "Install HRTF definition files" ON)
 OPTION(ALSOFT_INSTALL "Install headers and libraries" ON)
+
+
+set(SHARE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share" CACHE STRING "The share install dir")
 
 
 IF(NOT WIN32)
@@ -77,7 +83,7 @@ ENDIF()
 
 SET(LIB_MAJOR_VERSION "1")
 SET(LIB_MINOR_VERSION "17")
-SET(LIB_REVISION "1")
+SET(LIB_REVISION "2")
 SET(LIB_VERSION "${LIB_MAJOR_VERSION}.${LIB_MINOR_VERSION}.${LIB_REVISION}")
 
 SET(EXPORT_DECL "")
@@ -98,16 +104,18 @@ ELSE()
     ENDIF()
 ENDIF()
 
-# Check if _POSIX_C_SOURCE needs to be set for POSIX functions
-CHECK_SYMBOL_EXISTS(posix_memalign stdlib.h HAVE_POSIX_MEMALIGN_DEFAULT)
-IF(NOT HAVE_POSIX_MEMALIGN_DEFAULT)
-    SET(OLD_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS})
-    SET(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -D_POSIX_C_SOURCE=200809L")
-    CHECK_SYMBOL_EXISTS(posix_memalign stdlib.h HAVE_POSIX_MEMALIGN_POSIX)
-    IF(NOT HAVE_POSIX_MEMALIGN_POSIX)
-        SET(CMAKE_REQUIRED_FLAGS ${OLD_REQUIRED_FLAGS})
-    ELSE()
-        ADD_DEFINITIONS(-D_POSIX_C_SOURCE=200809L)
+if(NOT WIN32)
+    # Check if _POSIX_C_SOURCE and _XOPEN_SOURCE needs to be set for POSIX functions
+    CHECK_SYMBOL_EXISTS(posix_memalign stdlib.h HAVE_POSIX_MEMALIGN_DEFAULT)
+    IF(NOT HAVE_POSIX_MEMALIGN_DEFAULT)
+        SET(OLD_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS})
+        SET(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500")
+        CHECK_SYMBOL_EXISTS(posix_memalign stdlib.h HAVE_POSIX_MEMALIGN_POSIX)
+        IF(NOT HAVE_POSIX_MEMALIGN_POSIX)
+            SET(CMAKE_REQUIRED_FLAGS ${OLD_REQUIRED_FLAGS})
+        ELSE()
+            ADD_DEFINITIONS(-D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500)
+        ENDIF()
     ENDIF()
     UNSET(OLD_REQUIRED_FLAGS)
 ENDIF()
@@ -286,6 +294,25 @@ ELSE()
 
     CHECK_C_SOURCE_COMPILES("int foo() __attribute__((destructor));
                              int main() {return 0;}" HAVE_GCC_DESTRUCTOR)
+
+    option(ALSOFT_STATIC_LIBGCC "Force -static-libgcc for static GCC runtimes" OFF)
+    if(ALSOFT_STATIC_LIBGCC)
+        set(OLD_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
+        set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} -static-libgcc)
+        check_c_source_compiles(
+"#include <stdlib.h>
+int main()
+{
+    return 0;
+}"
+            HAVE_STATIC_LIBGCC_SWITCH
+        )
+        if(HAVE_STATIC_LIBGCC_SWITCH)
+            set(EXTRA_LIBS ${EXTRA_LIBS} -static-libgcc)
+        endif()
+        set(CMAKE_REQUIRED_LIBRARIES ${OLD_REQUIRED_LIBRARIES})
+        unset(OLD_REQUIRED_LIBRARIES)
+    endif()
 ENDIF()
 
 # Set visibility/export options if available
@@ -331,6 +358,7 @@ ENDIF()
 
 SET(SSE_SWITCH "")
 SET(SSE2_SWITCH "")
+SET(SSE3_SWITCH "")
 SET(SSE4_1_SWITCH "")
 IF(NOT MSVC)
     CHECK_C_COMPILER_FLAG(-msse HAVE_MSSE_SWITCH)
@@ -358,7 +386,6 @@ CHECK_INCLUDE_FILE(stdbool.h HAVE_STDBOOL_H)
 CHECK_INCLUDE_FILE(stdalign.h HAVE_STDALIGN_H)
 CHECK_INCLUDE_FILE(malloc.h HAVE_MALLOC_H)
 CHECK_INCLUDE_FILE(dirent.h HAVE_DIRENT_H)
-CHECK_INCLUDE_FILE(io.h HAVE_IO_H)
 CHECK_INCLUDE_FILE(strings.h HAVE_STRINGS_H)
 CHECK_INCLUDE_FILE(cpuid.h HAVE_CPUID_H)
 CHECK_INCLUDE_FILE(intrin.h HAVE_INTRIN_H)
@@ -371,6 +398,25 @@ IF(NOT HAVE_GUIDDEF_H)
     CHECK_INCLUDE_FILE(initguid.h HAVE_INITGUID_H)
 ENDIF()
 
+# Some systems need libm for some of the following math functions to work
+CHECK_LIBRARY_EXISTS(m pow "" HAVE_LIBM)
+IF(HAVE_LIBM)
+    SET(EXTRA_LIBS m ${EXTRA_LIBS})
+    SET(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} m)
+ENDIF()
+
+# Check for the dlopen API (for dynamicly loading backend libs)
+IF(ALSOFT_DLOPEN)
+    CHECK_LIBRARY_EXISTS(dl dlopen "" HAVE_LIBDL)
+    IF(HAVE_LIBDL)
+        SET(EXTRA_LIBS dl ${EXTRA_LIBS})
+        SET(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} dl)
+    ENDIF()
+
+    CHECK_INCLUDE_FILE(dlfcn.h HAVE_DLFCN_H)
+ENDIF()
+
+# Check for a cpuid intrinsic
 IF(HAVE_CPUID_H)
     CHECK_C_SOURCE_COMPILES("#include <cpuid.h>
         int main()
@@ -379,7 +425,6 @@ IF(HAVE_CPUID_H)
             return __get_cpuid(0, &eax, &ebx, &ecx, &edx);
         }" HAVE_GCC_GET_CPUID)
 ENDIF()
-
 IF(HAVE_INTRIN_H)
     CHECK_C_SOURCE_COMPILES("#include <intrin.h>
         int main()
@@ -389,14 +434,6 @@ IF(HAVE_INTRIN_H)
             return regs[0];
         }" HAVE_CPUID_INTRINSIC)
 ENDIF()
-
-# Some systems need libm for some of the following math functions to work
-CHECK_LIBRARY_EXISTS(m pow "" HAVE_LIBM)
-IF(HAVE_LIBM)
-    SET(EXTRA_LIBS m ${EXTRA_LIBS})
-    SET(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} m)
-ENDIF()
-
 
 CHECK_SYMBOL_EXISTS(aligned_alloc    stdlib.h HAVE_ALIGNED_ALLOC)
 CHECK_SYMBOL_EXISTS(posix_memalign   stdlib.h HAVE_POSIX_MEMALIGN)
@@ -415,8 +452,8 @@ IF(HAVE_FLOAT_H)
     CHECK_SYMBOL_EXISTS(__control87_2 float.h HAVE___CONTROL87_2)
 ENDIF()
 
-CHECK_FUNCTION_EXISTS(strtof HAVE_STRTOF)
 CHECK_FUNCTION_EXISTS(stat HAVE_STAT)
+CHECK_FUNCTION_EXISTS(strtof HAVE_STRTOF)
 CHECK_FUNCTION_EXISTS(strcasecmp HAVE_STRCASECMP)
 IF(NOT HAVE_STRCASECMP)
     CHECK_FUNCTION_EXISTS(_stricmp HAVE__STRICMP)
@@ -437,6 +474,7 @@ IF(NOT HAVE_STRNCASECMP)
     ADD_DEFINITIONS(-Dstrncasecmp=_strnicmp)
 ENDIF()
 
+CHECK_SYMBOL_EXISTS(strnlen string.h HAVE_STRNLEN)
 CHECK_SYMBOL_EXISTS(snprintf stdio.h HAVE_SNPRINTF)
 IF(NOT HAVE_SNPRINTF)
     CHECK_FUNCTION_EXISTS(_snprintf HAVE__SNPRINTF)
@@ -471,17 +509,6 @@ IF(NOT HAVE_ISNAN)
     ADD_DEFINITIONS(-Disnan=_isnan)
 ENDIF()
 
-
-# Check for the dlopen API (for dynamicly loading backend libs)
-IF(ALSOFT_DLOPEN)
-    CHECK_INCLUDE_FILE(dlfcn.h HAVE_DLFCN_H)
-    IF(HAVE_DLFCN_H)
-        CHECK_LIBRARY_EXISTS(dl dlopen "" HAVE_LIBDL)
-        IF(HAVE_LIBDL)
-            SET(EXTRA_LIBS dl ${EXTRA_LIBS})
-        ENDIF()
-    ENDIF()
-ENDIF()
 
 # Check if we have Windows headers
 CHECK_INCLUDE_FILE(windows.h HAVE_WINDOWS_H -D_WIN32_WINNT=0x0502)
@@ -522,12 +549,33 @@ IF(NOT HAVE_WINDOWS_H)
         CHECK_SYMBOL_EXISTS(pthread_setname_np "pthread.h;pthread_np.h" HAVE_PTHREAD_SETNAME_NP)
         IF(NOT HAVE_PTHREAD_SETNAME_NP)
             CHECK_SYMBOL_EXISTS(pthread_set_name_np "pthread.h;pthread_np.h" HAVE_PTHREAD_SET_NAME_NP)
+        ELSE()
+            CHECK_C_SOURCE_COMPILES("
+#include <pthread.h>
+#include <pthread_np.h>
+int main()
+{
+    pthread_setname_np(\"testname\");
+    return 0;
+}"
+                PTHREAD_SETNAME_NP_ONE_PARAM
+            )
         ENDIF()
         CHECK_SYMBOL_EXISTS(pthread_mutexattr_setkind_np "pthread.h;pthread_np.h" HAVE_PTHREAD_MUTEXATTR_SETKIND_NP)
     ELSE()
         CHECK_SYMBOL_EXISTS(pthread_setname_np pthread.h HAVE_PTHREAD_SETNAME_NP)
         IF(NOT HAVE_PTHREAD_SETNAME_NP)
             CHECK_SYMBOL_EXISTS(pthread_set_name_np pthread.h HAVE_PTHREAD_SET_NAME_NP)
+        ELSE()
+            CHECK_C_SOURCE_COMPILES("
+#include <pthread.h>
+int main()
+{
+    pthread_setname_np(\"testname\");
+    return 0;
+}"
+                PTHREAD_SETNAME_NP_ONE_PARAM
+            )
         ENDIF()
         CHECK_SYMBOL_EXISTS(pthread_mutexattr_setkind_np pthread.h HAVE_PTHREAD_MUTEXATTR_SETKIND_NP)
     ENDIF()
@@ -1159,7 +1207,7 @@ ENDIF()
 # Install alsoft.conf configuration file
 IF(ALSOFT_CONFIG)
     INSTALL(FILES alsoftrc.sample
-            DESTINATION share/openal
+            DESTINATION ${SHARE_INSTALL_DIR}/openal
     )
     MESSAGE(STATUS "Installing sample configuration")
     MESSAGE(STATUS "")
@@ -1169,7 +1217,7 @@ ENDIF()
 IF(ALSOFT_HRTF_DEFS)
     INSTALL(FILES hrtf/default-44100.mhr
                   hrtf/default-48000.mhr
-            DESTINATION share/openal/hrtf
+            DESTINATION ${SHARE_INSTALL_DIR}/openal/hrtf
     )
     MESSAGE(STATUS "Installing HRTF definitions")
     MESSAGE(STATUS "")
