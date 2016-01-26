@@ -716,3 +716,39 @@ if(BUNDLED_JANSSON)
 	endif(VSTUDIO)
 	set(BUNDLED_JANSSON_INCLUDE_DIR "${binary_dir}/include")
 endif(BUNDLED_JANSSON)
+
+#-----------------------------------------------------------------
+# Build LuaSQLite3
+#-----------------------------------------------------------------
+
+if(FEATURE_LUASQL)
+		
+	if(NOT BUNDLED_LUA OR NOT FEATURE_DBMS)
+		message(STATUS "FEATURE_LUASQL needs BUNDLED_LUA and FEATURE_DBMS set!")
+	endif(NOT BUNDLED_LUA OR NOT FEATURE_DBMS)
+	
+	FILE(GLOB LUASQL_FILES
+		"${CMAKE_CURRENT_LIST_DIR}/luasql/src/luasql.c"
+		"${CMAKE_CURRENT_LIST_DIR}/luasql/src/luasql.h"
+	)
+
+	FILE(GLOB LUASQL_BACKEND_FILES
+		"${CMAKE_CURRENT_LIST_DIR}/luasql/src/ls_sqlite3.c"
+	)
+	
+	set(LUASQL_PUBLIC_HEADERS ${CMAKE_CURRENT_LIST_DIR}/luasql/src/luasql.h)
+
+	include_directories(${SQLITE3_BUNDLED_INCLUDE_DIR})
+	include_directories(${LUA_BUNDLED_INCLUDE_DIR})
+
+	add_library(luasql_library_module MODULE ${LUASQL_PUBLIC_HEADERS} ${LUASQL_FILES} ${LUASQL_BACKEND_FILES})
+	set_target_properties(luasql_library_module PROPERTIES PREFIX "" OUTPUT_NAME "luasqlite3")
+
+	target_link_libraries(luasql_library_module ${LUA_BUNDLED_LIBRARIES})
+	target_link_libraries(luasql_library_module ${SQLITE3_BUNDLED_LIBRARIES})
+	
+	# FIXME: move to cmake/ETLInstall.cmake
+	# this file should go into fs_homepath/legacy ... which is actually unknown
+	install(TARGETS luasql_library_module DESTINATION "${INSTALL_DEFAULT_MODDIR}/legacy/lualibs/luasql")
+	
+endif(FEATURE_LUASQL)
