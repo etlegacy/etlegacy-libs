@@ -742,13 +742,15 @@ if(FEATURE_LUASQL)
 	include_directories(${LUA_BUNDLED_INCLUDE_DIR})
 
 	add_library(luasql_library_module MODULE ${LUASQL_PUBLIC_HEADERS} ${LUASQL_FILES} ${LUASQL_BACKEND_FILES})
-	set_target_properties(luasql_library_module PROPERTIES PREFIX "" OUTPUT_NAME "luasqlite3")
+	set_target_properties(luasql_library_module PROPERTIES PREFIX "" OUTPUT_NAME "sqlite3")
 
 	target_link_libraries(luasql_library_module ${LUA_BUNDLED_LIBRARIES})
 	target_link_libraries(luasql_library_module ${SQLITE3_BUNDLED_LIBRARIES})
+		
+	add_dependencies(luasql_library_module bundled_lua bundled_sqlite3)
 	
 	# FIXME: move to cmake/ETLInstall.cmake
-	# this file should go into fs_homepath/legacy ... which is actually unknown
+	# this file should go into fs_homepath/legacy ... 
 	install(TARGETS luasql_library_module DESTINATION "${INSTALL_DEFAULT_MODDIR}/legacy/lualibs/luasql")
 	
 endif(FEATURE_LUASQL)
