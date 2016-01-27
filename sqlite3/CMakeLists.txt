@@ -8,7 +8,7 @@ option(WITH_SQLITE_DEBUG          "Build SQLite3 debug features" OFF)
 option(WITH_SQLITE_MEMDEBUG       "Build SQLite3 memory debug features" OFF)
 option(WITH_SQLITE_RTREE          "Build R*Tree index extension" OFF)
 option(WITH_SQLITE_THREADSAFE     "Build SQLite3 threadsafe" OFF)
-option(SQLITE_OMIT_FLOATING_POINT "Build SQLite3 omit floating-point number support" OFF)
+option(SQLITE_OMIT_FLOATING_POINT "Build SQLite3 omit floating-point number support" ON)
 
 #SQLITE_OMIT_LOAD_EXTENSION 
 
@@ -62,6 +62,9 @@ include_directories(${SQLITE3_SOURCE_DIR}/src)
 
 set(SRC_LIB_FILE ${SQLITE3_SOURCE_DIR}/src/sqlite${SQLITE_VER_MAJOR}.c)
 file(GLOB HDR_FILES ${SQLITE3_SOURCE_DIR}/src/*.h)
+
+# exclude flag fast-math for sqlite3 lib! 
+set_source_files_properties(HDR_FILES PROPERTIES COMPILE_FLAGS --fno-fast-math)
 
 # adding compilation flags depending on options
 if(WITH_SQLITE_DEBUG)
