@@ -1,9 +1,9 @@
-LuaSQL - This is a copy of commit/6485f4845ce955bb9d5227cdba12aa90dd241f70
-http://keplerproject.github.io/luasql/doc/us/
+LuaSQL
+http://keplerproject.github.io/luasql
 
 LuaSQL is a simple interface from Lua to a DBMS. It enables a Lua program to:
 
-    * Connect to ODBC, ADO, Oracle, MySQL, SQLite, Firebird and PostgreSQL databases;
+    * Connect to ODBC, ADO, Oracle, MySQL, SQLite, Firebird and PostgreSQL databases; 
     * Execute arbitrary SQL statements;
     * Retrieve results in a row-by-row cursor fashion.
 
