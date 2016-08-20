@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    OpenType font driver implementation (body).                          */
 /*                                                                         */
-/*  Copyright 1996-2015 by                                                 */
+/*  Copyright 1996-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -701,12 +701,14 @@
       FT_UInt*  hinting_engine = (FT_UInt*)value;
 
 
-#ifndef CFF_CONFIG_OPTION_OLD_ENGINE
-      if ( *hinting_engine != FT_CFF_HINTING_ADOBE )
-        error = FT_ERR( Unimplemented_Feature );
-      else
+      if ( *hinting_engine == FT_CFF_HINTING_ADOBE
+#ifdef CFF_CONFIG_OPTION_OLD_ENGINE
+           || *hinting_engine == FT_CFF_HINTING_FREETYPE
 #endif
+         )
         driver->hinting_engine = *hinting_engine;
+      else
+        error = FT_ERR( Unimplemented_Feature );
 
       return error;
     }

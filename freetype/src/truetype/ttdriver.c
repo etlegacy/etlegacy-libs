@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    TrueType font driver implementation (body).                          */
 /*                                                                         */
-/*  Copyright 1996-2015 by                                                 */
+/*  Copyright 1996-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -72,12 +72,17 @@
       FT_UInt*  interpreter_version = (FT_UInt*)value;
 
 
-#ifndef TT_CONFIG_OPTION_SUBPIXEL_HINTING
-      if ( *interpreter_version != TT_INTERPRETER_VERSION_35 )
-        error = FT_ERR( Unimplemented_Feature );
-      else
+      if ( *interpreter_version == TT_INTERPRETER_VERSION_35
+#ifdef TT_SUPPORT_SUBPIXEL_HINTING_INFINALITY
+           || *interpreter_version == TT_INTERPRETER_VERSION_38
 #endif
+#ifdef TT_SUPPORT_SUBPIXEL_HINTING_MINIMAL
+           || *interpreter_version == TT_INTERPRETER_VERSION_40
+#endif
+         )
         driver->interpreter_version = *interpreter_version;
+      else
+        error = FT_ERR( Unimplemented_Feature );
 
       return error;
     }
@@ -194,7 +199,7 @@
                    FT_Fixed  *advances )
   {
     FT_UInt  nn;
-    TT_Face  face  = (TT_Face) ttface;
+    TT_Face  face = (TT_Face) ttface;
 
 
     /* XXX: TODO: check for sbits */
@@ -227,6 +232,7 @@
 
     return FT_Err_Ok;
   }
+
 
   /*************************************************************************/
   /*************************************************************************/
@@ -429,11 +435,7 @@
   {
 #ifdef TT_USE_BYTECODE_INTERPRETER
 
-#ifdef TT_CONFIG_OPTION_UNPATENTED_HINTING
-    FT_TRUETYPE_ENGINE_TYPE_UNPATENTED
-#else
     FT_TRUETYPE_ENGINE_TYPE_PATENTED
-#endif
 
 #else /* !TT_USE_BYTECODE_INTERPRETER */
 

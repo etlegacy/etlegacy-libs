@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    The FreeType memory management macros (specification).               */
 /*                                                                         */
-/*  Copyright 1996-2015 by                                                 */
+/*  Copyright 1996-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg                       */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -16,8 +16,8 @@
 /***************************************************************************/
 
 
-#ifndef __FTMEMORY_H__
-#define __FTMEMORY_H__
+#ifndef FTMEMORY_H_
+#define FTMEMORY_H_
 
 
 #include <ft2build.h>
@@ -65,13 +65,15 @@ FT_BEGIN_HEADER
 
 #ifdef __cplusplus
 
-  extern "C++"
+extern "C++"
+{
   template <typename T> inline T*
   cplusplus_typeof(        T*,
                     void  *v )
   {
     return static_cast <T*> ( v );
   }
+}
 
 #define FT_ASSIGNP( p, val )  (p) = cplusplus_typeof( (p), (val) )
 
@@ -380,7 +382,7 @@ FT_BEGIN_HEADER
 
 FT_END_HEADER
 
-#endif /* __FTMEMORY_H__ */
+#endif /* FTMEMORY_H_ */
 
 
 /* END */

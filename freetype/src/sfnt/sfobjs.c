@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    SFNT object management (base).                                       */
 /*                                                                         */
-/*  Copyright 1996-2015 by                                                 */
+/*  Copyright 1996-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -947,6 +947,10 @@
            offset                          +
              axis_size * num_axes          +
              instance_size * num_instances > fvar_len )
+        num_instances = 0;
+
+      /* we don't support Multiple Master CFFs yet */
+      if ( !face->goto_table( face, TTAG_CFF, stream, 0 ) )
         num_instances = 0;
 
       /* we support at most 2^15 - 1 instances */

@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    FreeType API for controlling the CFF driver (specification only).    */
 /*                                                                         */
-/*  Copyright 2013-2015 by                                                 */
+/*  Copyright 2013-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -16,8 +16,8 @@
 /***************************************************************************/
 
 
-#ifndef __FTCFFDRV_H__
-#define __FTCFFDRV_H__
+#ifndef FTCFFDRV_H_
+#define FTCFFDRV_H_
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -89,7 +89,7 @@ FT_BEGIN_HEADER
    *   features preserve the design's weight and spacing much better than
    *   aliased type would.
    *
-   *   2) Aligment in the vertical direction: Weights and spacing along the
+   *   2) Alignment in the vertical direction: Weights and spacing along the
    *   y~axis are less critical; what is much more important is the visual
    *   alignment of related features (like cap-height and x-height).  The
    *   sense of alignment for these is enhanced by the sharpness of grid-fit
@@ -110,7 +110,7 @@ FT_BEGIN_HEADER
    *   to minimize distortion.
    *
    * @order:
-   *   hinting-engine
+   *   hinting-engine[cff]
    *   no-stem-darkening[cff]
    *   darkening-parameters[cff]
    *
@@ -120,7 +120,7 @@ FT_BEGIN_HEADER
   /**************************************************************************
    *
    * @property:
-   *   hinting-engine
+   *   hinting-engine[cff]
    *
    * @description:
    *   Thanks to Adobe, which contributed a new hinting (and parsing)
@@ -157,8 +157,8 @@ FT_BEGIN_HEADER
    *   FT_CFF_HINTING_XXX
    *
    * @description:
-   *   A list of constants used for the @hinting-engine property to select
-   *   the hinting engine for CFF fonts.
+   *   A list of constants used for the @hinting-engine[cff] property to
+   *   select the hinting engine for CFF fonts.
    *
    * @values:
    *   FT_CFF_HINTING_FREETYPE ::
@@ -256,7 +256,7 @@ FT_BEGIN_HEADER
 FT_END_HEADER
 
 
-#endif /* __FTCFFDRV_H__ */
+#endif /* FTCFFDRV_H_ */
 
 
 /* END */
