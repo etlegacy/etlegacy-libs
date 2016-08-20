@@ -10,7 +10,8 @@ option(WITH_SQLITE_RTREE          "Build R*Tree index extension" OFF)
 option(WITH_SQLITE_THREADSAFE     "Build SQLite3 threadsafe" OFF)
 option(SQLITE_OMIT_FLOATING_POINT "Build SQLite3 omit floating-point number support" ON)
 
-#SQLITE_OMIT_LOAD_EXTENSION 
+#SQLITE_OMIT_LOAD_EXTENSION
+#SQLITE_ENABLE_SESSION
 
 #set(INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin" CACHE PATH "Installation directory for executables")
 #set(INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib" CACHE PATH "Installation directory for libraries")
@@ -42,7 +43,7 @@ else()
     set(SQLITE_WIN_BUILD OFF)
 
 	# FIXME/REWORK: rework this, split into linux/unix/apple, cross-compile
-	
+
 	#set(CMAKE_SYSTEM_PROCESSOR i386)
 	#message(STATUS "Forcing ${CMAKE_SYSTEM_PROCESSOR} to cross compile 32bit")
 	#set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS OFF)
@@ -51,7 +52,7 @@ else()
 	#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -m32")
 	#set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -m32 -ldl")
 	#set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -m32 -ldl")
-	
+
 	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -ldl")
 	# probably not needed
 	#set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -ldl")
@@ -63,7 +64,7 @@ include_directories(${SQLITE3_SOURCE_DIR}/src)
 set(SRC_LIB_FILE ${SQLITE3_SOURCE_DIR}/src/sqlite${SQLITE_VER_MAJOR}.c)
 file(GLOB HDR_FILES ${SQLITE3_SOURCE_DIR}/src/*.h)
 
-# exclude flag fast-math for sqlite3 lib! 
+# exclude flag fast-math for sqlite3 lib!
 set_source_files_properties(HDR_FILES PROPERTIES COMPILE_FLAGS --fno-fast-math)
 
 # adding compilation flags depending on options
