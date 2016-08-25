@@ -58,6 +58,16 @@ else()
 	#set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -ldl")
 endif()
 
+if(MINGW OR UNIX)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-attributes")
+
+	# this is required for bundled 64bit sqlite3 lib
+	# http://stackoverflow.com/questions/7216244/why-is-fpic-absolutely-necessary-on-64-and-not-on-32bit-platforms
+	if(NOT CROSS_COMPILE32)
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+	endif(NOT CROSS_COMPILE32)
+endif()
+
 # add include path for project
 include_directories(${SQLITE3_SOURCE_DIR}/src)
 
