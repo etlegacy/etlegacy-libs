@@ -7,7 +7,7 @@ if(WIN32)
 	#-----------------------------------------------------------------
 	# Build bundled JPEG library
 	#-----------------------------------------------------------------
-	if(BUNDLED_JPEG) # static
+	if(BUNDLED_JPEG AND BUILD_CLIENT) # static
 		check_include_file(stddef.h HAVE_STDDEF_H)
 		check_include_file(stdlib.h HAVE_STDLIB_H)
 
@@ -104,12 +104,12 @@ if(WIN32)
 		add_library(bundled_jpeg STATIC ${JPEG_LIB_SRC} ${JPEG_LIB_HEADERS})
 		set(JPEG_BUNDLED_LIBRARIES bundled_jpeg)
 		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
-	endif(BUNDLED_JPEG)
+	endif()
 
 	#-----------------------------------------------------------------
 	# Build bundled cURL library
 	#-----------------------------------------------------------------
-	if(BUNDLED_CURL) # DLL
+	if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER)) # DLL
 		ExternalProject_Add(bundled_curl
 			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/curl
 			BINARY_DIR	${LIBS_BINARYDIR_DIR}/curl
@@ -128,7 +128,7 @@ if(WIN32)
 		endif(VSTUDIO)
 
 		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/curl/include")
-	endif(BUNDLED_CURL)
+	endif()
 
 	#-----------------------------------------------------------------
 	# Build bundled Lua library
@@ -188,12 +188,12 @@ if(WIN32)
 
 		set(LUA_BUNDLED_LIBRARIES bundled_lua)
 		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
-	endif(BUNDLED_LUA)
+	endif()
 
 	#-----------------------------------------------------------------
 	# Copy bundled SDL library to the etl.exe location
 	#-----------------------------------------------------------------
-	if(BUNDLED_SDL) # DLL
+	if(BUNDLED_SDL AND (BUILD_CLIENT OR BUILD_SERVER)) # DLL
 		add_custom_target(bundled_sdl) # Dummy target just so cmake does not print warnings
 		# Enable the SDL2main when the windows main function has been removed....
 		if(WIN64)
@@ -213,12 +213,12 @@ if(WIN32)
 			)
 			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
 		endif(WIN64)
-	endif(BUNDLED_SDL)
+	endif()
 
 	#-----------------------------------------------------------------
 	# Build bundled OGG and Vorbis file library
 	#-----------------------------------------------------------------
-	if(BUNDLED_OGG_VORBIS)
+	if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 		# OGG
 		SET(OPATH "${CMAKE_CURRENT_LIST_DIR}/ogg")
 
@@ -349,12 +349,12 @@ if(WIN32)
 		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/ogg/include")
 		set(OGG_VORBIS_BUNDLED_LIBRARIES bundled_ogg_vorbis bundled_ogg_vorbis_file)
 		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/vorbis/include")
-	endif(BUNDLED_OGG_VORBIS)
+	endif()
 
 	#-----------------------------------------------------------------
 	# Build bundled OpenAL library
 	#-----------------------------------------------------------------
-	if(BUNDLED_OPENAL)
+	if(BUNDLED_OPENAL AND BUILD_CLIENT)
 		ExternalProject_Add(bundled_openal
 				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
 				BINARY_DIR	${LIBS_BINARYDIR_DIR}/openal
@@ -372,7 +372,7 @@ if(WIN32)
 			set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libOpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		endif(VSTUDIO)
 		set(OPENAL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/openal/include")
-	endif(BUNDLED_OPENAL)
+	endif()
 
 elseif(UNIX)
 
@@ -392,7 +392,7 @@ elseif(UNIX)
 	#-----------------------------------------------------------------
 	# Build bundled cURL library
 	#-----------------------------------------------------------------
-	if(BUNDLED_CURL)
+	if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/curl/lib/.libs/libcurl.a
 			COMMAND make clean || true
 			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure
@@ -410,12 +410,12 @@ elseif(UNIX)
 		)
 		set(CURL_BUNDLED_LIBRARY "${CMAKE_CURRENT_LIST_DIR}/curl/lib/.libs/libcurl.a")
 		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/curl/include")
-	endif(BUNDLED_CURL)
+	endif()
 
 	#-----------------------------------------------------------------
 	# Build bundled JPEG library
 	#-----------------------------------------------------------------
-	if(BUNDLED_JPEG)
+	if(BUNDLED_JPEG AND BUILD_CLIENT)
 		if(CROSS_COMPILE32)
 			if(APPLE)
 				SET(JPEG_TURBO_BUILD ${CROSS_COMPILE32_FLAGS} ./configure --with-jpeg8 --build i686-apple-darwin && make)
@@ -441,12 +441,12 @@ elseif(UNIX)
 		)
 		set(JPEG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/jpegturbo/.libs/libturbojpeg.a")
 		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
-	endif(BUNDLED_JPEG)
+	endif()
 
 	#-----------------------------------------------------------------
 	# Build bundled SDL library
 	#-----------------------------------------------------------------
-	if(BUNDLED_SDL)
+	if(BUNDLED_SDL AND (BUILD_CLIENT OR BUILD_SERVER))
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/sdl2/build/.libs/libSDL2.a
 			COMMAND make clean || true
 			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
@@ -492,7 +492,7 @@ elseif(UNIX)
 	#-----------------------------------------------------------------
 	# Build bundled OGG and Vorbis file library
 	#-----------------------------------------------------------------
-	if(BUNDLED_OGG_VORBIS)
+	if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 		# OGG
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs/libogg.a
 			COMMAND make clean || true
@@ -528,12 +528,12 @@ elseif(UNIX)
 		add_dependencies(bundled_ogg_vorbis bundled_ogg_vorbis_file)
 		set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a" "${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbis.a")
 		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/vorbis/include")
-	endif(BUNDLED_OGG_VORBIS)
+	endif()
 
 	#-----------------------------------------------------------------
 	# Build bundled OpenAL library
 	#-----------------------------------------------------------------
-	if(BUNDLED_OPENAL)
+	if(BUNDLED_OPENAL AND BUILD_CLIENT)
 		ExternalProject_Add(bundled_openal
 				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
 				BINARY_DIR	${LIBS_BINARYDIR_DIR}/openal
@@ -545,15 +545,15 @@ elseif(UNIX)
 
 		set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libopenal${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		set(OPENAL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/openal/include")
-	elseif(BUNDLED_OPENAL_INCLUDE)
+	elseif(BUNDLED_OPENAL_INCLUDE AND BUILD_CLIENT)
 		include_directories(SYSTEM "${CMAKE_CURRENT_LIST_DIR}/openal/include")
-	endif(BUNDLED_OPENAL)
+	endif()
 endif()
 
 #-----------------------------------------------------------------
 # Build bundled ZLib library
 #-----------------------------------------------------------------
-if(BUNDLED_ZLIB)
+if(BUNDLED_ZLIB AND (BUILD_CLIENT OR BUILD_SERVER))
 	set(ZLIB_LIB "${CMAKE_CURRENT_LIST_DIR}/zlib")
 
 	FILE(GLOB ZLIB_LIB_HEADERS
@@ -580,12 +580,12 @@ if(BUNDLED_ZLIB)
 	add_library(bundled_zlib STATIC ${ZLIB_LIB_SRC} ${ZLIB_LIB_HEADERS})
 	set(ZLIB_BUNDLED_LIBRARIES bundled_zlib)
 	set(ZLIB_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/zlib")
-endif(BUNDLED_ZLIB)
+endif()
 
 #-----------------------------------------------------------------
 # Build bundled MiniZip library
 #-----------------------------------------------------------------
-if(BUNDLED_MINIZIP)
+if(BUNDLED_MINIZIP AND (BUILD_CLIENT AND BUILD_SERVER))
 	set(MINIZIP_LIB "${CMAKE_CURRENT_LIST_DIR}/minizip")
 
 	FILE(GLOB MINIZIP_LIB_HEADERS
@@ -605,16 +605,16 @@ if(BUNDLED_MINIZIP)
 	endif(BUNDLED_ZLIB)
 	set(MINIZIP_BUNDLED_LIBRARIES bundled_minizip)
 	set(MINIZIP_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/minizip")
-endif(BUNDLED_MINIZIP)
+endif()
 
 #-----------------------------------------------------------------
 # Build bundled GLEW library
 #-----------------------------------------------------------------
-if(BUNDLED_GLEW)
+if(BUNDLED_GLEW AND BUILD_CLIENT)
 	include(${CMAKE_CURRENT_LIST_DIR}/glew/CMakeLists.txt)
 	set(BUNDLED_GLEW_LIBRARIES bundled_glew)
 	set(BUNDLED_GLEW_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/glew/include")
-endif(BUNDLED_GLEW)
+endif()
 
 #-----------------------------------------------------------------
 # Build bundled SQLITE3 library
@@ -628,7 +628,7 @@ endif(BUNDLED_SQLITE3)
 #-----------------------------------------------------------------
 # Build bundled Freetype library
 #-----------------------------------------------------------------
-if(BUNDLED_FREETYPE)
+if(BUNDLED_FREETYPE AND BUILD_CLIENT)
 	ExternalProject_Add(bundled_freetype
 		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/freetype
 		BINARY_DIR	${LIBS_BINARYDIR_DIR}/freetype
@@ -646,12 +646,12 @@ if(BUNDLED_FREETYPE)
 		set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/libfreetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	endif(VSTUDIO)
 	set(BUNDLED_FREETYPE_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/freetype/include")
-endif(BUNDLED_FREETYPE)
+endif()
 
 #-----------------------------------------------------------------
 # Build bundled Theora library
 #-----------------------------------------------------------------
-if(BUNDLED_THEORA)
+if(BUNDLED_THEORA AND BUILD_CLIENT)
 	FILE(GLOB THEORA_SRC
 		"${CMAKE_CURRENT_LIST_DIR}/theora/lib/*.c"
 		"${CMAKE_CURRENT_LIST_DIR}/theora/lib/*.h"
@@ -691,7 +691,7 @@ endif()
 #-----------------------------------------------------------------
 # Build bundled JANSSON library
 #-----------------------------------------------------------------
-if(BUNDLED_JANSSON)
+if(BUNDLED_JANSSON AND (BUILD_CLIENT OR BUILD_SERVER))
 	ExternalProject_Add(bundled_jansson
 		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/jansson
 		BINARY_DIR	${LIBS_BINARYDIR_DIR}/jansson
@@ -715,4 +715,4 @@ if(BUNDLED_JANSSON)
 		set(BUNDLED_JANSSON_LIBRARY "${binary_dir}/lib/lib${jansson_name}")
 	endif(VSTUDIO)
 	set(BUNDLED_JANSSON_INCLUDE_DIR "${binary_dir}/include")
-endif(BUNDLED_JANSSON)
+endif()
