@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2012, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2015, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at http://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -19,8 +19,10 @@
  * KIND, either express or implied.
  *
  ***************************************************************************/
-/* An example source code that issues a HTTP POST and we provide the actual
+/* <DESC>
+ * An example source code that issues a HTTP POST and we provide the actual
  * data through a read callback.
+ * </DESC>
  */
 #include <stdio.h>
 #include <string.h>
@@ -58,8 +60,18 @@ int main(void)
   struct WriteThis pooh;
 
   pooh.readptr = data;
-  pooh.sizeleft = strlen(data);
+  pooh.sizeleft = (long)strlen(data);
 
+  /* In windows, this will init the winsock stuff */
+  res = curl_global_init(CURL_GLOBAL_DEFAULT);
+  /* Check for errors */
+  if(res != CURLE_OK) {
+    fprintf(stderr, "curl_global_init() failed: %s\n",
+            curl_easy_strerror(res));
+    return 1;
+  }
+
+  /* get a curl handle */
   curl = curl_easy_init();
   if(curl) {
     /* First set the URL that is about to receive our POST. */
@@ -120,9 +132,14 @@ int main(void)
 
     /* Perform the request, res will get the return code */
     res = curl_easy_perform(curl);
+    /* Check for errors */
+    if(res != CURLE_OK)
+      fprintf(stderr, "curl_easy_perform() failed: %s\n",
+              curl_easy_strerror(res));
 
     /* always cleanup */
     curl_easy_cleanup(curl);
   }
+  curl_global_cleanup();
   return 0;
 }

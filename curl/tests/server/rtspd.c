@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2012, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at http://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -29,12 +29,6 @@
 
 #ifdef HAVE_SIGNAL_H
 #include <signal.h>
-#endif
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
 #endif
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
@@ -59,6 +53,13 @@
 
 /* include memdebug.h last */
 #include "memdebug.h"
+
+#ifdef USE_WINSOCK
+#undef  EINTR
+#define EINTR    4 /* errno.h value */
+#undef  ERANGE
+#define ERANGE  34 /* errno.h value */
+#endif
 
 #ifdef ENABLE_IPV6
 static bool use_ipv6 = FALSE;
@@ -227,6 +228,10 @@ static SIGHANDLER_T old_sigint_handler  = SIG_ERR;
 static SIGHANDLER_T old_sigterm_handler = SIG_ERR;
 #endif
 
+#if defined(SIGBREAK) && defined(WIN32)
+static SIGHANDLER_T old_sigbreak_handler = SIG_ERR;
+#endif
+
 /* var which if set indicates that the program should finish execution */
 
 SIG_ATOMIC_T got_exit_signal = 0;
@@ -242,13 +247,13 @@ static volatile int exit_signal = 0;
 
 static RETSIGTYPE exit_signal_handler(int signum)
 {
-  int old_errno = ERRNO;
+  int old_errno = errno;
   if(got_exit_signal == 0) {
     got_exit_signal = 1;
     exit_signal = signum;
   }
   (void)signal(signum, exit_signal_handler);
-  SET_ERRNO(old_errno);
+  errno = old_errno;
 }
 
 static void install_signal_handlers(void)
@@ -256,31 +261,38 @@ static void install_signal_handlers(void)
 #ifdef SIGHUP
   /* ignore SIGHUP signal */
   if((old_sighup_handler = signal(SIGHUP, SIG_IGN)) == SIG_ERR)
-    logmsg("cannot install SIGHUP handler: %s", strerror(ERRNO));
+    logmsg("cannot install SIGHUP handler: %s", strerror(errno));
 #endif
 #ifdef SIGPIPE
   /* ignore SIGPIPE signal */
   if((old_sigpipe_handler = signal(SIGPIPE, SIG_IGN)) == SIG_ERR)
-    logmsg("cannot install SIGPIPE handler: %s", strerror(ERRNO));
+    logmsg("cannot install SIGPIPE handler: %s", strerror(errno));
 #endif
 #ifdef SIGALRM
   /* ignore SIGALRM signal */
   if((old_sigalrm_handler = signal(SIGALRM, SIG_IGN)) == SIG_ERR)
-    logmsg("cannot install SIGALRM handler: %s", strerror(ERRNO));
+    logmsg("cannot install SIGALRM handler: %s", strerror(errno));
 #endif
 #ifdef SIGINT
   /* handle SIGINT signal with our exit_signal_handler */
   if((old_sigint_handler = signal(SIGINT, exit_signal_handler)) == SIG_ERR)
-    logmsg("cannot install SIGINT handler: %s", strerror(ERRNO));
+    logmsg("cannot install SIGINT handler: %s", strerror(errno));
   else
     siginterrupt(SIGINT, 1);
 #endif
 #ifdef SIGTERM
   /* handle SIGTERM signal with our exit_signal_handler */
   if((old_sigterm_handler = signal(SIGTERM, exit_signal_handler)) == SIG_ERR)
-    logmsg("cannot install SIGTERM handler: %s", strerror(ERRNO));
+    logmsg("cannot install SIGTERM handler: %s", strerror(errno));
   else
     siginterrupt(SIGTERM, 1);
+#endif
+#if defined(SIGBREAK) && defined(WIN32)
+  /* handle SIGBREAK signal with our exit_signal_handler */
+  if((old_sigbreak_handler = signal(SIGBREAK, exit_signal_handler)) == SIG_ERR)
+    logmsg("cannot install SIGBREAK handler: %s", strerror(errno));
+  else
+    siginterrupt(SIGBREAK, 1);
 #endif
 }
 
@@ -305,6 +317,10 @@ static void restore_signal_handlers(void)
 #ifdef SIGTERM
   if(SIG_ERR != old_sigterm_handler)
     (void)signal(SIGTERM, old_sigterm_handler);
+#endif
+#if defined(SIGBREAK) && defined(WIN32)
+  if(SIG_ERR != old_sigbreak_handler)
+    (void)signal(SIGBREAK, old_sigbreak_handler);
 #endif
 }
 
@@ -337,15 +353,15 @@ static int ProcessRequest(struct httprequest *req)
     char *ptr;
 
     if(!strcmp(prot_str, "HTTP")) {
-        req->protocol = RPROT_HTTP;
+      req->protocol = RPROT_HTTP;
     }
     else if(!strcmp(prot_str, "RTSP")) {
-        req->protocol = RPROT_RTSP;
+      req->protocol = RPROT_RTSP;
     }
     else {
-        req->protocol = RPROT_NONE;
-        logmsg("got unknown protocol %s", prot_str);
-        return 1;
+      req->protocol = RPROT_NONE;
+      logmsg("got unknown protocol %s", prot_str);
+      return 1;
     }
 
     req->prot_version = prot_major*10 + prot_minor;
@@ -359,10 +375,10 @@ static int ProcessRequest(struct httprequest *req)
       char *filename;
 
       if((strlen(doc) + strlen(request)) < 200)
-        sprintf(logbuf, "Got request: %s %s %s/%d.%d",
-                request, doc, prot_str, prot_major, prot_minor);
+        snprintf(logbuf, sizeof(logbuf), "Got request: %s %s %s/%d.%d",
+                 request, doc, prot_str, prot_major, prot_minor);
       else
-        sprintf(logbuf, "Got a *HUGE* request %s/%d.%d",
+        snprintf(logbuf, sizeof(logbuf), "Got a *HUGE* request %s/%d.%d",
                 prot_str, prot_major, prot_minor);
       logmsg("%s", logbuf);
 
@@ -393,15 +409,15 @@ static int ProcessRequest(struct httprequest *req)
       else
         req->partno = 0;
 
-      sprintf(logbuf, "Requested test number %ld part %ld",
-              req->testno, req->partno);
+      snprintf(logbuf, sizeof(logbuf), "Requested test number %ld part %ld",
+               req->testno, req->partno);
       logmsg("%s", logbuf);
 
       filename = test2file(req->testno);
 
       stream=fopen(filename, "rb");
       if(!stream) {
-        error = ERRNO;
+        error = errno;
         logmsg("fopen() failed with error: %d %s", error, strerror(error));
         logmsg("Error opening file: %s", filename);
         logmsg("Couldn't open test file %ld", req->testno);
@@ -472,7 +488,7 @@ static int ProcessRequest(struct httprequest *req)
                 rtp_scratch[0] = '$';
 
                 /* The channel follows and is one byte */
-                SET_RTP_PKT_CHN(rtp_scratch ,rtp_channel);
+                SET_RTP_PKT_CHN(rtp_scratch, rtp_channel);
 
                 /* Length follows and is a two byte short in network order */
                 SET_RTP_PKT_LEN(rtp_scratch, rtp_size);
@@ -485,14 +501,18 @@ static int ProcessRequest(struct httprequest *req)
                 if(req->rtp_buffer == NULL) {
                   req->rtp_buffer = rtp_scratch;
                   req->rtp_buffersize = rtp_size + 4;
-                } else {
-                  req->rtp_buffer = realloc(req->rtp_buffer, req->rtp_buffersize + rtp_size + 4);
-                  memcpy(req->rtp_buffer + req->rtp_buffersize, rtp_scratch, rtp_size + 4);
+                }
+                else {
+                  req->rtp_buffer = realloc(req->rtp_buffer,
+                                            req->rtp_buffersize +
+                                            rtp_size + 4);
+                  memcpy(req->rtp_buffer + req->rtp_buffersize, rtp_scratch,
+                         rtp_size + 4);
                   req->rtp_buffersize += rtp_size + 4;
                   free(rtp_scratch);
                 }
-                logmsg("rtp_buffersize is %zu, rtp_size is %d.", req->rtp_buffersize, rtp_size);
-
+                logmsg("rtp_buffersize is %zu, rtp_size is %d.",
+                       req->rtp_buffersize, rtp_size);
               }
             }
             else {
@@ -507,15 +527,15 @@ static int ProcessRequest(struct httprequest *req)
           } while(ptr && *ptr);
           logmsg("Done parsing server commands");
         }
-        if(cmd)
-          free(cmd);
+        free(cmd);
       }
     }
     else {
       if(sscanf(req->reqbuf, "CONNECT %" MAXDOCNAMELEN_TXT "s HTTP/%d.%d",
                 doc, &prot_major, &prot_minor) == 3) {
-        sprintf(logbuf, "Received a CONNECT %s HTTP/%d.%d request",
-                doc, prot_major, prot_minor);
+        snprintf(logbuf, sizeof(logbuf),
+                 "Received a CONNECT %s HTTP/%d.%d request",
+                 doc, prot_major, prot_minor);
         logmsg("%s", logbuf);
 
         if(req->prot_version == 10)
@@ -581,9 +601,9 @@ static int ProcessRequest(struct httprequest *req)
       while(*ptr && ISSPACE(*ptr))
         ptr++;
       endptr = ptr;
-      SET_ERRNO(0);
+      errno = 0;
       clen = strtoul(ptr, &endptr, 10);
-      if((ptr == endptr) || !ISSPACE(*endptr) || (ERANGE == ERRNO)) {
+      if((ptr == endptr) || !ISSPACE(*endptr) || (ERANGE == errno)) {
         /* this assumes that a zero Content-Length is valid */
         logmsg("Found invalid Content-Length: (%s) in the request", ptr);
         req->open = FALSE; /* closes connection */
@@ -647,10 +667,11 @@ static int ProcessRequest(struct httprequest *req)
     req->ntlm = TRUE; /* NTLM found */
     logmsg("Received NTLM type-1, sending back data %ld", req->partno);
   }
-  else if((req->partno >= 1000) && strstr(req->reqbuf, "Authorization: Basic")) {
-    /* If the client is passing this Basic-header and the part number is already
-       >=1000, we add 1 to the part number.  This allows simple Basic authentication
-       negotiation to work in the test suite. */
+  else if((req->partno >= 1000) &&
+          strstr(req->reqbuf, "Authorization: Basic")) {
+    /* If the client is passing this Basic-header and the part number is
+       already >=1000, we add 1 to the part number.  This allows simple Basic
+       authentication negotiation to work in the test suite. */
     req->partno += 1;
     logmsg("Received Basic request, sending back data %ld", req->partno);
   }
@@ -708,15 +729,15 @@ static void storerequest(char *reqbuf, size_t totalsize)
   size_t writeleft;
   FILE *dump;
 
-  if (reqbuf == NULL)
+  if(reqbuf == NULL)
     return;
-  if (totalsize == 0)
+  if(totalsize == 0)
     return;
 
   do {
     dump = fopen(REQUEST_DUMP, "ab");
-  } while ((dump == NULL) && ((error = ERRNO) == EINTR));
-  if (dump == NULL) {
+  } while((dump == NULL) && ((error = errno) == EINTR));
+  if(dump == NULL) {
     logmsg("Error opening file %s error: %d %s",
            REQUEST_DUMP, error, strerror(error));
     logmsg("Failed to write request input to " REQUEST_DUMP);
@@ -731,7 +752,7 @@ static void storerequest(char *reqbuf, size_t totalsize)
       goto storerequest_cleanup;
     if(written > 0)
       writeleft -= written;
-  } while ((writeleft > 0) && ((error = ERRNO) == EINTR));
+  } while((writeleft > 0) && ((error = errno) == EINTR));
 
   if(writeleft == 0)
     logmsg("Wrote request (%zu bytes) input to " REQUEST_DUMP, totalsize);
@@ -746,7 +767,7 @@ storerequest_cleanup:
 
   do {
     res = fclose(dump);
-  } while(res && ((error = ERRNO) == EINTR));
+  } while(res && ((error = errno) == EINTR));
   if(res)
     logmsg("Error closing file %s error: %d %s",
            REQUEST_DUMP, error, strerror(error));
@@ -800,9 +821,9 @@ static int get_request(curl_socket_t sock, struct httprequest *req)
     }
     else {
       if(req->skip)
-        /* we are instructed to not read the entire thing, so we make sure to only
-           read what we're supposed to and NOT read the enire thing the client
-           wants to send! */
+        /* we are instructed to not read the entire thing, so we make sure to
+           only read what we're supposed to and NOT read the enire thing the
+           client wants to send! */
         got = sread(sock, reqbuf + req->offset, req->cl);
       else
         got = sread(sock, reqbuf + req->offset, REQBUFSIZ-1 - req->offset);
@@ -893,7 +914,7 @@ static int send_doc(curl_socket_t sock, struct httprequest *req)
   case RCMD_STREAM:
 #define STREAMTHIS "a string to stream 01234567890\n"
     count = strlen(STREAMTHIS);
-    for (;;) {
+    for(;;) {
       written = swrite(sock, STREAMTHIS, count);
       if(got_exit_signal)
         return -1;
@@ -922,10 +943,12 @@ static int send_doc(curl_socket_t sock, struct httprequest *req)
     case DOCNUMBER_WERULEZ:
       /* we got a "friends?" question, reply back that we sure are */
       logmsg("Identifying ourselves as friends");
-      sprintf(msgbuf, "RTSP_SERVER WE ROOLZ: %ld\r\n", (long)getpid());
+      snprintf(msgbuf, sizeof(msgbuf), "RTSP_SERVER WE ROOLZ: %ld\r\n",
+               (long)getpid());
       msglen = strlen(msgbuf);
-      sprintf(weare, "HTTP/1.1 200 OK\r\nContent-Length: %zu\r\n\r\n%s",
-              msglen, msgbuf);
+      snprintf(weare, sizeof(weare),
+               "HTTP/1.1 200 OK\r\nContent-Length: %zu\r\n\r\n%s",
+               msglen, msgbuf);
       buffer = weare;
       break;
     case DOCNUMBER_INTERNAL:
@@ -943,9 +966,10 @@ static int send_doc(curl_socket_t sock, struct httprequest *req)
     default:
       logmsg("Replying to with a 404");
       if(req->protocol == RPROT_HTTP) {
-          buffer = doc404_HTTP;
-      } else {
-          buffer = doc404_RTSP;
+        buffer = doc404_HTTP;
+      }
+      else {
+        buffer = doc404_RTSP;
       }
       break;
     }
@@ -956,11 +980,11 @@ static int send_doc(curl_socket_t sock, struct httprequest *req)
     char *filename = test2file(req->testno);
 
     if(0 != req->partno)
-      sprintf(partbuf, "data%ld", req->partno);
+      snprintf(partbuf, sizeof(partbuf), "data%ld", req->partno);
 
     stream=fopen(filename, "rb");
     if(!stream) {
-      error = ERRNO;
+      error = errno;
       logmsg("fopen() failed with error: %d %s", error, strerror(error));
       logmsg("Error opening file: %s", filename);
       logmsg("Couldn't open test file");
@@ -977,20 +1001,18 @@ static int send_doc(curl_socket_t sock, struct httprequest *req)
     }
 
     if(got_exit_signal) {
-      if(ptr)
-        free(ptr);
+      free(ptr);
       return -1;
     }
 
     /* re-open the same file again */
     stream=fopen(filename, "rb");
     if(!stream) {
-      error = ERRNO;
+      error = errno;
       logmsg("fopen() failed with error: %d %s", error, strerror(error));
       logmsg("Error opening file: %s", filename);
       logmsg("Couldn't open test file");
-      if(ptr)
-        free(ptr);
+      free(ptr);
       return 0;
     }
     else {
@@ -999,18 +1021,15 @@ static int send_doc(curl_socket_t sock, struct httprequest *req)
       fclose(stream);
       if(error) {
         logmsg("getpart() failed with error: %d", error);
-        if(ptr)
-          free(ptr);
+        free(ptr);
         return 0;
       }
     }
   }
 
   if(got_exit_signal) {
-    if(ptr)
-      free(ptr);
-    if(cmd)
-      free(cmd);
+    free(ptr);
+    free(cmd);
     return -1;
   }
 
@@ -1030,14 +1049,12 @@ static int send_doc(curl_socket_t sock, struct httprequest *req)
 
   dump = fopen(RESPONSE_DUMP, "ab");
   if(!dump) {
-    error = ERRNO;
+    error = errno;
     logmsg("fopen() failed with error: %d %s", error, strerror(error));
     logmsg("Error opening file: %s", RESPONSE_DUMP);
     logmsg("couldn't create logfile: " RESPONSE_DUMP);
-    if(ptr)
-      free(ptr);
-    if(cmd)
-      free(cmd);
+    free(ptr);
+    free(cmd);
     return -1;
   }
 
@@ -1050,7 +1067,7 @@ static int send_doc(curl_socket_t sock, struct httprequest *req)
     if(num > 200)
       num = 200;
     written = swrite(sock, buffer, num);
-    if (written < 0) {
+    if(written < 0) {
       sendfailure = TRUE;
       break;
     }
@@ -1074,7 +1091,8 @@ static int send_doc(curl_socket_t sock, struct httprequest *req)
       size_t num = count;
       if(num > 200)
         num = 200;
-      written = swrite(sock, req->rtp_buffer + (req->rtp_buffersize - count), num);
+      written = swrite(sock, req->rtp_buffer + (req->rtp_buffersize - count),
+                       num);
       if(written < 0) {
         sendfailure = TRUE;
         break;
@@ -1088,36 +1106,31 @@ static int send_doc(curl_socket_t sock, struct httprequest *req)
 
   do {
     res = fclose(dump);
-  } while(res && ((error = ERRNO) == EINTR));
+  } while(res && ((error = errno) == EINTR));
   if(res)
     logmsg("Error closing file %s error: %d %s",
            RESPONSE_DUMP, error, strerror(error));
 
   if(got_exit_signal) {
-    if(ptr)
-      free(ptr);
-    if(cmd)
-      free(cmd);
+    free(ptr);
+    free(cmd);
     return -1;
   }
 
   if(sendfailure) {
-    logmsg("Sending response failed. Only (%zu bytes) of (%zu bytes) were sent",
+    logmsg("Sending response failed. Only (%zu bytes) of "
+           "(%zu bytes) were sent",
            responsesize-count, responsesize);
-    if(ptr)
-      free(ptr);
-    if(cmd)
-      free(cmd);
+    free(ptr);
+    free(cmd);
     return -1;
   }
 
   logmsg("Response sent (%zu bytes) and written to " RESPONSE_DUMP,
          responsesize);
+  free(ptr);
 
-  if(ptr)
-    free(ptr);
-
-  if(cmdsize > 0 ) {
+  if(cmdsize > 0) {
     char command[32];
     int quarters;
     int num;
@@ -1134,7 +1147,7 @@ static int send_doc(curl_socket_t sock, struct httprequest *req)
               break;
             if(res) {
               /* should not happen */
-              error = SOCKERRNO;
+              error = errno;
               logmsg("wait_ms() failed with error: (%d) %s",
                      error, strerror(error));
               break;
@@ -1153,9 +1166,7 @@ static int send_doc(curl_socket_t sock, struct httprequest *req)
         ptr = NULL;
     } while(ptr && *ptr);
   }
-  if(cmd)
-    free(cmd);
-
+  free(cmd);
   req->open = persistant;
 
   prevtestno = req->testno;
@@ -1278,7 +1289,7 @@ int main(int argc, char *argv[])
   }
 
   flag = 1;
-  if (0 != setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+  if(0 != setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
             (void *)&flag, sizeof(flag))) {
     error = SOCKERRNO;
     logmsg("setsockopt(SO_REUSEADDR) failed with error: (%d) %s",
@@ -1331,12 +1342,12 @@ int main(int argc, char *argv[])
   if(!wrotepidfile)
     goto server_cleanup;
 
-  for (;;) {
+  for(;;) {
     msgsock = accept(sock, NULL, NULL);
 
     if(got_exit_signal)
       break;
-    if (CURL_SOCKET_BAD == msgsock) {
+    if(CURL_SOCKET_BAD == msgsock) {
       error = SOCKERRNO;
       logmsg("MAJOR ERROR: accept() failed with error: (%d) %s",
              error, strerror(error));
@@ -1360,7 +1371,7 @@ int main(int argc, char *argv[])
      * response in many small segments to torture the clients more.
      */
     flag = 1;
-    if (setsockopt(msgsock, IPPROTO_TCP, TCP_NODELAY,
+    if(setsockopt(msgsock, IPPROTO_TCP, TCP_NODELAY,
                    (void *)&flag, sizeof(flag)) == -1) {
       logmsg("====> TCP_NODELAY failed");
     }
@@ -1424,7 +1435,7 @@ int main(int argc, char *argv[])
       clear_advisor_read_lock(SERVERLOGS_LOCK);
     }
 
-    if (req.testno == DOCNUMBER_QUIT)
+    if(req.testno == DOCNUMBER_QUIT)
       break;
   }
 

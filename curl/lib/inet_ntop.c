@@ -18,15 +18,12 @@
  * Original code by Paul Vixie. "curlified" by Gisle Vanem.
  */
 
-#include "setup.h"
+#include "curl_setup.h"
 
 #ifndef HAVE_INET_NTOP
 
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
-#endif
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
 #endif
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
@@ -35,10 +32,8 @@
 #include <arpa/inet.h>
 #endif
 
-#define _MPRINTF_REPLACE /* use our functions only */
-#include <curl/mprintf.h>
-
 #include "inet_ntop.h"
+#include "curl_printf.h"
 
 #define IN6ADDRSZ       16
 #define INADDRSZ         4
@@ -61,10 +56,10 @@ static char *inet_ntop4 (const unsigned char *src, char *dst, size_t size)
 
   tmp[0] = '\0';
   (void)snprintf(tmp, sizeof(tmp), "%d.%d.%d.%d",
-          ((int)((unsigned char)src[0])) & 0xff,
-          ((int)((unsigned char)src[1])) & 0xff,
-          ((int)((unsigned char)src[2])) & 0xff,
-          ((int)((unsigned char)src[3])) & 0xff);
+                 ((int)((unsigned char)src[0])) & 0xff,
+                 ((int)((unsigned char)src[1])) & 0xff,
+                 ((int)((unsigned char)src[2])) & 0xff,
+                 ((int)((unsigned char)src[3])) & 0xff);
 
   len = strlen(tmp);
   if(len == 0 || len >= size) {

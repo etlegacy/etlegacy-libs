@@ -1,5 +1,5 @@
-#ifndef __TRANSFER_H
-#define __TRANSFER_H
+#ifndef HEADER_CURL_TRANSFER_H
+#define HEADER_CURL_TRANSFER_H
 /***************************************************************************
  *                                  _   _ ____  _
  *  Project                     ___| | | |  _ \| |
@@ -7,11 +7,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2011, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at http://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -21,10 +21,12 @@
  * KIND, either express or implied.
  *
  ***************************************************************************/
-CURLcode Curl_perform(struct SessionHandle *data);
-CURLcode Curl_pretransfer(struct SessionHandle *data);
+
+void Curl_init_CONNECT(struct Curl_easy *data);
+
+CURLcode Curl_pretransfer(struct Curl_easy *data);
 CURLcode Curl_second_connect(struct connectdata *conn);
-CURLcode Curl_posttransfer(struct SessionHandle *data);
+CURLcode Curl_posttransfer(struct Curl_easy *data);
 
 typedef enum {
   FOLLOW_NONE,  /* not used within the function, just a placeholder to
@@ -36,19 +38,18 @@ typedef enum {
   FOLLOW_LAST   /* never used */
 } followtype;
 
-CURLcode Curl_follow(struct SessionHandle *data, char *newurl,
+CURLcode Curl_follow(struct Curl_easy *data, char *newurl,
                      followtype type);
-
-
-CURLcode Curl_readwrite(struct connectdata *conn, bool *done);
+CURLcode Curl_readwrite(struct connectdata *conn,
+                        struct Curl_easy *data, bool *done,
+                        bool *comeback);
 int Curl_single_getsock(const struct connectdata *conn,
                         curl_socket_t *socks,
                         int numsocks);
 CURLcode Curl_readrewind(struct connectdata *conn);
 CURLcode Curl_fillreadbuffer(struct connectdata *conn, int bytes, int *nreadp);
-CURLcode Curl_reconnect_request(struct connectdata **connp);
 CURLcode Curl_retry_request(struct connectdata *conn, char **url);
-bool Curl_meets_timecondition(struct SessionHandle *data, time_t timeofdoc);
+bool Curl_meets_timecondition(struct Curl_easy *data, time_t timeofdoc);
 
 /* This sets up a forthcoming transfer */
 void
@@ -63,7 +64,5 @@ Curl_setup_transfer (struct connectdata *data,
                curl_off_t *writecountp /* return number of bytes written */
 );
 
-long Curl_sleep_time(curl_off_t rate_bps, curl_off_t cur_rate_bps,
-                     int pkt_size);
+#endif /* HEADER_CURL_TRANSFER_H */
 
-#endif

@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2012, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at http://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -22,10 +22,6 @@
 #include "tool_setup.h"
 
 #include <sys/stat.h>
-
-#ifdef HAVE_UNISTD_H
-#  include <unistd.h>
-#endif
 
 #ifdef WIN32
 #  include <direct.h>
@@ -95,6 +91,14 @@ static void show_dir_errno(FILE *errors, const char *name)
  *  should create all the dir* automagically
  */
 
+#ifdef WIN32
+/* systems that may use either or when specifying a path */
+#define PATH_DELIMITERS "\\/"
+#else
+#define PATH_DELIMITERS DIR_CHAR
+#endif
+
+
 CURLcode create_dir_hierarchy(const char *outfile, FILE *errors)
 {
   char *tempdir;
@@ -102,36 +106,41 @@ CURLcode create_dir_hierarchy(const char *outfile, FILE *errors)
   char *outdup;
   char *dirbuildup;
   CURLcode result = CURLE_OK;
+  size_t outlen;
 
+  outlen = strlen(outfile);
   outdup = strdup(outfile);
   if(!outdup)
     return CURLE_OUT_OF_MEMORY;
 
-  dirbuildup = malloc(strlen(outfile) + 1);
+  dirbuildup = malloc(outlen + 1);
   if(!dirbuildup) {
     Curl_safefree(outdup);
     return CURLE_OUT_OF_MEMORY;
   }
   dirbuildup[0] = '\0';
 
-  tempdir = strtok(outdup, DIR_CHAR);
+  /* Allow strtok() here since this isn't used threaded */
+  /* !checksrc! disable BANNEDFUNC 2 */
+  tempdir = strtok(outdup, PATH_DELIMITERS);
 
   while(tempdir != NULL) {
-    tempdir2 = strtok(NULL, DIR_CHAR);
+    tempdir2 = strtok(NULL, PATH_DELIMITERS);
     /* since strtok returns a token for the last word even
        if not ending with DIR_CHAR, we need to prune it */
     if(tempdir2 != NULL) {
       size_t dlen = strlen(dirbuildup);
       if(dlen)
-        sprintf(&dirbuildup[dlen], "%s%s", DIR_CHAR, tempdir);
+        snprintf(&dirbuildup[dlen], outlen - dlen, "%s%s", DIR_CHAR, tempdir);
       else {
-        if(0 != strncmp(outdup, DIR_CHAR, 1))
+        if(outdup == tempdir)
+          /* the output string doesn't start with a separator */
           strcpy(dirbuildup, tempdir);
         else
-          sprintf(dirbuildup, "%s%s", DIR_CHAR, tempdir);
+          snprintf(dirbuildup, outlen, "%s%s", DIR_CHAR, tempdir);
       }
       if(access(dirbuildup, F_OK) == -1) {
-        if(-1 == mkdir(dirbuildup,(mode_t)0000750)) {
+        if(-1 == mkdir(dirbuildup, (mode_t)0000750)) {
           show_dir_errno(errors, dirbuildup);
           result = CURLE_WRITE_ERROR;
           break; /* get out of loop */

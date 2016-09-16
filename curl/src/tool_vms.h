@@ -11,7 +11,7 @@
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at http://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -24,6 +24,13 @@
 #include "tool_setup.h"
 
 #ifdef __VMS
+
+/*
+ * Forward-declaration of global variable vms_show defined
+ * in tool_main.c, used in main() as parameter for function
+ * vms_special_exit() to allow proper curl tool exiting.
+ */
+extern int vms_show;
 
 int is_vms_shell(void);
 void vms_special_exit(int code, int vms_show);

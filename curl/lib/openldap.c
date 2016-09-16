@@ -6,11 +6,11 @@
  *                 \___|\___/|_| \_\_____|
  *
  * Copyright (C) 2010, Howard Chu, <hyc@openldap.org>
- * Copyright (C) 2011 - 2012, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 2011 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at http://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -21,7 +21,7 @@
  *
  ***************************************************************************/
 
-#include "setup.h"
+#include "curl_setup.h"
 
 #if !defined(CURL_DISABLE_LDAP) && defined(USE_OPENLDAP)
 
@@ -41,15 +41,14 @@
 #include "urldata.h"
 #include <curl/curl.h>
 #include "sendf.h"
-#include "sslgen.h"
+#include "vtls/vtls.h"
 #include "transfer.h"
 #include "curl_ldap.h"
-#include "curl_memory.h"
 #include "curl_base64.h"
-
-#define _MPRINTF_REPLACE /* use our functions only */
-#include <curl/mprintf.h>
-
+#include "connect.h"
+/* The last 3 #include files should be in this order */
+#include "curl_printf.h"
+#include "curl_memory.h"
 #include "memdebug.h"
 
 #ifndef _LDAP_PVT_H
@@ -58,7 +57,7 @@ extern int ldap_init_fd(ber_socket_t fd, int proto, const char *url,
                         LDAP **ld);
 #endif
 
-static CURLcode ldap_setup(struct connectdata *conn);
+static CURLcode ldap_setup_connection(struct connectdata *conn);
 static CURLcode ldap_do(struct connectdata *conn, bool *done);
 static CURLcode ldap_done(struct connectdata *conn, CURLcode, bool);
 static CURLcode ldap_connect(struct connectdata *conn, bool *done);
@@ -73,7 +72,7 @@ static Curl_recv ldap_recv;
 
 const struct Curl_handler Curl_handler_ldap = {
   "LDAP",                               /* scheme */
-  ldap_setup,                           /* setup_connection */
+  ldap_setup_connection,                /* setup_connection */
   ldap_do,                              /* do_it */
   ldap_done,                            /* done */
   ZERO_NULL,                            /* do_more */
@@ -98,7 +97,7 @@ const struct Curl_handler Curl_handler_ldap = {
 
 const struct Curl_handler Curl_handler_ldaps = {
   "LDAPS",                              /* scheme */
-  ldap_setup,                           /* setup_connection */
+  ldap_setup_connection,                /* setup_connection */
   ldap_do,                              /* do_it */
   ldap_done,                            /* done */
   ZERO_NULL,                            /* do_more */
@@ -147,11 +146,11 @@ typedef struct ldapreqinfo {
   int nument;
 } ldapreqinfo;
 
-static CURLcode ldap_setup(struct connectdata *conn)
+static CURLcode ldap_setup_connection(struct connectdata *conn)
 {
   ldapconninfo *li;
   LDAPURLDesc *lud;
-  struct SessionHandle *data=conn->data;
+  struct Curl_easy *data=conn->data;
   int rc, proto;
   CURLcode status;
 
@@ -171,9 +170,11 @@ static CURLcode ldap_setup(struct connectdata *conn)
   ldap_free_urldesc(lud);
 
   li = calloc(1, sizeof(ldapconninfo));
+  if(!li)
+    return CURLE_OUT_OF_MEMORY;
   li->proto = proto;
   conn->proto.generic = li;
-  conn->bits.close = FALSE;
+  connkeep(conn, "OpenLDAP default");
   /* TODO:
    * - provide option to choose SASL Binds instead of Simple
    */
@@ -187,9 +188,12 @@ static Sockbuf_IO ldapsb_tls;
 static CURLcode ldap_connect(struct connectdata *conn, bool *done)
 {
   ldapconninfo *li = conn->proto.generic;
-  struct SessionHandle *data=conn->data;
+  struct Curl_easy *data = conn->data;
   int rc, proto = LDAP_VERSION3;
-  char hosturl[1024], *ptr;
+  char hosturl[1024];
+  char *ptr;
+
+  (void)done;
 
   strcpy(hosturl, "ldap");
   ptr = hosturl+4;
@@ -209,23 +213,12 @@ static CURLcode ldap_connect(struct connectdata *conn, bool *done)
 
 #ifdef USE_SSL
   if(conn->handler->flags & PROTOPT_SSL) {
-    CURLcode res;
-    if(data->state.used_interface == Curl_if_easy) {
-      res = Curl_ssl_connect(conn, FIRSTSOCKET);
-      if(res)
-        return res;
-      li->ssldone = TRUE;
-    }
-    else {
-      res = Curl_ssl_connect_nonblocking(conn, FIRSTSOCKET, &li->ssldone);
-      if(res)
-        return res;
-    }
+    CURLcode result;
+    result = Curl_ssl_connect_nonblocking(conn, FIRSTSOCKET, &li->ssldone);
+    if(result)
+      return result;
   }
 #endif
-
-  if(data->state.used_interface == Curl_if_easy)
-    return ldap_connecting(conn, done);
 
   return CURLE_OK;
 }
@@ -233,9 +226,9 @@ static CURLcode ldap_connect(struct connectdata *conn, bool *done)
 static CURLcode ldap_connecting(struct connectdata *conn, bool *done)
 {
   ldapconninfo *li = conn->proto.generic;
-  struct SessionHandle *data=conn->data;
-  LDAPMessage *result = NULL;
-  struct timeval tv = {0,1}, *tvp;
+  struct Curl_easy *data = conn->data;
+  LDAPMessage *msg = NULL;
+  struct timeval tv = {0, 1}, *tvp;
   int rc, err;
   char *info = NULL;
 
@@ -243,11 +236,12 @@ static CURLcode ldap_connecting(struct connectdata *conn, bool *done)
   if(conn->handler->flags & PROTOPT_SSL) {
     /* Is the SSL handshake complete yet? */
     if(!li->ssldone) {
-      CURLcode res = Curl_ssl_connect_nonblocking(conn, FIRSTSOCKET,
-                                                  &li->ssldone);
-      if(res || !li->ssldone)
-        return res;
+      CURLcode result = Curl_ssl_connect_nonblocking(conn, FIRSTSOCKET,
+                                                     &li->ssldone);
+      if(result || !li->ssldone)
+        return result;
     }
+
     /* Have we installed the libcurl SSL handlers into the sockbuf yet? */
     if(!li->sslinst) {
       Sockbuf *sb;
@@ -260,10 +254,7 @@ static CURLcode ldap_connecting(struct connectdata *conn, bool *done)
   }
 #endif
 
-  if(data->state.used_interface == Curl_if_easy)
-    tvp = NULL;    /* let ldap_result block indefinitely */
-  else
-    tvp = &tv;
+  tvp = &tv;
 
 retry:
   if(!li->didbind) {
@@ -289,7 +280,7 @@ retry:
       return CURLE_OK;
   }
 
-  rc = ldap_result(li->ld, li->msgid, LDAP_MSG_ONE, tvp, &result);
+  rc = ldap_result(li->ld, li->msgid, LDAP_MSG_ONE, tvp, &msg);
   if(rc < 0) {
     failf(data, "LDAP local: bind ldap_result %s", ldap_err2string(rc));
     return CURLE_LDAP_CANNOT_BIND;
@@ -298,11 +289,13 @@ retry:
     /* timed out */
     return CURLE_OK;
   }
-  rc = ldap_parse_result(li->ld, result, &err, NULL, &info, NULL, NULL, 1);
+
+  rc = ldap_parse_result(li->ld, msg, &err, NULL, &info, NULL, NULL, 1);
   if(rc) {
     failf(data, "LDAP local: bind ldap_parse_result %s", ldap_err2string(rc));
     return CURLE_LDAP_CANNOT_BIND;
   }
+
   /* Try to fallback to LDAPv2? */
   if(err == LDAP_PROTOCOL_ERROR) {
     int proto;
@@ -331,6 +324,7 @@ retry:
     ldap_memfree(info);
   conn->recv[FIRSTSOCKET] = ldap_recv;
   *done = TRUE;
+
   return CURLE_OK;
 }
 
@@ -358,9 +352,9 @@ static CURLcode ldap_do(struct connectdata *conn, bool *done)
   int rc = 0;
   LDAPURLDesc *ludp = NULL;
   int msgid;
-  struct SessionHandle *data=conn->data;
+  struct Curl_easy *data=conn->data;
 
-  conn->bits.close = FALSE;
+  connkeep(conn, "OpenLDAP do");
 
   infof(data, "LDAP local: %s\n", data->change.url);
 
@@ -385,9 +379,11 @@ static CURLcode ldap_do(struct connectdata *conn, bool *done)
     failf(data, "LDAP local: ldap_search_ext %s", ldap_err2string(rc));
     return CURLE_LDAP_SEARCH_FAILED;
   }
-  lr = calloc(1,sizeof(ldapreqinfo));
+  lr = calloc(1, sizeof(ldapreqinfo));
+  if(!lr)
+    return CURLE_OUT_OF_MEMORY;
   lr->msgid = msgid;
-  data->state.proto.generic = lr;
+  data->req.protop = lr;
   Curl_setup_transfer(conn, FIRSTSOCKET, -1, FALSE, NULL, -1, NULL);
   *done = TRUE;
   return CURLE_OK;
@@ -396,7 +392,8 @@ static CURLcode ldap_do(struct connectdata *conn, bool *done)
 static CURLcode ldap_done(struct connectdata *conn, CURLcode res,
                           bool premature)
 {
-  ldapreqinfo *lr = conn->data->state.proto.generic;
+  ldapreqinfo *lr = conn->data->req.protop;
+
   (void)res;
   (void)premature;
 
@@ -407,9 +404,10 @@ static CURLcode ldap_done(struct connectdata *conn, CURLcode res,
       ldap_abandon_ext(li->ld, lr->msgid, NULL, NULL);
       lr->msgid = 0;
     }
-    conn->data->state.proto.generic = NULL;
+    conn->data->req.protop = NULL;
     free(lr);
   }
+
   return CURLE_OK;
 }
 
@@ -417,18 +415,19 @@ static ssize_t ldap_recv(struct connectdata *conn, int sockindex, char *buf,
                          size_t len, CURLcode *err)
 {
   ldapconninfo *li = conn->proto.generic;
-  struct SessionHandle *data=conn->data;
-  ldapreqinfo *lr = data->state.proto.generic;
+  struct Curl_easy *data = conn->data;
+  ldapreqinfo *lr = data->req.protop;
   int rc, ret;
-  LDAPMessage *result = NULL;
+  LDAPMessage *msg = NULL;
   LDAPMessage *ent;
   BerElement *ber = NULL;
-  struct timeval tv = {0,1};
+  struct timeval tv = {0, 1};
+
   (void)len;
   (void)buf;
   (void)sockindex;
 
-  rc = ldap_result(li->ld, lr->msgid, LDAP_MSG_RECEIVED, &tv, &result);
+  rc = ldap_result(li->ld, lr->msgid, LDAP_MSG_RECEIVED, &tv, &msg);
   if(rc < 0) {
     failf(data, "LDAP local: search ldap_result %s", ldap_err2string(rc));
     *err = CURLE_RECV_ERROR;
@@ -439,13 +438,14 @@ static ssize_t ldap_recv(struct connectdata *conn, int sockindex, char *buf,
   ret = -1;
 
   /* timed out */
-  if(result == NULL)
+  if(!msg)
     return ret;
 
-  for(ent = ldap_first_message(li->ld, result); ent;
+  for(ent = ldap_first_message(li->ld, msg); ent;
     ent = ldap_next_message(li->ld, ent)) {
     struct berval bv, *bvals, **bvp = &bvals;
     int binary = 0, msgtype;
+    CURLcode writeerr;
 
     msgtype = ldap_msgtype(ent);
     if(msgtype == LDAP_RES_SEARCH_RESULT) {
@@ -485,9 +485,24 @@ static ssize_t ldap_recv(struct connectdata *conn, int sockindex, char *buf,
       *err = CURLE_RECV_ERROR;
       return -1;
     }
-    Curl_client_write(conn, CLIENTWRITE_BODY, (char *)"DN: ", 4);
-    Curl_client_write(conn, CLIENTWRITE_BODY, (char *)bv.bv_val, bv.bv_len);
-    Curl_client_write(conn, CLIENTWRITE_BODY, (char *)"\n", 1);
+    writeerr = Curl_client_write(conn, CLIENTWRITE_BODY, (char *)"DN: ", 4);
+    if(writeerr) {
+      *err = writeerr;
+      return -1;
+    }
+
+    writeerr = Curl_client_write(conn, CLIENTWRITE_BODY, (char *)bv.bv_val,
+                                 bv.bv_len);
+    if(writeerr) {
+      *err = writeerr;
+      return -1;
+    }
+
+    writeerr = Curl_client_write(conn, CLIENTWRITE_BODY, (char *)"\n", 1);
+    if(writeerr) {
+      *err = writeerr;
+      return -1;
+    }
     data->req.bytecount += bv.bv_len + 5;
 
     for(rc = ldap_get_attribute_ber(li->ld, ent, ber, &bv, bvp);
@@ -504,10 +519,24 @@ static ssize_t ldap_recv(struct connectdata *conn, int sockindex, char *buf,
 
       for(i=0; bvals[i].bv_val != NULL; i++) {
         int binval = 0;
-        Curl_client_write(conn, CLIENTWRITE_BODY, (char *)"\t", 1);
-        Curl_client_write(conn, CLIENTWRITE_BODY, (char *)bv.bv_val,
-                          bv.bv_len);
-        Curl_client_write(conn, CLIENTWRITE_BODY, (char *)":", 1);
+        writeerr = Curl_client_write(conn, CLIENTWRITE_BODY, (char *)"\t", 1);
+        if(writeerr) {
+          *err = writeerr;
+          return -1;
+        }
+
+       writeerr = Curl_client_write(conn, CLIENTWRITE_BODY, (char *)bv.bv_val,
+                                    bv.bv_len);
+       if(writeerr) {
+         *err = writeerr;
+         return -1;
+       }
+
+        writeerr = Curl_client_write(conn, CLIENTWRITE_BODY, (char *)":", 1);
+       if(writeerr) {
+         *err = writeerr;
+         return -1;
+       }
         data->req.bytecount += bv.bv_len + 2;
 
         if(!binary) {
@@ -537,36 +566,70 @@ static ssize_t ldap_recv(struct connectdata *conn, int sockindex, char *buf,
           if(error) {
             ber_memfree(bvals);
             ber_free(ber, 0);
-            ldap_msgfree(result);
+            ldap_msgfree(msg);
             *err = error;
             return -1;
           }
-          Curl_client_write(conn, CLIENTWRITE_BODY, (char *)": ", 2);
+          writeerr = Curl_client_write(conn, CLIENTWRITE_BODY,
+                                       (char *)": ", 2);
+          if(writeerr) {
+            *err = writeerr;
+            return -1;
+          }
+
           data->req.bytecount += 2;
           if(val_b64_sz > 0) {
-            Curl_client_write(conn, CLIENTWRITE_BODY, val_b64, val_b64_sz);
+            writeerr = Curl_client_write(conn, CLIENTWRITE_BODY, val_b64,
+                                     val_b64_sz);
+            if(writeerr) {
+              *err = writeerr;
+              return -1;
+            }
             free(val_b64);
             data->req.bytecount += val_b64_sz;
           }
         }
         else {
-          Curl_client_write(conn, CLIENTWRITE_BODY, (char *)" ", 1);
-          Curl_client_write(conn, CLIENTWRITE_BODY, bvals[i].bv_val,
-                            bvals[i].bv_len);
+          writeerr = Curl_client_write(conn, CLIENTWRITE_BODY, (char *)" ", 1);
+          if(writeerr) {
+            *err = writeerr;
+            return -1;
+          }
+
+          writeerr = Curl_client_write(conn, CLIENTWRITE_BODY, bvals[i].bv_val,
+                                       bvals[i].bv_len);
+          if(writeerr) {
+            *err = writeerr;
+            return -1;
+          }
+
           data->req.bytecount += bvals[i].bv_len + 1;
         }
-        Curl_client_write(conn, CLIENTWRITE_BODY, (char *)"\n", 0);
+        writeerr = Curl_client_write(conn, CLIENTWRITE_BODY, (char *)"\n", 0);
+        if(writeerr) {
+          *err = writeerr;
+          return -1;
+        }
+
         data->req.bytecount++;
       }
       ber_memfree(bvals);
-      Curl_client_write(conn, CLIENTWRITE_BODY, (char *)"\n", 0);
+      writeerr = Curl_client_write(conn, CLIENTWRITE_BODY, (char *)"\n", 0);
+      if(writeerr) {
+        *err = writeerr;
+        return -1;
+      }
       data->req.bytecount++;
     }
-    Curl_client_write(conn, CLIENTWRITE_BODY, (char *)"\n", 0);
+    writeerr = Curl_client_write(conn, CLIENTWRITE_BODY, (char *)"\n", 0);
+    if(writeerr) {
+      *err = writeerr;
+      return -1;
+    }
     data->req.bytecount++;
     ber_free(ber, 0);
   }
-  ldap_msgfree(result);
+  ldap_msgfree(msg);
   return ret;
 }
 

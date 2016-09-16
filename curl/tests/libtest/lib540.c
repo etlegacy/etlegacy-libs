@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2011, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at http://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -29,6 +29,10 @@
  */
 
 #include "test.h"
+
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif
 
 #include "testutil.h"
 #include "warnless.h"
@@ -109,7 +113,7 @@ static int loop(int num, CURLM *cm, const char* url, const char* userpwd,
   if(res)
     return res;
 
-  while (U) {
+  while(U) {
 
     int M = -99;
 
@@ -121,7 +125,7 @@ static int loop(int num, CURLM *cm, const char* url, const char* userpwd,
     if(res)
       return res;
 
-    if (U) {
+    if(U) {
       FD_ZERO(&R);
       FD_ZERO(&W);
       FD_ZERO(&E);
@@ -139,8 +143,9 @@ static int loop(int num, CURLM *cm, const char* url, const char* userpwd,
       /* At this point, L is guaranteed to be greater or equal than -1. */
 
       if(L != -1) {
-        T.tv_sec = L/1000;
-        T.tv_usec = (L%1000)*1000;
+        int itimeout = (L > (long)INT_MAX) ? INT_MAX : (int)L;
+        T.tv_sec = itimeout/1000;
+        T.tv_usec = (itimeout%1000)*1000;
       }
       else {
         T.tv_sec = 5;
@@ -195,7 +200,7 @@ int test(char *URL)
   if(test_argc < 4)
     return 99;
 
-  sprintf(buffer, "Host: %s", HOST);
+  snprintf(buffer, sizeof(buffer), "Host: %s", HOST);
 
   /* now add a custom Host: header */
   headers = curl_slist_append(headers, buffer);

@@ -11,7 +11,7 @@
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at http://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -22,6 +22,27 @@
  *
  ***************************************************************************/
 #include "tool_setup.h"
+
+/*
+ * curl operates using a single HdrCbData struct variable, a
+ * pointer to this is passed as userdata pointer to tool_header_cb.
+ *
+ * 'outs' member is a pointer to the OutStruct variable used to keep
+ * track of information relative to curl's output writing.
+ *
+ * 'heads' member is a pointer to the OutStruct variable used to keep
+ * track of information relative to header response writing.
+ *
+ * 'honor_cd_filename' member is TRUE when tool_header_cb is allowed
+ * to honor Content-Disposition filename property and accordingly
+ * set 'outs' filename, otherwise FALSE;
+ */
+
+struct HdrCbData {
+  struct OutStruct *outs;
+  struct OutStruct *heads;
+  bool honor_cd_filename;
+};
 
 /*
 ** callback for CURLOPT_HEADERFUNCTION

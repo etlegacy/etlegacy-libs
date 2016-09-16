@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2011, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at http://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -36,7 +36,7 @@ int test(char *URL)
   char *s;
   (void)URL;
 
-  if ((easy = curl_easy_init()) == NULL) {
+  if((easy = curl_easy_init()) == NULL) {
     fprintf(stderr, "curl_easy_init() failed\n");
     return TEST_ERR_MAJOR_BAD;
   }
@@ -45,9 +45,12 @@ int test(char *URL)
 
   s = curl_easy_escape(easy, (char*)a, asize);
 
-  printf("%s\n", s);
+  if(s)
+    printf("%s\n", s);
 
-  curl_free(s);
+  if(s)
+    curl_free(s);
+
   curl_easy_cleanup(easy);
 
   return 0;

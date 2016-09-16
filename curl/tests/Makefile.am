@@ -5,11 +5,11 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1998 - 2011, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 1998 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
-# are also available at http://curl.haxx.se/docs/copyright.html.
+# are also available at https://curl.haxx.se/docs/copyright.html.
 #
 # You may opt to use, copy, modify, merge, publish, distribute and/or sell
 # copies of the Software, and permit persons to whom the Software is
@@ -25,51 +25,64 @@ PDFPAGES = testcurl.pdf runtests.pdf
 
 EXTRA_DIST = ftpserver.pl httpserver.pl secureserver.pl runtests.pl getpart.pm \
  FILEFORMAT README stunnel.pem memanalyze.pl testcurl.pl valgrind.pm ftp.pm   \
- sshserver.pl sshhelp.pm testcurl.1 runtests.1 $(HTMLPAGES) $(PDFPAGES) \
- CMakeLists.txt certs/scripts/*.sh certs/Server* certs/EdelCurlRoot* \
+ sshserver.pl sshhelp.pm pathhelp.pm testcurl.1 runtests.1 \
+ $(HTMLPAGES) $(PDFPAGES) \
  serverhelp.pm tftpserver.pl rtspserver.pl directories.pm symbol-scan.pl \
- certs/srp-verifier-conf certs/srp-verifier-db
+ CMakeLists.txt mem-include-scan.pl valgrind.supp http_pipe.py extern-scan.pl \
+ manpage-scan.pl nroff-scan.pl http2-server.pl
 
+DISTCLEANFILES = configurehelp.pm
+
+# we have two variables here to make sure DIST_SUBDIRS won't get 'unit'
+# added twice as then targets such as 'distclean' misbehave and try to
+# do things twice in that subdir at times (and thus fails).
 if BUILD_UNITTESTS
 BUILD_UNIT = unit
+DIST_UNIT =
 else
 BUILD_UNIT =
+DIST_UNIT = unit
 endif
 
-SUBDIRS = data server libtest $(BUILD_UNIT)
-DIST_SUBDIRS = $(SUBDIRS) unit
+SUBDIRS = certs data server libtest $(BUILD_UNIT)
+DIST_SUBDIRS = $(SUBDIRS) $(DIST_UNIT)
 
 PERLFLAGS = -I$(srcdir)
 
 CLEANFILES = .http.pid .https.pid .ftp.pid .ftps.pid
 
-MAN2HTML= roffit < $< >$@
+MAN2HTML= roffit $< >$@
 
 curl:
 	@cd $(top_builddir) && $(MAKE)
 
 if CROSSCOMPILING
 TEST = @echo "NOTICE: we can't run the tests when cross-compiling!"
-TEST_Q =
-TEST_F =
-TEST_T =
 else # if not cross-compiling:
 TEST = srcdir=$(srcdir) $(PERL) $(PERLFLAGS) $(srcdir)/runtests.pl
 TEST_Q = -a -s
+TEST_AM = -a -am
 TEST_F = -a -p -r
 TEST_T = -a -t
 endif
 
-test: all
+# make sure that PERL is pointing to an executable
+perlcheck:
+	@if ! test -x "$(PERL)"; then echo "No perl!"; exit 2; fi
+
+test: perlcheck all
 	$(TEST)
 
-quiet-test: all
+quiet-test: perlcheck all
 	$(TEST) $(TEST_Q)
 
-full-test: all
+am-test: perlcheck all
+	$(TEST) $(TEST_AM)
+
+full-test: perlcheck all
 	$(TEST) $(TEST_F)
 
-torture-test: all
+torture-test: perlcheck all
 	$(TEST) $(TEST_T)
 
 .1.html:
@@ -81,3 +94,8 @@ torture-test: all
 	ps2pdf $$foo.ps $@; \
 	rm $$foo.ps; \
 	echo "converted $< to $@")
+
+checksrc:
+	cd libtest && $(MAKE) checksrc
+	cd unit && $(MAKE) checksrc
+	cd server && $(MAKE) checksrc

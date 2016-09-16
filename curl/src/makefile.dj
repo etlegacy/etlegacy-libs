@@ -1,11 +1,32 @@
+#***************************************************************************
+#                                  _   _ ____  _
+#  Project                     ___| | | |  _ \| |
+#                             / __| | | | |_) | |
+#                            | (__| |_| |  _ <| |___
+#                             \___|\___/|_| \_\_____|
 #
-#  Adapted for djgpp2 / Watt-32 / DOS by
-#  Gisle Vanem <gvanem@broadpark.no>
+# Copyright (C) 2003 - 2007, Gisle Vanem <gvanem@yahoo.no>.
+# Copyright (C) 2003 - 2015, Daniel Stenberg, <daniel@haxx.se>, et al.
+#
+# This software is licensed as described in the file COPYING, which
+# you should have received as part of this distribution. The terms
+# are also available at https://curl.haxx.se/docs/copyright.html.
+#
+# You may opt to use, copy, modify, merge, publish, distribute and/or sell
+# copies of the Software, and permit persons to whom the Software is
+# furnished to do so, under the terms of the COPYING file.
+#
+# This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
+# KIND, either express or implied.
+#
+#***************************************************************************
+
+#
+#  Adapted for djgpp2 / Watt-32 / DOS
 #
 
-DEPEND_PREREQ = # hugehelp.c
+DEPEND_PREREQ = # tool_hugehelp.c
 
-top_srcdir = ..
 TOPDIR = ..
 
 include ../packages/DOS/common.dj
@@ -46,14 +67,14 @@ $(PROGRAM): $(OBJECTS) ../lib/libcurl.a
 #
 # groff 1.18+ requires "-P -c"
 #
-hugehelp.c: ../docs/MANUAL ../docs/curl.1 mkhelp.pl
+tool_hugehelp.c: ../docs/MANUAL ../docs/curl.1 mkhelp.pl
 	groff -Tascii -man ../docs/curl.1 | \
 	perl -w mkhelp.pl ../docs/MANUAL > $@
 
 # clean generated files
 #
 genclean:
-	- $(DELETE) hugehelp.c
+	- $(DELETE) tool_hugehelp.c
 
 # clean object files and subdir
 #

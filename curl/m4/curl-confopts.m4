@@ -5,11 +5,11 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1998 - 2012, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 1998 - 2013, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
-# are also available at http://curl.haxx.se/docs/copyright.html.
+# are also available at https://curl.haxx.se/docs/copyright.html.
 #
 # You may opt to use, copy, modify, merge, publish, distribute and/or sell
 # copies of the Software, and permit persons to whom the Software is
@@ -21,7 +21,7 @@
 #***************************************************************************
 
 # File version for 'aclocal' use. Keep it a single number.
-# serial 18
+# serial 19
 
 dnl CURL_CHECK_OPTION_THREADED_RESOLVER
 dnl -------------------------------------------------
@@ -145,7 +145,7 @@ dnl variable want_debug value as appropriate.
 AC_DEFUN([CURL_CHECK_OPTION_DEBUG], [
   AC_BEFORE([$0],[CURL_CHECK_OPTION_WARNINGS])dnl
   AC_BEFORE([$0],[CURL_CHECK_OPTION_CURLDEBUG])dnl
-  AC_BEFORE([$0],[CURL_CHECK_PROG_CC])dnl
+  AC_BEFORE([$0],[XC_CHECK_PROG_CC])dnl
   AC_MSG_CHECKING([whether to enable debug build options])
   OPT_DEBUG_BUILD="default"
   AC_ARG_ENABLE(debug,
@@ -169,39 +169,6 @@ AC_HELP_STRING([--disable-debug],[Disable debug build options]),
   AC_MSG_RESULT([$want_debug])
 ])
 
-
-dnl CURL_CHECK_OPTION_NONBLOCKING
-dnl -------------------------------------------------
-dnl Verify if configure has been invoked with option
-dnl --enable-nonblocking or --disable-nonblocking, and
-dnl set shell variable want_nonblocking as appropriate.
-
-AC_DEFUN([CURL_CHECK_OPTION_NONBLOCKING], [
-  AC_BEFORE([$0],[CURL_CHECK_NONBLOCKING_SOCKET])dnl
-  AC_MSG_CHECKING([whether to enable non-blocking communications])
-  OPT_NONBLOCKING="default"
-  AC_ARG_ENABLE(nonblocking,
-AC_HELP_STRING([--enable-nonblocking],[Enable non-blocking communications])
-AC_HELP_STRING([--disable-nonblocking],[Disable non-blocking communications]),
-  OPT_NONBLOCKING=$enableval)
-  case "$OPT_NONBLOCKING" in
-    no)
-      dnl --disable-nonblocking option used
-      want_nonblocking="no"
-      ;;
-    default)
-      dnl configure option not specified
-      want_nonblocking="yes"
-      ;;
-    *)
-      dnl --enable-nonblocking option used
-      want_nonblocking="yes"
-      ;;
-  esac
-  AC_MSG_RESULT([$want_nonblocking])
-])
-
-
 dnl CURL_CHECK_OPTION_OPTIMIZE
 dnl -------------------------------------------------
 dnl Verify if configure has been invoked with option
@@ -210,7 +177,7 @@ dnl shell variable want_optimize value as appropriate.
 
 AC_DEFUN([CURL_CHECK_OPTION_OPTIMIZE], [
   AC_REQUIRE([CURL_CHECK_OPTION_DEBUG])dnl
-  AC_BEFORE([$0],[CURL_CHECK_PROG_CC])dnl
+  AC_BEFORE([$0],[XC_CHECK_PROG_CC])dnl
   AC_MSG_CHECKING([whether to enable compiler optimizer])
   OPT_COMPILER_OPTIMIZE="default"
   AC_ARG_ENABLE(optimize,
@@ -349,6 +316,42 @@ dnl     AC_MSG_ERROR([options --enable-ares and --enable-threads are mutually ex
 dnl   fi
 dnl ])
 
+dnl CURL_CHECK_OPTION_RT
+dnl -------------------------------------------------
+dnl Verify if configure has been involed with option
+dnl --disable-rt and set shell variable dontwant_rt
+dnl as appropriate.
+
+AC_DEFUN([CURL_CHECK_OPTION_RT], [
+  AC_BEFORE([$0], [CURL_CHECK_LIB_THREADS])dnl
+  AC_MSG_CHECKING([whether to disable dependency on -lrt])
+  OPT_RT="default"
+  AC_ARG_ENABLE(rt,
+ AC_HELP_STRING([--disable-rt],[disable dependency on -lrt]),
+  OPT_RT=$enableval)
+  case "$OPT_RT" in
+    no)
+      dnl --disable-rt used (reverse logic)
+      dontwant_rt="yes"
+      AC_MSG_RESULT([yes])
+      ;;
+    default)
+      dnl configure option not specified (so not disabled)
+      dontwant_rt="no"
+      AC_MSG_RESULT([(assumed no)])
+      ;;
+    *)
+      dnl --enable-rt option used (reverse logic)
+      dontwant_rt="no"
+      AC_MSG_RESULT([no])
+      ;;
+  esac
+  dnl TODO: may require mutual exclusion
+  if test "$dontwant_rt" = "yes" && test "$want_thres" = "yes" ; then
+    AC_MSG_ERROR([options --disable-rt and --enable-thread-resolver are mutually exclusive, at most one can be selected.])
+  fi
+])
+ 
 
 dnl CURL_CHECK_OPTION_WARNINGS
 dnl -------------------------------------------------
@@ -359,7 +362,7 @@ dnl shell variable want_warnings as appropriate.
 AC_DEFUN([CURL_CHECK_OPTION_WARNINGS], [
   AC_REQUIRE([CURL_CHECK_OPTION_DEBUG])dnl
   AC_BEFORE([$0],[CURL_CHECK_OPTION_WERROR])dnl
-  AC_BEFORE([$0],[CURL_CHECK_PROG_CC])dnl
+  AC_BEFORE([$0],[XC_CHECK_PROG_CC])dnl
   AC_MSG_CHECKING([whether to enable strict compiler warnings])
   OPT_COMPILER_WARNINGS="default"
   AC_ARG_ENABLE(warnings,
@@ -421,7 +424,6 @@ dnl -------------------------------------------------
 dnl Check for how to set a socket into non-blocking state.
 
 AC_DEFUN([CURL_CHECK_NONBLOCKING_SOCKET], [
-  AC_REQUIRE([CURL_CHECK_OPTION_NONBLOCKING])dnl
   AC_REQUIRE([CURL_CHECK_FUNC_FCNTL])dnl
   AC_REQUIRE([CURL_CHECK_FUNC_IOCTL])dnl
   AC_REQUIRE([CURL_CHECK_FUNC_IOCTLSOCKET])dnl
@@ -429,28 +431,22 @@ AC_DEFUN([CURL_CHECK_NONBLOCKING_SOCKET], [
   AC_REQUIRE([CURL_CHECK_FUNC_SETSOCKOPT])dnl
   #
   tst_method="unknown"
-  if test "$want_nonblocking" = "yes"; then
-    AC_MSG_CHECKING([how to set a socket into non-blocking mode])
-    if test "x$ac_cv_func_fcntl_o_nonblock" = "xyes"; then
-      tst_method="fcntl O_NONBLOCK"
-    elif test "x$ac_cv_func_ioctl_fionbio" = "xyes"; then
-      tst_method="ioctl FIONBIO"
-    elif test "x$ac_cv_func_ioctlsocket_fionbio" = "xyes"; then
-      tst_method="ioctlsocket FIONBIO"
-    elif test "x$ac_cv_func_ioctlsocket_camel_fionbio" = "xyes"; then
-      tst_method="IoctlSocket FIONBIO"
-    elif test "x$ac_cv_func_setsockopt_so_nonblock" = "xyes"; then
-      tst_method="setsockopt SO_NONBLOCK"
-    fi
-    AC_MSG_RESULT([$tst_method])
-    if test "$tst_method" = "unknown"; then
-      AC_MSG_WARN([cannot determine non-blocking socket method.])
-    fi
+
+  AC_MSG_CHECKING([how to set a socket into non-blocking mode])
+  if test "x$curl_cv_func_fcntl_o_nonblock" = "xyes"; then
+    tst_method="fcntl O_NONBLOCK"
+  elif test "x$curl_cv_func_ioctl_fionbio" = "xyes"; then
+    tst_method="ioctl FIONBIO"
+  elif test "x$curl_cv_func_ioctlsocket_fionbio" = "xyes"; then
+    tst_method="ioctlsocket FIONBIO"
+  elif test "x$curl_cv_func_ioctlsocket_camel_fionbio" = "xyes"; then
+    tst_method="IoctlSocket FIONBIO"
+  elif test "x$curl_cv_func_setsockopt_so_nonblock" = "xyes"; then
+    tst_method="setsockopt SO_NONBLOCK"
   fi
+  AC_MSG_RESULT([$tst_method])
   if test "$tst_method" = "unknown"; then
-    AC_DEFINE_UNQUOTED(USE_BLOCKING_SOCKETS, 1,
-      [Define to disable non-blocking sockets.])
-    AC_MSG_WARN([non-blocking sockets disabled.])
+    AC_MSG_WARN([cannot determine non-blocking socket method.])
   fi
 ])
 
@@ -468,7 +464,7 @@ AC_DEFUN([CURL_CONFIGURE_SYMBOL_HIDING], [
   AC_MSG_CHECKING([whether hiding of library internal symbols will actually happen])
   CFLAG_CURL_SYMBOL_HIDING=""
   doing_symbol_hiding="no"
-  if test x"$ac_cv_native_windows" != "xyes" &&
+  if test x"$curl_cv_native_windows" != "xyes" &&
     test "$want_symbol_hiding" = "yes" &&
     test "$supports_symbol_hiding" = "yes"; then
     doing_symbol_hiding="yes"
@@ -615,7 +611,7 @@ AC_DEFUN([CURL_CHECK_NTLM_WB], [
   AC_REQUIRE([CURL_CHECK_OPTION_NTLM_WB])dnl
   AC_REQUIRE([CURL_CHECK_NATIVE_WINDOWS])dnl
   AC_MSG_CHECKING([whether to enable NTLM delegation to winbind's helper])
-  if test "$ac_cv_native_windows" = "yes" ||
+  if test "$curl_cv_native_windows" = "yes" ||
     test "x$SSL_ENABLED" = "x"; then
     want_ntlm_wb_file=""
     want_ntlm_wb="no"
