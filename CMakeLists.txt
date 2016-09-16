@@ -467,7 +467,7 @@ elseif(UNIX)
 		endif(CMAKE_SYSTEM MATCHES "Darwin")
 		set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_CURRENT_LIST_DIR}/sdl2/build/.libs/libSDL2.a")
 		set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
-	endif(BUNDLED_SDL)
+	endif()
 
 	#-----------------------------------------------------------------
 	# Build bundled Lua library
