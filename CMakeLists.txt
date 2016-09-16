@@ -113,7 +113,7 @@ if(WIN32)
 		ExternalProject_Add(bundled_curl
 			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/curl
 			BINARY_DIR	${LIBS_BINARYDIR_DIR}/curl
-			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DBUILD_CURL_EXE=0 -DBUILD_CURL_TESTS=0 -DCURL_STATICLIB=1 -DCURL_USE_ARES=0 -DCURL_ZLIB=0 -DCMAKE_USE_OPENSSL=0 -DCURL_DISABLE_LDAP=1 -DCURL_DISABLE_TELNET=1 -DCURL_DISABLE_DICT=1 -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/curl
+			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DBUILD_CURL_EXE=0 -DCURL_STATICLIB=1 -DENABLE_ARES=0 -DENABLE_THREADED_RESOLVER=1 -DENABLE_DEBUG=0 -DENABLE_CURLDEBUG=0 -DBUILD_TESTING=0 -DHTTP_ONLY=1 -DENABLE_IPV6=1 -DENABLE_MANUAL=0 -DCMAKE_USE_OPENSSL=0 -DCURL_WINDOWS_SSPI=0 -DCURL_ZLIB=1 -DCMAKE_USE_LIBSSH2=0 -DCMAKE_USE_GSSAPI=0 -DENABLE_UNIX_SOCKETS=1 -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/curl
 			INSTALL_COMMAND  ""
 		)
 
@@ -397,11 +397,18 @@ elseif(UNIX)
 			COMMAND make clean || true
 			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure
 			--enable-shared=no --enable-static=yes
-			--without-libssh2 --enable-http --enable-ftp
-			--disable-gopher --enable-file --disable-ldap
-			--disable-dict --disable-telnet --disable-manual
-			--enable-libgcc --disable-ipv6 --disable-ares
-			--without-ssl --without-zlib --without-libidn
+			--enable-http --enable-ftp --disable-file
+			--disable-ldap --disable-ldaps --disable-rtsp
+			--enable-proxy --disable-dict --disable-telnet
+			--disable-tftp --disable-pop3 --disable-imap
+			--disable-smb --disable-smtp --disable-gopher
+			--without-ssl --without-libssh2
+			--without-gssapi --with-zlib
+			--disable-ares --enable-threaded-resolver
+			--enable-ipv6 --enable-unix-sockets
+			--without-libidn --disable-manual
+			--disable-sspi --enable-libgcc
+			--without-libmetalink --without-libpsl
 			--without-librtmp && make
 			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/curl
 		)
