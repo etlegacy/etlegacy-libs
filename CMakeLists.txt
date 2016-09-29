@@ -104,6 +104,7 @@ if(WIN32)
 		add_library(bundled_jpeg STATIC ${JPEG_LIB_SRC} ${JPEG_LIB_HEADERS})
 		set(JPEG_BUNDLED_LIBRARIES bundled_jpeg)
 		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
+		set_target_properties(bundled_jpeg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 	endif()
 
 	#-----------------------------------------------------------------
@@ -128,6 +129,8 @@ if(WIN32)
 		endif(VSTUDIO)
 
 		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/curl/include")
+
+		set_target_properties(bundled_curl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 	endif()
 
 	#-----------------------------------------------------------------
@@ -186,6 +189,7 @@ if(WIN32)
 			)
 		endif()
 
+		set_target_properties(bundled_lua PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 		set(LUA_BUNDLED_LIBRARIES bundled_lua)
 		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
 	endif()
@@ -213,6 +217,8 @@ if(WIN32)
 			)
 			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
 		endif(WIN64)
+
+		set_target_properties(bundled_sdl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 	endif()
 
 	#-----------------------------------------------------------------
@@ -345,6 +351,10 @@ if(WIN32)
 			)
 		endif(MSVC)
 
+		set_target_properties(bundled_ogg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+		set_target_properties(bundled_ogg_vorbis PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+		set_target_properties(bundled_ogg_vorbis_file PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+
 		set(OGG_BUNDLED_LIBRARIES bundled_ogg)
 		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/ogg/include")
 		set(OGG_VORBIS_BUNDLED_LIBRARIES bundled_ogg_vorbis bundled_ogg_vorbis_file)
@@ -372,6 +382,7 @@ if(WIN32)
 			set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libOpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		endif(VSTUDIO)
 		set(OPENAL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/openal/include")
+		set_target_properties(bundled_openal PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 	endif()
 
 elseif(UNIX)
@@ -587,6 +598,7 @@ if(BUNDLED_ZLIB AND (BUILD_CLIENT OR BUILD_SERVER))
 	add_library(bundled_zlib STATIC ${ZLIB_LIB_SRC} ${ZLIB_LIB_HEADERS})
 	set(ZLIB_BUNDLED_LIBRARIES bundled_zlib)
 	set(ZLIB_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/zlib")
+	set_target_properties(bundled_zlib PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
 #-----------------------------------------------------------------
@@ -612,6 +624,7 @@ if(BUNDLED_MINIZIP AND (BUILD_CLIENT AND BUILD_SERVER))
 	endif(BUNDLED_ZLIB)
 	set(MINIZIP_BUNDLED_LIBRARIES bundled_minizip)
 	set(MINIZIP_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/minizip")
+	set_target_properties(bundled_minizip PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
 #-----------------------------------------------------------------
@@ -621,6 +634,7 @@ if(BUNDLED_GLEW AND BUILD_CLIENT)
 	include(${CMAKE_CURRENT_LIST_DIR}/glew/CMakeLists.txt)
 	set(BUNDLED_GLEW_LIBRARIES bundled_glew)
 	set(BUNDLED_GLEW_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/glew/include")
+	set_target_properties(bundled_glew PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
 #-----------------------------------------------------------------
@@ -630,6 +644,7 @@ if(BUNDLED_SQLITE3)
 	include(${CMAKE_CURRENT_LIST_DIR}/sqlite3/CMakeLists.txt)
 	set(SQLITE3_BUNDLED_LIBRARIES bundled_sqlite3)
 	set(SQLITE3_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sqlite3/src")
+	set_target_properties(bundled_sqlite3 PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif(BUNDLED_SQLITE3)
 
 #-----------------------------------------------------------------
@@ -653,6 +668,7 @@ if(BUNDLED_FREETYPE AND BUILD_CLIENT)
 		set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/libfreetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	endif(VSTUDIO)
 	set(BUNDLED_FREETYPE_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/freetype/include")
+	set_target_properties(bundled_freetype PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
 #-----------------------------------------------------------------
@@ -693,6 +709,7 @@ if(BUNDLED_THEORA AND BUILD_CLIENT)
 
 	set(THEORA_BUNDLED_LIBRARIES bundled_theora)
 	set(THEORA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/theora/include")
+	set_target_properties(bundled_theora PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
 #-----------------------------------------------------------------
@@ -722,4 +739,5 @@ if(BUNDLED_JANSSON AND (BUILD_CLIENT OR BUILD_SERVER))
 		set(BUNDLED_JANSSON_LIBRARY "${binary_dir}/lib/lib${jansson_name}")
 	endif(VSTUDIO)
 	set(BUNDLED_JANSSON_INCLUDE_DIR "${binary_dir}/include")
+	set_target_properties(bundled_jansson PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
