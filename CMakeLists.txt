@@ -604,7 +604,7 @@ endif()
 #-----------------------------------------------------------------
 # Build bundled MiniZip library
 #-----------------------------------------------------------------
-if(BUNDLED_MINIZIP AND (BUILD_CLIENT AND BUILD_SERVER))
+if(BUNDLED_MINIZIP AND (BUILD_CLIENT OR BUILD_SERVER))
 	set(MINIZIP_LIB "${CMAKE_CURRENT_LIST_DIR}/minizip")
 
 	FILE(GLOB MINIZIP_LIB_HEADERS
