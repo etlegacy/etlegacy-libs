@@ -154,7 +154,7 @@ endif ()
 
 set(VERSION_MAJOR "2")
 set(VERSION_MINOR "7")
-set(VERSION_PATCH "0")
+set(VERSION_PATCH "1")
 
 set(PROJECT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 set(SHARED_LIBRARY_VERSION ${VERSION_MAJOR}.${VERSION_MINOR})
@@ -323,23 +323,6 @@ else ()
   set(BASE_SRCS ${BASE_SRCS} src/base/ftdebug.c)
 endif ()
 
-if(MSVC)
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /EHsc /O2")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /EHa /W3")
-
-  set(CompilerFlags
-    CMAKE_CXX_FLAGS
-    CMAKE_CXX_FLAGS_DEBUG
-    CMAKE_CXX_FLAGS_RELEASE
-    CMAKE_C_FLAGS
-    CMAKE_C_FLAGS_DEBUG
-    CMAKE_C_FLAGS_RELEASE
-  )
-
-  foreach(CompilerFlag ${CompilerFlags})
-    string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
-    endforeach()
-endif(MSVC)
 
 if (BUILD_FRAMEWORK)
   set(BASE_SRCS
@@ -348,7 +331,7 @@ if (BUILD_FRAMEWORK)
   )
 endif ()
 
-#set(CMAKE_DEBUG_POSTFIX d)
+set(CMAKE_DEBUG_POSTFIX d)
 
 add_library(freetype
   ${PUBLIC_HEADERS}
@@ -379,7 +362,7 @@ if (BUILD_FRAMEWORK)
   )
 endif ()
 
-if (NOT CMAKE_VERSION VERSION_LESS 2.8.11)
+if (NOT CMAKE_VERSION VERSION_LESS 2.8.12)
   target_include_directories(freetype
     PUBLIC $<INSTALL_INTERFACE:include/freetype2>)
 endif ()
