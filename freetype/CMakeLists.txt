@@ -323,6 +323,23 @@ else ()
   set(BASE_SRCS ${BASE_SRCS} src/base/ftdebug.c)
 endif ()
 
+if(MSVC)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /EHsc /O2")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /EHa /W3")
+
+  set(CompilerFlags
+    CMAKE_CXX_FLAGS
+    CMAKE_CXX_FLAGS_DEBUG
+    CMAKE_CXX_FLAGS_RELEASE
+    CMAKE_C_FLAGS
+    CMAKE_C_FLAGS_DEBUG
+    CMAKE_C_FLAGS_RELEASE
+  )
+
+  foreach(CompilerFlag ${CompilerFlags})
+    string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
+    endforeach()
+endif(MSVC)
 
 if (BUILD_FRAMEWORK)
   set(BASE_SRCS
@@ -331,7 +348,7 @@ if (BUILD_FRAMEWORK)
   )
 endif ()
 
-set(CMAKE_DEBUG_POSTFIX d)
+#set(CMAKE_DEBUG_POSTFIX d)
 
 add_library(freetype
   ${PUBLIC_HEADERS}
