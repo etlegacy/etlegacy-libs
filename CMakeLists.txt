@@ -136,7 +136,7 @@ if(WIN32)
 	#-----------------------------------------------------------------
 	# Build bundled Lua library
 	#-----------------------------------------------------------------
-	if(BUNDLED_LUA)
+	if(BUNDLED_LUA AND BUILD_MOD)
 		set(LUA_LIB "${CMAKE_CURRENT_LIST_DIR}/lua/src")
 		FILE(GLOB LUA_LIB_SRC
 			#core
@@ -197,7 +197,7 @@ if(WIN32)
 	#-----------------------------------------------------------------
 	# Copy bundled SDL library to the etl.exe location
 	#-----------------------------------------------------------------
-	if(BUNDLED_SDL AND (BUILD_CLIENT OR BUILD_SERVER)) # DLL
+	if(BUNDLED_SDL AND BUILD_CLIENT) # DLL
 		add_custom_target(bundled_sdl) # Dummy target just so cmake does not print warnings
 		# Enable the SDL2main when the windows main function has been removed....
 		if(WIN64)
@@ -464,7 +464,7 @@ elseif(UNIX)
 	#-----------------------------------------------------------------
 	# Build bundled SDL library
 	#-----------------------------------------------------------------
-	if(BUNDLED_SDL AND (BUILD_CLIENT OR BUILD_SERVER))
+	if(BUNDLED_SDL AND BUILD_CLIENT)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/sdl2/build/.libs/libSDL2.a
 			COMMAND make clean || true
 			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
@@ -484,7 +484,7 @@ elseif(UNIX)
 	# Build bundled Lua library
 	#-----------------------------------------------------------------
 	# NOTE: the posix32bit target was added into the Lua Makefiles
-	if(BUNDLED_LUA)
+	if(BUNDLED_LUA AND BUILD_MOD)
 		if(CMAKE_SYSTEM MATCHES "OpenBSD*")
 			set(LUA_MAKE_TARGET "bsd")
 		else()
@@ -505,7 +505,7 @@ elseif(UNIX)
 		add_custom_target(bundled_lua
 			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
 		)
-	endif(BUNDLED_LUA)
+	endif()
 
 	#-----------------------------------------------------------------
 	# Build bundled OGG and Vorbis file library
@@ -640,12 +640,12 @@ endif()
 #-----------------------------------------------------------------
 # Build bundled SQLITE3 library
 #-----------------------------------------------------------------
-if(BUNDLED_SQLITE3)
+if(BUNDLED_SQLITE3 AND (BUILD_CLIENT OR BUILD_SERVER))
 	include(${CMAKE_CURRENT_LIST_DIR}/sqlite3/CMakeLists.txt)
 	set(SQLITE3_BUNDLED_LIBRARIES bundled_sqlite3)
 	set(SQLITE3_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sqlite3/src")
 	set_target_properties(bundled_sqlite3 PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-endif(BUNDLED_SQLITE3)
+endif()
 
 #-----------------------------------------------------------------
 # Build bundled Freetype library
