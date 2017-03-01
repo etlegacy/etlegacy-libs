@@ -75,7 +75,7 @@ set(SRC_LIB_FILE ${SQLITE3_SOURCE_DIR}/src/sqlite${SQLITE_VER_MAJOR}.c)
 file(GLOB HDR_FILES ${SQLITE3_SOURCE_DIR}/src/*.h)
 
 # exclude flag fast-math for sqlite3 lib!
-set_source_files_properties(HDR_FILES PROPERTIES COMPILE_FLAGS --fno-fast-math)
+#set_source_files_properties(HDR_FILES PROPERTIES COMPILE_FLAGS --fno-fast-math)
 
 # adding compilation flags depending on options
 if(WITH_SQLITE_DEBUG)
