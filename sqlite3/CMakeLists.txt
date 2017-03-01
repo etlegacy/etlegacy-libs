@@ -8,7 +8,7 @@ option(WITH_SQLITE_DEBUG          "Build SQLite3 debug features" OFF)
 option(WITH_SQLITE_MEMDEBUG       "Build SQLite3 memory debug features" OFF)
 option(WITH_SQLITE_RTREE          "Build R*Tree index extension" OFF)
 option(WITH_SQLITE_THREADSAFE     "Build SQLite3 threadsafe" OFF)
-option(SQLITE_OMIT_FLOATING_POINT "Build SQLite3 omit floating-point number support" ON)
+option(SQLITE_OMIT_FLOATING_POINT "Build SQLite3 omit floating-point number support" OFF)
 
 #SQLITE_OMIT_LOAD_EXTENSION
 #SQLITE_ENABLE_SESSION
@@ -96,9 +96,9 @@ else()
 endif()
 
 if(SQLITE_OMIT_FLOATING_POINT)
+    message("SQLite3 omitting floating-point number support")
     add_definitions(-DSQLITE_OMIT_FLOATING_POINT=1)
 else()
-    message("SQLite3 omitting floating-point number support")
     add_definitions(-DSQLITE_OMIT_FLOATING_POINT=0)
 endif()
 
