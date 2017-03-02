@@ -8,10 +8,6 @@ option(WITH_SQLITE_DEBUG          "Build SQLite3 debug features" OFF)
 option(WITH_SQLITE_MEMDEBUG       "Build SQLite3 memory debug features" OFF)
 option(WITH_SQLITE_RTREE          "Build R*Tree index extension" OFF)
 option(WITH_SQLITE_THREADSAFE     "Build SQLite3 threadsafe" OFF)
-option(SQLITE_OMIT_FLOATING_POINT "Build SQLite3 omit floating-point number support" OFF)
-
-#SQLITE_OMIT_LOAD_EXTENSION
-#SQLITE_ENABLE_SESSION
 
 #set(INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin" CACHE PATH "Installation directory for executables")
 #set(INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib" CACHE PATH "Installation directory for libraries")
@@ -74,8 +70,8 @@ include_directories(${SQLITE3_SOURCE_DIR}/src)
 set(SRC_LIB_FILE ${SQLITE3_SOURCE_DIR}/src/sqlite${SQLITE_VER_MAJOR}.c)
 file(GLOB HDR_FILES ${SQLITE3_SOURCE_DIR}/src/*.h)
 
-# exclude flag fast-math for sqlite3 lib!
-#set_source_files_properties(HDR_FILES PROPERTIES COMPILE_FLAGS --fno-fast-math)
+# set explicit fast-math flag for sqlite3
+set_source_files_properties(HDR_FILES PROPERTIES COMPILE_FLAGS -ffast-math)
 
 # adding compilation flags depending on options
 if(WITH_SQLITE_DEBUG)
@@ -93,13 +89,6 @@ if(WITH_SQLITE_THREADSAFE)
 else()
     message("SQLite3 threadsafe is disabled. WARNING: Use with ET:L only!")
     add_definitions(-DSQLITE_THREADSAFE=0)
-endif()
-
-if(SQLITE_OMIT_FLOATING_POINT)
-    message("SQLite3 omitting floating-point number support")
-    add_definitions(-DSQLITE_OMIT_FLOATING_POINT=1)
-else()
-    add_definitions(-DSQLITE_OMIT_FLOATING_POINT=0)
 endif()
 
 if (SQLITE_BUILD_STATIC)
