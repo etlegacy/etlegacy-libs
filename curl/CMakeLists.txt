@@ -251,7 +251,7 @@ include (CMakeDependentOption)
 
 # On windows preload settings
 if(WIN32)
-  set(CMAKE_REQUIRED_DEFINITIONS "${CMAKE_REQUIRED_DEFINITIONS} -D_WINSOCKAPI_")
+  set(CMAKE_REQUIRED_DEFINITIONS "${CMAKE_REQUIRED_DEFINITIONS} -D_WINSOCKAPI_=")
   include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/Platforms/WindowsCache.cmake)
 endif(WIN32)
 
@@ -590,6 +590,8 @@ if(NOT UNIX)
         set(CURL_LIBS ${CURL_LIBS} "crypt32")
       endif()
     endif()
+  elseif(USE_OPENSSL)
+    set(CURL_LIBS ${CURL_LIBS} "crypt32")
   endif()
 endif(NOT UNIX)
 
@@ -609,6 +611,7 @@ check_include_file_concat("sys/types.h"      HAVE_SYS_TYPES_H)
 check_include_file_concat("sys/uio.h"        HAVE_SYS_UIO_H)
 check_include_file_concat("sys/un.h"         HAVE_SYS_UN_H)
 check_include_file_concat("sys/utime.h"      HAVE_SYS_UTIME_H)
+check_include_file_concat("sys/xattr.h"      HAVE_SYS_XATTR_H)
 check_include_file_concat("alloca.h"         HAVE_ALLOCA_H)
 check_include_file_concat("arpa/inet.h"      HAVE_ARPA_INET_H)
 check_include_file_concat("arpa/tftp.h"      HAVE_ARPA_TFTP_H)
@@ -742,7 +745,11 @@ endif()
 
 check_symbol_exists(basename      "${CURL_INCLUDES}" HAVE_BASENAME)
 check_symbol_exists(socket        "${CURL_INCLUDES}" HAVE_SOCKET)
-check_symbol_exists(poll          "${CURL_INCLUDES}" HAVE_POLL)
+# poll on macOS is unreliable, it first did not exist, then was broken until
+# fixed in 10.9 only to break again in 10.12.
+if(NOT APPLE)
+  check_symbol_exists(poll        "${CURL_INCLUDES}" HAVE_POLL)
+endif()
 check_symbol_exists(select        "${CURL_INCLUDES}" HAVE_SELECT)
 check_symbol_exists(strdup        "${CURL_INCLUDES}" HAVE_STRDUP)
 check_symbol_exists(strstr        "${CURL_INCLUDES}" HAVE_STRSTR)
@@ -815,6 +822,13 @@ check_symbol_exists(setsockopt     "${CURL_INCLUDES}" HAVE_SETSOCKOPT)
 
 # symbol exists in win32, but function does not.
 check_function_exists(inet_pton HAVE_INET_PTON)
+
+check_symbol_exists(fsetxattr "${CURL_INCLUDES}" HAVE_FSETXATTR)
+if(HAVE_FSETXATTR)
+  foreach(CURL_TEST HAVE_FSETXATTR_5 HAVE_FSETXATTR_6)
+    curl_internal_test_run(${CURL_TEST})
+  endforeach(CURL_TEST)
+endif(HAVE_FSETXATTR)
 
 # sigaction and sigsetjmp are special. Use special mechanism for
 # detecting those, but only if previous attempt failed.

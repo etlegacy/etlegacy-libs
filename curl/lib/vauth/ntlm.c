@@ -27,7 +27,7 @@
 /*
  * NTLM details:
  *
- * http://davenport.sourceforge.net/ntlm.html
+ * https://davenport.sourceforge.io/ntlm.html
  * https://www.innovation.ch/java/ntlm.html
  */
 
@@ -41,7 +41,7 @@
 #include "curl_gethostname.h"
 #include "curl_multibyte.h"
 #include "warnless.h"
-
+#include "rand.h"
 #include "vtls/vtls.h"
 
 #ifdef USE_NSS
@@ -558,8 +558,9 @@ CURLcode Curl_auth_create_ntlm_type3_message(struct Curl_easy *data,
     unsigned int entropy[2];
     unsigned char ntlmv2hash[0x18];
 
-    entropy[0] = Curl_rand(data);
-    entropy[1] = Curl_rand(data);
+    result = Curl_rand(data, &entropy[0], 2);
+    if(result)
+      return result;
 
     result = Curl_ntlm_core_mk_nt_hash(data, passwdp, ntbuffer);
     if(result)
@@ -598,8 +599,9 @@ CURLcode Curl_auth_create_ntlm_type3_message(struct Curl_easy *data,
     unsigned int entropy[2];
 
     /* Need to create 8 bytes random data */
-    entropy[0] = Curl_rand(data);
-    entropy[1] = Curl_rand(data);
+    result = Curl_rand(data, &entropy[0], 2);
+    if(result)
+      return result;
 
     /* 8 bytes random data as challenge in lmresp */
     memcpy(lmresp, entropy, 8);
@@ -649,7 +651,7 @@ CURLcode Curl_auth_create_ntlm_type3_message(struct Curl_easy *data,
 
     /* A safer but less compatible alternative is:
      *   Curl_ntlm_core_lm_resp(ntbuffer, &ntlm->nonce[0], lmresp);
-     * See http://davenport.sourceforge.net/ntlm.html#ntlmVersion2 */
+     * See https://davenport.sourceforge.io/ntlm.html#ntlmVersion2 */
   }
 
   if(unicode) {

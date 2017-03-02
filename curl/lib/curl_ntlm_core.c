@@ -27,7 +27,7 @@
 /*
  * NTLM details:
  *
- * http://davenport.sourceforge.net/ntlm.html
+ * https://davenport.sourceforge.io/ntlm.html
  * https://www.innovation.ch/java/ntlm.html
  */
 
@@ -566,7 +566,7 @@ CURLcode Curl_ntlm_core_mk_nt_hash(struct Curl_easy *data,
     gcry_md_hd_t MD4pw;
     gcry_md_open(&MD4pw, GCRY_MD_MD4, 0);
     gcry_md_write(MD4pw, pw, 2 * len);
-    memcpy (ntbuffer, gcry_md_read (MD4pw, 0), MD4_DIGEST_LENGTH);
+    memcpy(ntbuffer, gcry_md_read(MD4pw, 0), MD4_DIGEST_LENGTH);
     gcry_md_close(MD4pw);
 #elif defined(USE_MBEDTLS)
     mbedtls_md4(pw, 2 * len, ntbuffer);
@@ -715,8 +715,10 @@ CURLcode Curl_ntlm_core_mk_ntlmv2_resp(unsigned char *ntlmv2hash,
 
   /* Create the BLOB structure */
   snprintf((char *)ptr + NTLM_HMAC_MD5_LEN, NTLMv2_BLOB_LEN,
-           NTLMv2_BLOB_SIGNATURE
+           "%c%c%c%c"   /* NTLMv2_BLOB_SIGNATURE */
            "%c%c%c%c",  /* Reserved = 0 */
+           NTLMv2_BLOB_SIGNATURE[0], NTLMv2_BLOB_SIGNATURE[1],
+           NTLMv2_BLOB_SIGNATURE[2], NTLMv2_BLOB_SIGNATURE[3],
            0, 0, 0, 0);
 
   Curl_write64_le(tw, ptr + 24);
