@@ -70,8 +70,9 @@ include_directories(${SQLITE3_SOURCE_DIR}/src)
 set(SRC_LIB_FILE ${SQLITE3_SOURCE_DIR}/src/sqlite${SQLITE_VER_MAJOR}.c)
 file(GLOB HDR_FILES ${SQLITE3_SOURCE_DIR}/src/*.h)
 
-# set explicit fast-math flag for sqlite3
+# set explicit fast-math flag for sqlite3 (required for floating point support)
 set_source_files_properties(HDR_FILES PROPERTIES COMPILE_FLAGS -ffast-math)
+add_definitions(-DSQLITE_HAVE_ISNAN=1) # required for -ffast-math with GCC
 
 # adding compilation flags depending on options
 if(WITH_SQLITE_DEBUG)
