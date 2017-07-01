@@ -103,6 +103,41 @@ static void InitSecBufferDesc(SecBufferDesc *desc, SecBuffer *BufArr,
 }
 
 static CURLcode
+set_ssl_version_min_max(SCHANNEL_CRED *schannel_cred, struct connectdata *conn)
+{
+  struct Curl_easy *data = conn->data;
+  long ssl_version = SSL_CONN_CONFIG(version);
+  long ssl_version_max = SSL_CONN_CONFIG(version_max);
+  long i = ssl_version;
+
+  switch(ssl_version_max) {
+    case CURL_SSLVERSION_MAX_NONE:
+      ssl_version_max = ssl_version << 16;
+      break;
+    case CURL_SSLVERSION_MAX_DEFAULT:
+      ssl_version_max = CURL_SSLVERSION_MAX_TLSv1_2;
+      break;
+  }
+  for(; i <= (ssl_version_max >> 16); ++i) {
+    switch(i) {
+      case CURL_SSLVERSION_TLSv1_0:
+        schannel_cred->grbitEnabledProtocols |= SP_PROT_TLS1_0_CLIENT;
+        break;
+      case CURL_SSLVERSION_TLSv1_1:
+        schannel_cred->grbitEnabledProtocols |= SP_PROT_TLS1_1_CLIENT;
+        break;
+      case CURL_SSLVERSION_TLSv1_2:
+        schannel_cred->grbitEnabledProtocols |= SP_PROT_TLS1_2_CLIENT;
+        break;
+      case CURL_SSLVERSION_TLSv1_3:
+        failf(data, "Schannel: TLS 1.3 is not yet supported");
+        return CURLE_SSL_CONNECT_ERROR;
+    }
+  }
+  return CURLE_OK;
+}
+
+static CURLcode
 schannel_connect_step1(struct connectdata *conn, int sockindex)
 {
   ssize_t written = -1;
@@ -124,7 +159,7 @@ schannel_connect_step1(struct connectdata *conn, int sockindex)
 #endif
   TCHAR *host_name;
   CURLcode result;
-  const char * const hostname = SSL_IS_PROXY() ? conn->http_proxy.host.name :
+  char * const hostname = SSL_IS_PROXY() ? conn->http_proxy.host.name :
     conn->host.name;
 
   infof(data, "schannel: SSL/TLS connection with %s port %hu (step 1/3)\n",
@@ -153,7 +188,7 @@ schannel_connect_step1(struct connectdata *conn, int sockindex)
   connssl->cred = NULL;
 
   /* check for an existing re-usable credential handle */
-  if(data->set.general_ssl.sessionid) {
+  if(SSL_SET_OPTION(primary.sessionid)) {
     Curl_ssl_sessionid_lock(conn);
     if(!Curl_ssl_getsessionid(conn, (void **)&old_cred, NULL, sockindex)) {
       connssl->cred = old_cred;
@@ -216,17 +251,15 @@ schannel_connect_step1(struct connectdata *conn, int sockindex)
         SP_PROT_TLS1_2_CLIENT;
       break;
     case CURL_SSLVERSION_TLSv1_0:
-      schannel_cred.grbitEnabledProtocols = SP_PROT_TLS1_0_CLIENT;
-      break;
     case CURL_SSLVERSION_TLSv1_1:
-      schannel_cred.grbitEnabledProtocols = SP_PROT_TLS1_1_CLIENT;
-      break;
     case CURL_SSLVERSION_TLSv1_2:
-      schannel_cred.grbitEnabledProtocols = SP_PROT_TLS1_2_CLIENT;
-      break;
     case CURL_SSLVERSION_TLSv1_3:
-      failf(data, "Schannel: TLS 1.3 is not yet supported");
-      return CURLE_SSL_CONNECT_ERROR;
+      {
+        result = set_ssl_version_min_max(&schannel_cred, conn);
+        if(result != CURLE_OK)
+          return result;
+        break;
+      }
     case CURL_SSLVERSION_SSLv3:
       schannel_cred.grbitEnabledProtocols = SP_PROT_SSL3_CLIENT;
       break;
@@ -399,6 +432,7 @@ schannel_connect_step1(struct connectdata *conn, int sockindex)
   connssl->recv_unrecoverable_err = CURLE_OK;
   connssl->recv_sspi_close_notify = false;
   connssl->recv_connection_closed = false;
+  connssl->encdata_is_incomplete = false;
 
   /* continue to second handshake step */
   connssl->connecting_state = ssl_connect_2;
@@ -423,7 +457,7 @@ schannel_connect_step2(struct connectdata *conn, int sockindex)
   TCHAR *host_name;
   CURLcode result;
   bool doread;
-  const char * const hostname = SSL_IS_PROXY() ? conn->http_proxy.host.name :
+  char * const hostname = SSL_IS_PROXY() ? conn->http_proxy.host.name :
     conn->host.name;
 
   doread = (connssl->connecting_state != ssl_connect_2_writing) ? TRUE : FALSE;
@@ -447,6 +481,7 @@ schannel_connect_step2(struct connectdata *conn, int sockindex)
 
   /* buffer to store previously received and encrypted data */
   if(connssl->encdata_buffer == NULL) {
+    connssl->encdata_is_incomplete = false;
     connssl->encdata_offset = 0;
     connssl->encdata_length = CURL_SCHANNEL_BUFFER_INIT_SIZE;
     connssl->encdata_buffer = malloc(connssl->encdata_length);
@@ -499,6 +534,8 @@ schannel_connect_step2(struct connectdata *conn, int sockindex)
 
       /* increase encrypted data buffer offset */
       connssl->encdata_offset += nread;
+      connssl->encdata_is_incomplete = false;
+      infof(data, "schannel: encrypted data got %zd\n", nread);
     }
 
     infof(data, "schannel: encrypted data buffer: offset %zu length %zu\n",
@@ -543,6 +580,7 @@ schannel_connect_step2(struct connectdata *conn, int sockindex)
 
     /* check if the handshake was incomplete */
     if(sspi_status == SEC_E_INCOMPLETE_MESSAGE) {
+      connssl->encdata_is_incomplete = true;
       connssl->connecting_state = ssl_connect_2_reading;
       infof(data, "schannel: received incomplete message, need more data\n");
       return CURLE_OK;
@@ -592,7 +630,8 @@ schannel_connect_step2(struct connectdata *conn, int sockindex)
       else
         failf(data, "schannel: next InitializeSecurityContext failed: %s",
               Curl_sspi_strerror(conn, sspi_status));
-      return CURLE_SSL_CONNECT_ERROR;
+      return sspi_status == SEC_E_UNTRUSTED_ROOT ?
+          CURLE_SSL_CACERT_BADFILE : CURLE_SSL_CONNECT_ERROR;
     }
 
     /* check if there was additional remaining encrypted data */
@@ -657,8 +696,10 @@ schannel_connect_step3(struct connectdata *conn, int sockindex)
   struct ssl_connect_data *connssl = &conn->ssl[sockindex];
   SECURITY_STATUS sspi_status = SEC_E_OK;
   CERT_CONTEXT *ccert_context = NULL;
+#ifndef CURL_DISABLE_VERBOSE_STRINGS
   const char * const hostname = SSL_IS_PROXY() ? conn->http_proxy.host.name :
     conn->host.name;
+#endif
 #ifdef HAS_ALPN
   SecPkgContext_ApplicationProtocol alpn_result;
 #endif
@@ -722,7 +763,7 @@ schannel_connect_step3(struct connectdata *conn, int sockindex)
 #endif
 
   /* save the current session data for possible re-use */
-  if(data->set.general_ssl.sessionid) {
+  if(SSL_SET_OPTION(primary.sessionid)) {
     bool incache;
     struct curl_schannel_cred *old_cred = NULL;
 
@@ -1142,6 +1183,7 @@ schannel_recv(struct connectdata *conn, int sockindex,
     }
     else if(nread > 0) {
       connssl->encdata_offset += (size_t)nread;
+      connssl->encdata_is_incomplete = false;
       infof(data, "schannel: encrypted data got %zd\n", nread);
     }
   }
@@ -1278,6 +1320,7 @@ schannel_recv(struct connectdata *conn, int sockindex,
       }
     }
     else if(sspi_status == SEC_E_INCOMPLETE_MESSAGE) {
+      connssl->encdata_is_incomplete = true;
       if(!*err)
         *err = CURLE_AGAIN;
       infof(data, "schannel: failed to decrypt data, need more data\n");
@@ -1379,8 +1422,8 @@ bool Curl_schannel_data_pending(const struct connectdata *conn, int sockindex)
   const struct ssl_connect_data *connssl = &conn->ssl[sockindex];
 
   if(connssl->use) /* SSL/TLS is in use */
-    return (connssl->encdata_offset > 0 ||
-            connssl->decdata_offset > 0) ? TRUE : FALSE;
+    return (connssl->decdata_offset > 0 ||
+            (connssl->encdata_offset > 0 && !connssl->encdata_is_incomplete));
   else
     return FALSE;
 }
@@ -1399,7 +1442,7 @@ int Curl_schannel_shutdown(struct connectdata *conn, int sockindex)
    */
   struct Curl_easy *data = conn->data;
   struct ssl_connect_data *connssl = &conn->ssl[sockindex];
-  const char * const hostname = SSL_IS_PROXY() ? conn->http_proxy.host.name :
+  char * const hostname = SSL_IS_PROXY() ? conn->http_proxy.host.name :
     conn->host.name;
 
   infof(data, "schannel: shutting down SSL/TLS connection with %s port %hu\n",
@@ -1483,6 +1526,7 @@ int Curl_schannel_shutdown(struct connectdata *conn, int sockindex)
     Curl_safefree(connssl->encdata_buffer);
     connssl->encdata_length = 0;
     connssl->encdata_offset = 0;
+    connssl->encdata_is_incomplete = false;
   }
 
   /* free internal buffer for received decrypted data */

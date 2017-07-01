@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2017, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -45,8 +45,8 @@
 
 #define NUM_HANDLES 1000
 
-void *curl_hnd[NUM_HANDLES];
-int num_transfers;
+static void *curl_hnd[NUM_HANDLES];
+static int num_transfers;
 
 /* a handle to number lookup, highly ineffective when we do many
    transfers... */
@@ -136,6 +136,7 @@ int my_trace(CURL *handle, curl_infotype type,
   switch(type) {
   case CURLINFO_TEXT:
     fprintf(stderr, "%s [%d] Info: %s", timebuf, num, data);
+    /* FALLTHROUGH */
   default: /* in case a new one is introduced to shock us */
     return 0;
 
@@ -177,7 +178,7 @@ static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *userp)
   return retcode;
 }
 
-struct input indata[NUM_HANDLES];
+static struct input indata[NUM_HANDLES];
 
 static void setup(CURL *hnd, int num, const char *upload)
 {
@@ -215,7 +216,7 @@ static void setup(CURL *hnd, int num, const char *upload)
   /* upload please */
   curl_easy_setopt(hnd, CURLOPT_UPLOAD, 1L);
 
-  /* send it verbose for max debuggaility */
+  /* please be verbose */
   curl_easy_setopt(hnd, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt(hnd, CURLOPT_DEBUGFUNCTION, my_trace);
 

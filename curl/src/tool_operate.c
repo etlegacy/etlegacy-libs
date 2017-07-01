@@ -71,7 +71,6 @@
 #include "tool_sleep.h"
 #include "tool_urlglob.h"
 #include "tool_util.h"
-#include "tool_writeenv.h"
 #include "tool_writeout.h"
 #include "tool_xattr.h"
 #include "tool_vms.h"
@@ -183,6 +182,81 @@ static curl_off_t VmsSpecialSize(const char *name,
   }
 }
 #endif /* __VMS */
+
+#if defined(HAVE_UTIME) || \
+    (defined(WIN32) && (CURL_SIZEOF_CURL_OFF_T >= 8))
+static void setfiletime(long filetime, const char *filename,
+                        FILE *error_stream)
+{
+  if(filetime >= 0) {
+/* Windows utime() may attempt to adjust our unix gmt 'filetime' by a daylight
+   saving time offset and since it's GMT that is bad behavior. When we have
+   access to a 64-bit type we can bypass utime and set the times directly. */
+#if defined(WIN32) && (CURL_SIZEOF_CURL_OFF_T >= 8)
+    HANDLE hfile;
+
+#if (CURL_SIZEOF_LONG >= 8)
+    /* 910670515199 is the maximum unix filetime that can be used as a
+       Windows FILETIME without overflow: 30827-12-31T23:59:59. */
+    if(filetime > CURL_OFF_T_C(910670515199)) {
+      fprintf(error_stream,
+              "Failed to set filetime %ld on outfile: overflow\n",
+              filetime);
+      return;
+    }
+#endif /* CURL_SIZEOF_LONG >= 8 */
+
+    hfile = CreateFileA(filename, FILE_WRITE_ATTRIBUTES,
+                        (FILE_SHARE_READ | FILE_SHARE_WRITE |
+                         FILE_SHARE_DELETE),
+                        NULL, OPEN_EXISTING, 0, NULL);
+    if(hfile != INVALID_HANDLE_VALUE) {
+      curl_off_t converted = ((curl_off_t)filetime * 10000000) +
+                             CURL_OFF_T_C(116444736000000000);
+      FILETIME ft;
+      ft.dwLowDateTime = (DWORD)(converted & 0xFFFFFFFF);
+      ft.dwHighDateTime = (DWORD)(converted >> 32);
+      if(!SetFileTime(hfile, NULL, &ft, &ft)) {
+        fprintf(error_stream,
+                "Failed to set filetime %ld on outfile: "
+                "SetFileTime failed: GetLastError %u\n",
+                filetime, GetLastError());
+      }
+      CloseHandle(hfile);
+    }
+    else {
+      fprintf(error_stream,
+              "Failed to set filetime %ld on outfile: "
+              "CreateFile failed: GetLastError %u\n",
+              filetime, GetLastError());
+    }
+
+#elif defined(HAVE_UTIMES)
+    struct timeval times[2];
+    times[0].tv_sec = times[1].tv_sec = filetime;
+    times[0].tv_usec = times[1].tv_usec = 0;
+    if(utimes(filename, times)) {
+      fprintf(error_stream,
+              "Failed to set filetime %ld on outfile: errno %d\n",
+              filetime, errno);
+    }
+
+#elif defined(HAVE_UTIME)
+    struct utimbuf times;
+    times.actime = (time_t)filetime;
+    times.modtime = (time_t)filetime;
+    if(utime(filename, &times)) {
+      fprintf(error_stream,
+              "Failed to set filetime %ld on outfile: errno %d\n",
+              filetime, errno);
+    }
+#endif
+  }
+}
+#endif /* defined(HAVE_UTIME) || \
+          (defined(WIN32) && (CURL_SIZEOF_CURL_OFF_T >= 8)) */
+
+#define BUFFER_SIZE (100*1024)
 
 static CURLcode operate_do(struct GlobalConfig *global,
                            struct OperationConfig *config)
@@ -826,10 +900,12 @@ static CURLcode operate_do(struct GlobalConfig *global,
         my_setopt(curl, CURLOPT_SEEKDATA, &input);
         my_setopt(curl, CURLOPT_SEEKFUNCTION, tool_seek_cb);
 
-        if(config->recvpersecond)
-          /* tell libcurl to use a smaller sized buffer as it allows us to
-             make better sleeps! 7.9.9 stuff! */
+        if(config->recvpersecond &&
+           (config->recvpersecond < BUFFER_SIZE))
+          /* use a smaller sized buffer for better sleeps */
           my_setopt(curl, CURLOPT_BUFFERSIZE, (long)config->recvpersecond);
+        else
+          my_setopt(curl, CURLOPT_BUFFERSIZE, (long)BUFFER_SIZE);
 
         /* size of uploaded file: */
         if(uploadfilesize != -1)
@@ -886,8 +962,11 @@ static CURLcode operate_do(struct GlobalConfig *global,
 
           /* new in libcurl 7.19.4 */
           my_setopt_str(curl, CURLOPT_NOPROXY, config->noproxy);
+
+          my_setopt(curl, CURLOPT_SUPPRESS_CONNECT_HEADERS,
+                    config->suppress_connect_headers?1L:0L);
         }
-#endif
+#endif /* !CURL_DISABLE_PROXY */
 
         my_setopt(curl, CURLOPT_FAILONERROR, config->failonerror?1L:0L);
         my_setopt(curl, CURLOPT_UPLOAD, uploadfile?1L:0L);
@@ -1087,7 +1166,8 @@ static CURLcode operate_do(struct GlobalConfig *global,
           if(config->falsestart)
             my_setopt(curl, CURLOPT_SSL_FALSESTART, 1L);
 
-          my_setopt_enum(curl, CURLOPT_SSLVERSION, config->ssl_version);
+          my_setopt_enum(curl, CURLOPT_SSLVERSION,
+                         config->ssl_version | config->ssl_version_max);
           my_setopt_enum(curl, CURLOPT_PROXY_SSLVERSION,
                          config->proxy_ssl_version);
         }
@@ -1667,9 +1747,6 @@ static CURLcode operate_do(struct GlobalConfig *global,
         if(config->writeout)
           ourWriteOut(curl, &outs, config->writeout);
 
-        if(config->writeenv)
-          ourWriteEnv(curl);
-
         /*
         ** Code within this loop may jump directly here to label 'show_error'
         ** in order to display an error message for CURLcode stored in 'res'
@@ -1693,9 +1770,8 @@ static CURLcode operate_do(struct GlobalConfig *global,
           if(result == CURLE_SSL_CACERT)
             fprintf(global->errors, "%s%s%s",
                     CURL_CA_CERT_ERRORMSG1, CURL_CA_CERT_ERRORMSG2,
-                    ((config->proxy &&
-                      curl_strnequal(config->proxy, "https://", 8)) ?
-                     "HTTPS proxy has similar options --proxy-cacert "
+                    ((curlinfo->features & CURL_VERSION_HTTPS_PROXY) ?
+                     "HTTPS-proxy has similar options --proxy-cacert "
                      "and --proxy-insecure.\n" :
                      ""));
         }
@@ -1758,55 +1834,8 @@ static CURLcode operate_do(struct GlobalConfig *global,
           /* Ask libcurl if we got a remote file time */
           long filetime = -1;
           curl_easy_getinfo(curl, CURLINFO_FILETIME, &filetime);
-          if(filetime >= 0) {
-/* Windows utime() may attempt to adjust our unix gmt 'filetime' by a daylight
-   saving time offset and since it's GMT that is bad behavior. When we have
-   access to a 64-bit type we can bypass utime and set the times directly. */
-#if defined(WIN32) && (CURL_SIZEOF_CURL_OFF_T >= 8)
-            /* 910670515199 is the maximum unix filetime that can be used as a
-               Windows FILETIME without overflow: 30827-12-31T23:59:59. */
-            if(filetime <= CURL_OFF_T_C(910670515199)) {
-              HANDLE hfile = CreateFileA(outs.filename, FILE_WRITE_ATTRIBUTES,
-                                         (FILE_SHARE_READ | FILE_SHARE_WRITE |
-                                          FILE_SHARE_DELETE),
-                                         NULL, OPEN_EXISTING, 0, NULL);
-              if(hfile != INVALID_HANDLE_VALUE) {
-                curl_off_t converted = ((curl_off_t)filetime * 10000000) +
-                                       CURL_OFF_T_C(116444736000000000);
-                FILETIME ft;
-                ft.dwLowDateTime = (DWORD)(converted & 0xFFFFFFFF);
-                ft.dwHighDateTime = (DWORD)(converted >> 32);
-                if(!SetFileTime(hfile, NULL, &ft, &ft)) {
-                  fprintf(config->global->errors,
-                          "Failed to set filetime %ld on outfile: "
-                          "SetFileTime failed: GetLastError %u\n",
-                          filetime, GetLastError());
-                }
-                CloseHandle(hfile);
-              }
-              else {
-                fprintf(config->global->errors,
-                        "Failed to set filetime %ld on outfile: "
-                        "CreateFile failed: GetLastError %u\n",
-                        filetime, GetLastError());
-              }
-            }
-            else {
-              fprintf(config->global->errors,
-                      "Failed to set filetime %ld on outfile: overflow\n",
-                      filetime);
-            }
-#elif defined(HAVE_UTIME)
-            struct utimbuf times;
-            times.actime = (time_t)filetime;
-            times.modtime = (time_t)filetime;
-            if(utime(outs.filename, &times)) {
-              fprintf(config->global->errors,
-                      "Failed to set filetime %ld on outfile: errno %d\n",
-                      filetime, errno);
-            }
-#endif
-          }
+          if(filetime >= 0)
+            setfiletime(filetime, outs.filename, config->global->errors);
         }
 #endif /* defined(HAVE_UTIME) || \
           (defined(WIN32) && (CURL_SIZEOF_CURL_OFF_T >= 8)) */

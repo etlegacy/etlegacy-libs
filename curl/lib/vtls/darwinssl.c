@@ -113,6 +113,36 @@
 #define ioErr -36
 #define paramErr -50
 
+#ifdef DARWIN_SSL_PINNEDPUBKEY
+/* both new and old APIs return rsa keys missing the spki header (not DER) */
+static const unsigned char rsa4096SpkiHeader[] = {
+                                       0x30, 0x82, 0x02, 0x22, 0x30, 0x0d,
+                                       0x06, 0x09, 0x2a, 0x86, 0x48, 0x86,
+                                       0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05,
+                                       0x00, 0x03, 0x82, 0x02, 0x0f, 0x00};
+
+static const unsigned char rsa2048SpkiHeader[] = {
+                                       0x30, 0x82, 0x01, 0x22, 0x30, 0x0d,
+                                       0x06, 0x09, 0x2a, 0x86, 0x48, 0x86,
+                                       0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05,
+                                       0x00, 0x03, 0x82, 0x01, 0x0f, 0x00};
+#ifdef DARWIN_SSL_PINNEDPUBKEY_V1
+/* the *new* version doesn't return DER encoded ecdsa certs like the old... */
+static const unsigned char ecDsaSecp256r1SpkiHeader[] = {
+                                       0x30, 0x59, 0x30, 0x13, 0x06, 0x07,
+                                       0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02,
+                                       0x01, 0x06, 0x08, 0x2a, 0x86, 0x48,
+                                       0xce, 0x3d, 0x03, 0x01, 0x07, 0x03,
+                                       0x42, 0x00};
+
+static const unsigned char ecDsaSecp384r1SpkiHeader[] = {
+                                       0x30, 0x76, 0x30, 0x10, 0x06, 0x07,
+                                       0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02,
+                                       0x01, 0x06, 0x05, 0x2b, 0x81, 0x04,
+                                       0x00, 0x22, 0x03, 0x62, 0x00};
+#endif /* DARWIN_SSL_PINNEDPUBKEY_V1 */
+#endif /* DARWIN_SSL_PINNEDPUBKEY */
+
 /* The following two functions were ripped from Apple sample code,
  * with some modifications: */
 static OSStatus SocketRead(SSLConnectionRef connection,
@@ -1044,6 +1074,109 @@ CF_INLINE bool is_file(const char *filename)
   return false;
 }
 
+#if CURL_BUILD_MAC_10_8 || CURL_BUILD_IOS
+static CURLcode darwinssl_version_from_curl(long *darwinver, long ssl_version)
+{
+  switch(ssl_version) {
+    case CURL_SSLVERSION_TLSv1_0:
+      *darwinver = kTLSProtocol1;
+      return CURLE_OK;
+    case CURL_SSLVERSION_TLSv1_1:
+      *darwinver = kTLSProtocol11;
+      return CURLE_OK;
+    case CURL_SSLVERSION_TLSv1_2:
+      *darwinver = kTLSProtocol12;
+      return CURLE_OK;
+    case CURL_SSLVERSION_TLSv1_3:
+      break;
+  }
+  return CURLE_SSL_CONNECT_ERROR;
+}
+#endif
+
+static CURLcode
+set_ssl_version_min_max(struct connectdata *conn, int sockindex)
+{
+  struct Curl_easy *data = conn->data;
+  struct ssl_connect_data *connssl = &conn->ssl[sockindex];
+  long ssl_version = SSL_CONN_CONFIG(version);
+  long ssl_version_max = SSL_CONN_CONFIG(version_max);
+
+  switch(ssl_version) {
+    case CURL_SSLVERSION_DEFAULT:
+    case CURL_SSLVERSION_TLSv1:
+      ssl_version = CURL_SSLVERSION_TLSv1_0;
+      ssl_version_max = CURL_SSLVERSION_MAX_TLSv1_2;
+      break;
+  }
+
+  switch(ssl_version_max) {
+    case CURL_SSLVERSION_MAX_NONE:
+      ssl_version_max = ssl_version << 16;
+      break;
+    case CURL_SSLVERSION_MAX_DEFAULT:
+      ssl_version_max = CURL_SSLVERSION_MAX_TLSv1_2;
+      break;
+  }
+
+#if CURL_BUILD_MAC_10_8 || CURL_BUILD_IOS
+  if(SSLSetProtocolVersionMax != NULL) {
+    SSLProtocol darwin_ver_min = kTLSProtocol1;
+    SSLProtocol darwin_ver_max = kTLSProtocol1;
+    CURLcode result = darwinssl_version_from_curl(&darwin_ver_min,
+                                                  ssl_version);
+    if(result) {
+      failf(data, "unsupported min version passed via CURLOPT_SSLVERSION");
+      return result;
+    }
+    result = darwinssl_version_from_curl(&darwin_ver_max,
+                                         ssl_version_max >> 16);
+    if(result) {
+      failf(data, "unsupported max version passed via CURLOPT_SSLVERSION");
+      return result;
+    }
+
+    (void)SSLSetProtocolVersionMin(connssl->ssl_ctx, darwin_ver_min);
+    (void)SSLSetProtocolVersionMax(connssl->ssl_ctx, darwin_ver_max);
+    return result;
+  }
+  else {
+#if CURL_SUPPORT_MAC_10_8
+    long i = ssl_version;
+    (void)SSLSetProtocolVersionEnabled(connssl->ssl_ctx,
+                                       kSSLProtocolAll,
+                                       false);
+    for(; i <= (ssl_version_max >> 16); i++) {
+      switch(i) {
+        case CURL_SSLVERSION_TLSv1_0:
+          (void)SSLSetProtocolVersionEnabled(connssl->ssl_ctx,
+                                            kTLSProtocol1,
+                                            true);
+          break;
+        case CURL_SSLVERSION_TLSv1_1:
+          (void)SSLSetProtocolVersionEnabled(connssl->ssl_ctx,
+                                            kTLSProtocol11,
+                                            true);
+          break;
+        case CURL_SSLVERSION_TLSv1_2:
+          (void)SSLSetProtocolVersionEnabled(connssl->ssl_ctx,
+                                            kTLSProtocol12,
+                                            true);
+          break;
+        case CURL_SSLVERSION_TLSv1_3:
+          failf(data, "DarwinSSL: TLS 1.3 is not yet supported");
+          return CURLE_SSL_CONNECT_ERROR;
+      }
+    }
+    return CURLE_OK;
+#endif  /* CURL_SUPPORT_MAC_10_8 */
+  }
+#endif  /* CURL_BUILD_MAC_10_8 || CURL_BUILD_IOS */
+  failf(data, "DarwinSSL: cannot set SSL protocol");
+  return CURLE_SSL_CONNECT_ERROR;
+}
+
+
 static CURLcode darwinssl_connect_step1(struct connectdata *conn,
                                         int sockindex)
 {
@@ -1113,20 +1246,15 @@ static CURLcode darwinssl_connect_step1(struct connectdata *conn,
       (void)SSLSetProtocolVersionMax(connssl->ssl_ctx, kTLSProtocol12);
       break;
     case CURL_SSLVERSION_TLSv1_0:
-      (void)SSLSetProtocolVersionMin(connssl->ssl_ctx, kTLSProtocol1);
-      (void)SSLSetProtocolVersionMax(connssl->ssl_ctx, kTLSProtocol1);
-      break;
     case CURL_SSLVERSION_TLSv1_1:
-      (void)SSLSetProtocolVersionMin(connssl->ssl_ctx, kTLSProtocol11);
-      (void)SSLSetProtocolVersionMax(connssl->ssl_ctx, kTLSProtocol11);
-      break;
     case CURL_SSLVERSION_TLSv1_2:
-      (void)SSLSetProtocolVersionMin(connssl->ssl_ctx, kTLSProtocol12);
-      (void)SSLSetProtocolVersionMax(connssl->ssl_ctx, kTLSProtocol12);
-      break;
     case CURL_SSLVERSION_TLSv1_3:
-      failf(data, "DarwinSSL: TLS 1.3 is not yet supported");
-      return CURLE_SSL_CONNECT_ERROR;
+      {
+        CURLcode result = set_ssl_version_min_max(conn, sockindex);
+        if(result != CURLE_OK)
+          return result;
+        break;
+      }
     case CURL_SSLVERSION_SSLv3:
       err = SSLSetProtocolVersionMin(connssl->ssl_ctx, kSSLProtocol3);
       if(err != noErr) {
@@ -1167,23 +1295,15 @@ static CURLcode darwinssl_connect_step1(struct connectdata *conn,
                                          true);
       break;
     case CURL_SSLVERSION_TLSv1_0:
-      (void)SSLSetProtocolVersionEnabled(connssl->ssl_ctx,
-                                         kTLSProtocol1,
-                                         true);
-      break;
     case CURL_SSLVERSION_TLSv1_1:
-      (void)SSLSetProtocolVersionEnabled(connssl->ssl_ctx,
-                                         kTLSProtocol11,
-                                         true);
-      break;
     case CURL_SSLVERSION_TLSv1_2:
-      (void)SSLSetProtocolVersionEnabled(connssl->ssl_ctx,
-                                         kTLSProtocol12,
-                                         true);
-      break;
     case CURL_SSLVERSION_TLSv1_3:
-      failf(data, "DarwinSSL: TLS 1.3 is not yet supported");
-      return CURLE_SSL_CONNECT_ERROR;
+      {
+        CURLcode result = set_ssl_version_min_max(conn, sockindex);
+        if(result != CURLE_OK)
+          return result;
+        break;
+      }
     case CURL_SSLVERSION_SSLv3:
       err = SSLSetProtocolVersionEnabled(connssl->ssl_ctx,
                                          kSSLProtocol3,
@@ -1209,6 +1329,11 @@ static CURLcode darwinssl_connect_step1(struct connectdata *conn,
 #endif  /* CURL_SUPPORT_MAC_10_8 */
   }
 #else
+  if(conn->ssl_config.version_max != CURL_SSLVERSION_MAX_NONE) {
+    failf(data, "Your version of the OS does not support to set maximum"
+                " SSL/TLS version");
+    return CURLE_SSL_CONNECT_ERROR;
+  }
   (void)SSLSetProtocolVersionEnabled(connssl->ssl_ctx, kSSLProtocolAll, false);
   switch(conn->ssl_config.version) {
   case CURL_SSLVERSION_DEFAULT:
@@ -1279,7 +1404,7 @@ static CURLcode darwinssl_connect_step1(struct connectdata *conn,
     else
       err = CopyIdentityWithLabel(ssl_cert, &cert_and_key);
 
-    if(err == noErr) {
+    if(err == noErr && cert_and_key) {
       SecCertificateRef cert = NULL;
       CFTypeRef certs_c[1];
       CFArrayRef certs;
@@ -1425,6 +1550,9 @@ static CURLcode darwinssl_connect_step1(struct connectdata *conn,
             "the OS.\n");
     }
   }
+  else {
+    infof(data, "WARNING: disabling hostname validation also disables SNI.\n");
+  }
 
   /* Disable cipher suites that ST supports but are not safe. These ciphers
      are unlikely to be used in any case since ST gives other ciphers a much
@@ -1546,7 +1674,7 @@ static CURLcode darwinssl_connect_step1(struct connectdata *conn,
 #endif /* CURL_BUILD_MAC_10_9 || CURL_BUILD_IOS_7 */
 
   /* Check if there's a cached ID we can/should use here! */
-  if(data->set.general_ssl.sessionid) {
+  if(SSL_SET_OPTION(primary.sessionid)) {
     char *ssl_sessionid;
     size_t ssl_sessionid_len;
 
@@ -1898,6 +2026,112 @@ static int verify_cert(const char *cafile, struct Curl_easy *data,
   }
 }
 
+#ifdef DARWIN_SSL_PINNEDPUBKEY
+static CURLcode pkp_pin_peer_pubkey(struct SessionHandle *data,
+                                    SSLContextRef ctx,
+                                    const char *pinnedpubkey)
+{  /* Scratch */
+  size_t pubkeylen, realpubkeylen, spkiHeaderLength = 24;
+  unsigned char *pubkey = NULL, *realpubkey = NULL, *spkiHeader = NULL;
+  CFDataRef publicKeyBits = NULL;
+
+  /* Result is returned to caller */
+  CURLcode result = CURLE_SSL_PINNEDPUBKEYNOTMATCH;
+
+  /* if a path wasn't specified, don't pin */
+  if(!pinnedpubkey)
+    return CURLE_OK;
+
+
+  if(!ctx)
+    return result;
+
+  do {
+    SecTrustRef trust;
+    OSStatus ret = SSLCopyPeerTrust(ctx, &trust);
+    if(ret != noErr || trust == NULL)
+      break;
+
+    SecKeyRef keyRef = SecTrustCopyPublicKey(trust);
+    CFRelease(trust);
+    if(keyRef == NULL)
+      break;
+
+#ifdef DARWIN_SSL_PINNEDPUBKEY_V1
+
+    publicKeyBits = SecKeyCopyExternalRepresentation(keyRef, NULL);
+    CFRelease(keyRef);
+    if(publicKeyBits == NULL)
+      break;
+
+#elif DARWIN_SSL_PINNEDPUBKEY_V2
+
+    OSStatus success = SecItemExport(keyRef, kSecFormatOpenSSL, 0, NULL,
+                                     &publicKeyBits);
+    CFRelease(keyRef);
+    if(success != errSecSuccess || publicKeyBits == NULL)
+      break;
+
+#endif /* DARWIN_SSL_PINNEDPUBKEY_V2 */
+
+    pubkeylen = CFDataGetLength(publicKeyBits);
+    pubkey = CFDataGetBytePtr(publicKeyBits);
+
+    switch(pubkeylen) {
+      case 526:
+        /* 4096 bit RSA pubkeylen == 526 */
+        spkiHeader = rsa4096SpkiHeader;
+        break;
+      case 270:
+        /* 2048 bit RSA pubkeylen == 270 */
+        spkiHeader = rsa2048SpkiHeader;
+        break;
+#ifdef DARWIN_SSL_PINNEDPUBKEY_V1
+      case 65:
+        /* ecDSA secp256r1 pubkeylen == 65 */
+        spkiHeader = ecDsaSecp256r1SpkiHeader;
+        spkiHeaderLength = 26;
+        break;
+      case 97:
+        /* ecDSA secp384r1 pubkeylen == 97 */
+        spkiHeader = ecDsaSecp384r1SpkiHeader;
+        spkiHeaderLength = 23;
+        break;
+      default:
+        infof(data, "SSL: unhandled public key length: %d\n", pubkeylen);
+#elif DARWIN_SSL_PINNEDPUBKEY_V2
+      default:
+        /* ecDSA secp256r1 pubkeylen == 91 header already included?
+         * ecDSA secp384r1 header already included too
+         * we assume rest of algorithms do same, so do nothing
+         */
+        result = Curl_pin_peer_pubkey(data, pinnedpubkey, pubkey,
+                                    pubkeylen);
+#endif /* DARWIN_SSL_PINNEDPUBKEY_V2 */
+        continue; /* break from loop */
+    }
+
+    realpubkeylen = pubkeylen + spkiHeaderLength;
+    realpubkey = malloc(realpubkeylen);
+    if(!realpubkey)
+      break;
+
+    memcpy(realpubkey, spkiHeader, spkiHeaderLength);
+    memcpy(realpubkey + spkiHeaderLength, pubkey, pubkeylen);
+
+    result = Curl_pin_peer_pubkey(data, pinnedpubkey, realpubkey,
+                                  realpubkeylen);
+
+  } while(0);
+
+  Curl_safefree(realpubkey);
+  if(publicKeyBits != NULL)
+    CFRelease(publicKeyBits);
+
+  return result;
+}
+#endif /* DARWIN_SSL_PINNEDPUBKEY */
+
 static CURLcode
 darwinssl_connect_step2(struct connectdata *conn, int sockindex)
 {
@@ -2003,6 +2237,17 @@ darwinssl_connect_step2(struct connectdata *conn, int sockindex)
   else {
     /* we have been connected fine, we're not waiting for anything else. */
     connssl->connecting_state = ssl_connect_3;
+
+#ifdef DARWIN_SSL_PINNEDPUBKEY
+    if(data->set.str[STRING_SSL_PINNEDPUBLICKEY_ORIG]) {
+      CURLcode result = pkp_pin_peer_pubkey(data, connssl->ssl_ctx,
+                            data->set.str[STRING_SSL_PINNEDPUBLICKEY_ORIG]);
+      if(result) {
+        failf(data, "SSL: public key does not match pinned public key!");
+        return result;
+      }
+    }
+#endif /* DARWIN_SSL_PINNEDPUBKEY */
 
     /* Informational message */
     (void)SSLGetNegotiatedCipher(connssl->ssl_ctx, &cipher);
@@ -2473,6 +2718,15 @@ void Curl_darwinssl_md5sum(unsigned char *tmp, /* input */
 {
   (void)md5len;
   (void)CC_MD5(tmp, (CC_LONG)tmplen, md5sum);
+}
+
+void Curl_darwinssl_sha256sum(unsigned char *tmp, /* input */
+                           size_t tmplen,
+                           unsigned char *sha256sum, /* output */
+                           size_t sha256len)
+{
+  assert(sha256len >= SHA256_DIGEST_LENGTH);
+  (void)CC_SHA256(tmp, (CC_LONG)tmplen, sha256sum);
 }
 
 bool Curl_darwinssl_false_start(void)

@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2017, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -151,11 +151,11 @@ struct OperationConfig {
   bool proxybasic;
   bool proxyanyauth;
   char *writeout;           /* %-styled format string to output */
-  bool writeenv;            /* write results to environment, if available */
   struct curl_slist *quote;
   struct curl_slist *postquote;
   struct curl_slist *prequote;
   long ssl_version;
+  long ssl_version_max;
   long proxy_ssl_version;
   long ip_version;
   curl_TimeCond timecond;
@@ -234,6 +234,8 @@ struct OperationConfig {
   bool falsestart;
   bool path_as_is;
   double expect100timeout;
+  bool suppress_connect_headers;  /* suppress proxy CONNECT response headers
+                                     from user callbacks */
   struct GlobalConfig *global;
   struct OperationConfig *prev;
   struct OperationConfig *next;   /* Always last in the struct */

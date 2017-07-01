@@ -346,10 +346,6 @@ AC_DEFUN([CURL_CHECK_OPTION_RT], [
       AC_MSG_RESULT([no])
       ;;
   esac
-  dnl TODO: may require mutual exclusion
-  if test "$dontwant_rt" = "yes" && test "$want_thres" = "yes" ; then
-    AC_MSG_ERROR([options --disable-rt and --enable-thread-resolver are mutually exclusive, at most one can be selected.])
-  fi
 ])
  
 
@@ -520,8 +516,8 @@ AC_DEFUN([CURL_CHECK_LIB_ARES], [
       fi
     fi
     #
-    CPPFLAGS="$ares_CPPFLAGS $clean_CPPFLAGS"
-    LDFLAGS="$ares_LDFLAGS $clean_LDFLAGS"
+    CPPFLAGS="$clean_CPPFLAGS $ares_CPPFLAGS"
+    LDFLAGS="$clean_LDFLAGS $ares_LDFLAGS"
     LIBS="$ares_LIBS $clean_LIBS"
     #
     if test "$embedded_ares" != "yes"; then

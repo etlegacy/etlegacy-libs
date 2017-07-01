@@ -130,7 +130,7 @@ static curl_socket_t all_sockets[MAX_SOCKETS];
 static size_t num_sockets = 0;
 
 static int ProcessRequest(struct httprequest *req);
-static void storerequest(char *reqbuf, size_t totalsize);
+static void storerequest(const char *reqbuf, size_t totalsize);
 
 #define DEFAULT_PORT 8999
 
@@ -843,7 +843,7 @@ static int ProcessRequest(struct httprequest *req)
 }
 
 /* store the entire request in a file */
-static void storerequest(char *reqbuf, size_t totalsize)
+static void storerequest(const char *reqbuf, size_t totalsize)
 {
   int res;
   int error = 0;
@@ -1489,7 +1489,7 @@ static void http_connect(curl_socket_t *infdp,
             maxfd = clientfd[i];
         }
         if(poll_client_wr[i] && toc[i]) {
-          /* unless told not to do so, monitor writeability
+          /* unless told not to do so, monitor writability
              if there is data ready to be sent to client */
           FD_SET(clientfd[i], &output);
           if(clientfd[i] > maxfd)
@@ -1505,7 +1505,7 @@ static void http_connect(curl_socket_t *infdp,
             maxfd = serverfd[i];
         }
         if(poll_server_wr[i] && tos[i]) {
-          /* unless told not to do so, monitor writeability
+          /* unless told not to do so, monitor writability
              if there is data ready to be sent to server */
           FD_SET(serverfd[i], &output);
           if(serverfd[i] > maxfd)
@@ -1598,7 +1598,7 @@ static void http_connect(curl_socket_t *infdp,
 
       /* ---------------------------------------------------------- */
 
-      /* react to tunnel endpoint readable/writeable notifications */
+      /* react to tunnel endpoint readable/writable notifications */
       for(i = 0; i <= max_tunnel_idx; i++) {
         size_t len;
         if(clientfd[i] != CURL_SOCKET_BAD) {
@@ -1894,7 +1894,7 @@ static int service_connection(curl_socket_t msgsock, struct httprequest *req,
   while(!req->done_processing) {
     int rc = get_request(msgsock, req);
     if(rc <= 0) {
-      /* Nothing further to read now (possibly because the socket was closed */
+      /* Nothing further to read now, possibly because the socket was closed */
       return rc;
     }
   }
@@ -1965,7 +1965,7 @@ int main(int argc, char *argv[])
   const char *unix_socket = NULL;
   bool unlink_socket = false;
 #endif
-  char *pidname= (char *)".http.pid";
+  const char *pidname = ".http.pid";
   struct httprequest req;
   int rc = 0;
   int error;
@@ -2255,7 +2255,7 @@ int main(int argc, char *argv[])
     if(got_exit_signal)
       goto sws_cleanup;
 
-    /* Set up for select*/
+    /* Set up for select */
     FD_ZERO(&input);
     FD_ZERO(&output);
 
@@ -2281,7 +2281,7 @@ int main(int argc, char *argv[])
       goto sws_cleanup;
 
     if(rc == 0) {
-      /* Timed out - try again*/
+      /* Timed out - try again */
       continue;
     }
 
@@ -2315,7 +2315,7 @@ int main(int argc, char *argv[])
 
             if(req.connmon) {
               const char *keepopen="[DISCONNECT]\n";
-              storerequest((char *)keepopen, strlen(keepopen));
+              storerequest(keepopen, strlen(keepopen));
             }
 
             if(!req.open)
