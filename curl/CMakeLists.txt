@@ -225,7 +225,7 @@ if(ENABLE_MANUAL)
   endif()
 endif()
 # Required for building manual, docs, tests
-find_package(Perl REQUIRED)
+find_package(Perl)
 
 # We need ansi c-flags, especially on HP
 set(CMAKE_C_FLAGS "${CMAKE_ANSI_CFLAGS} ${CMAKE_C_FLAGS}")
