@@ -4,17 +4,19 @@
 #include <stdlib.h>
 
 #include "alMain.h"
+#include "alu.h"
 
 #include "backends/base.h"
 
 
+extern inline ALuint64 GetDeviceClockTime(ALCdevice *device);
+
 /* Base ALCbackend method implementations. */
 void ALCbackend_Construct(ALCbackend *self, ALCdevice *device)
 {
-    int ret;
-    self->mDevice = device;
-    ret = almtx_init(&self->mMutex, almtx_recursive);
+    int ret = almtx_init(&self->mMutex, almtx_recursive);
     assert(ret == althrd_success);
+    self->mDevice = device;
 }
 
 void ALCbackend_Destruct(ALCbackend *self)
@@ -37,9 +39,27 @@ ALCuint ALCbackend_availableSamples(ALCbackend* UNUSED(self))
     return 0;
 }
 
-ALint64 ALCbackend_getLatency(ALCbackend* UNUSED(self))
+ClockLatency ALCbackend_getClockLatency(ALCbackend *self)
 {
-    return 0;
+    ALCdevice *device = self->mDevice;
+    ALuint refcount;
+    ClockLatency ret;
+
+    do {
+        while(((refcount=ATOMIC_LOAD(&device->MixCount, almemory_order_acquire))&1))
+            althrd_yield();
+        ret.ClockTime = GetDeviceClockTime(device);
+        ATOMIC_THREAD_FENCE(almemory_order_acquire);
+    } while(refcount != ATOMIC_LOAD(&device->MixCount, almemory_order_relaxed));
+
+    /* NOTE: The device will generally have about all but one periods filled at
+     * any given time during playback. Without a more accurate measurement from
+     * the output, this is an okay approximation.
+     */
+    ret.Latency = device->UpdateSize * DEVICE_CLOCK_RES / device->Frequency *
+                  maxu(device->NumUpdates-1, 1);
+
+    return ret;
 }
 
 void ALCbackend_lock(ALCbackend *self)
@@ -77,7 +97,7 @@ static ALCboolean PlaybackWrapper_start(PlaybackWrapper *self);
 static void PlaybackWrapper_stop(PlaybackWrapper *self);
 static DECLARE_FORWARD2(PlaybackWrapper, ALCbackend, ALCenum, captureSamples, void*, ALCuint)
 static DECLARE_FORWARD(PlaybackWrapper, ALCbackend, ALCuint, availableSamples)
-static DECLARE_FORWARD(PlaybackWrapper, ALCbackend, ALint64, getLatency)
+static DECLARE_FORWARD(PlaybackWrapper, ALCbackend, ClockLatency, getClockLatency)
 static DECLARE_FORWARD(PlaybackWrapper, ALCbackend, void, lock)
 static DECLARE_FORWARD(PlaybackWrapper, ALCbackend, void, unlock)
 DECLARE_DEFAULT_ALLOCATORS(PlaybackWrapper)
@@ -137,7 +157,7 @@ static ALCboolean CaptureWrapper_start(CaptureWrapper *self);
 static void CaptureWrapper_stop(CaptureWrapper *self);
 static ALCenum CaptureWrapper_captureSamples(CaptureWrapper *self, void *buffer, ALCuint samples);
 static ALCuint CaptureWrapper_availableSamples(CaptureWrapper *self);
-static DECLARE_FORWARD(CaptureWrapper, ALCbackend, ALint64, getLatency)
+static DECLARE_FORWARD(CaptureWrapper, ALCbackend, ClockLatency, getClockLatency)
 static DECLARE_FORWARD(CaptureWrapper, ALCbackend, void, lock)
 static DECLARE_FORWARD(CaptureWrapper, ALCbackend, void, unlock)
 DECLARE_DEFAULT_ALLOCATORS(CaptureWrapper)

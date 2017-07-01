@@ -33,6 +33,8 @@
 #include "alu.h"
 #include "threads.h"
 
+#include "backends/base.h"
+
 
 typedef struct {
     snd_pcm_t* pcmHandle;
@@ -117,8 +119,7 @@ static void deviceList(int type, vector_DevMap *devmap)
     if(max_cards < 0)
         return;
 
-    VECTOR_RESERVE(*devmap, max_cards+1);
-    VECTOR_RESIZE(*devmap, 0);
+    VECTOR_RESIZE(*devmap, 0, max_cards+1);
 
     entry.name = strdup(qsaDevice);
     entry.card = 0;
@@ -162,13 +163,13 @@ FORCE_ALIGN static int qsa_proc_playback(void* ptr)
 {
     ALCdevice* device=(ALCdevice*)ptr;
     qsa_data* data=(qsa_data*)device->ExtraData;
-    char* write_ptr;
-    int avail;
     snd_pcm_channel_status_t status;
     struct sched_param param;
-    fd_set wfds;
-    int selectret;
     struct timeval timeout;
+    char* write_ptr;
+    fd_set wfds;
+    ALint len;
+    int sret;
 
     SetRTPriority();
     althrd_setname(althrd_current(), MIXER_THREAD_NAME);
@@ -178,59 +179,55 @@ FORCE_ALIGN static int qsa_proc_playback(void* ptr)
     param.sched_priority=param.sched_curpriority+1;
     SchedSet(0, 0, SCHED_NOCHANGE, &param);
 
-    ALint frame_size=FrameSizeFromDevFmt(device->FmtChans, device->FmtType);
+    const ALint frame_size = FrameSizeFromDevFmt(
+        device->FmtChans, device->FmtType, device->AmbiOrder
+    );
 
-    while (!data->killNow)
+    V0(device->Backend,lock)();
+    while(!data->killNow)
     {
-        ALint len=data->size;
-        write_ptr=data->buffer;
+        FD_ZERO(&wfds);
+        FD_SET(data->audio_fd, &wfds);
+        timeout.tv_sec=2;
+        timeout.tv_usec=0;
 
-        avail=len/frame_size;
-        aluMixData(device, write_ptr, avail);
-
-        while (len>0 && !data->killNow)
+        /* Select also works like time slice to OS */
+        V0(device->Backend,unlock)();
+        sret = select(data->audio_fd+1, NULL, &wfds, NULL, &timeout);
+        V0(device->Backend,lock)();
+        if(sret == -1)
         {
-            FD_ZERO(&wfds);
-            FD_SET(data->audio_fd, &wfds);
-            timeout.tv_sec=2;
-            timeout.tv_usec=0;
+            ERR("select error: %s\n", strerror(errno));
+            aluHandleDisconnect(device);
+            break;
+        }
+        if(sret == 0)
+        {
+            ERR("select timeout\n");
+            continue;
+        }
 
-            /* Select also works like time slice to OS */
-            selectret=select(data->audio_fd+1, NULL, &wfds, NULL, &timeout);
-            switch (selectret)
+        len = data->size;
+        write_ptr = data->buffer;
+        aluMixData(device, write_ptr, len/frame_size);
+        while(len>0 && !data->killNow)
+        {
+            int wrote = snd_pcm_plugin_write(data->pcmHandle, write_ptr, len);
+            if(wrote <= 0)
             {
-                case -1:
-                     aluHandleDisconnect(device);
-                     return 1;
-                case 0:
-                     break;
-                default:
-                     if (FD_ISSET(data->audio_fd, &wfds))
-                     {
-                         break;
-                     }
-                     break;
-            }
-
-            int wrote=snd_pcm_plugin_write(data->pcmHandle, write_ptr, len);
-
-            if (wrote<=0)
-            {
-                if ((errno==EAGAIN) || (errno==EWOULDBLOCK))
-                {
+                if(errno==EAGAIN || errno==EWOULDBLOCK)
                     continue;
-                }
 
-                memset(&status, 0, sizeof (status));
-                status.channel=SND_PCM_CHANNEL_PLAYBACK;
+                memset(&status, 0, sizeof(status));
+                status.channel = SND_PCM_CHANNEL_PLAYBACK;
 
                 snd_pcm_plugin_status(data->pcmHandle, &status);
 
                 /* we need to reinitialize the sound channel if we've underrun the buffer */
-                if ((status.status==SND_PCM_STATUS_UNDERRUN) ||
-                    (status.status==SND_PCM_STATUS_READY))
+                if(status.status == SND_PCM_STATUS_UNDERRUN ||
+                   status.status == SND_PCM_STATUS_READY)
                 {
-                    if ((snd_pcm_plugin_prepare(data->pcmHandle, SND_PCM_CHANNEL_PLAYBACK))<0)
+                    if(snd_pcm_plugin_prepare(data->pcmHandle, SND_PCM_CHANNEL_PLAYBACK) < 0)
                     {
                         aluHandleDisconnect(device);
                         break;
@@ -239,11 +236,12 @@ FORCE_ALIGN static int qsa_proc_playback(void* ptr)
             }
             else
             {
-                write_ptr+=wrote;
-                len-=wrote;
+                write_ptr += wrote;
+                len -= wrote;
             }
         }
     }
+    V0(device->Backend,unlock)();
 
     return 0;
 }
@@ -277,7 +275,7 @@ static ALCenum qsa_open_playback(ALCdevice* device, const ALCchar* deviceName)
 #define MATCH_DEVNAME(iter) ((iter)->name && strcmp(deviceName, (iter)->name)==0)
         VECTOR_FIND_IF(iter, const DevMap, DeviceNameMap, MATCH_DEVNAME);
 #undef MATCH_DEVNAME
-        if(iter == VECTOR_ITER_END(DeviceNameMap))
+        if(iter == VECTOR_END(DeviceNameMap))
         {
             free(data);
             return ALC_INVALID_DEVICE;
@@ -300,7 +298,7 @@ static ALCenum qsa_open_playback(ALCdevice* device, const ALCchar* deviceName)
         return ALC_INVALID_DEVICE;
     }
 
-    al_string_copy_cstr(&device->DeviceName, deviceName);
+    alstr_copy_cstr(&device->DeviceName, deviceName);
     device->ExtraData = data;
 
     return ALC_NO_ERROR;
@@ -365,14 +363,14 @@ static ALCboolean qsa_reset_playback(ALCdevice* device)
     data->cparams.start_mode=SND_PCM_START_FULL;
     data->cparams.stop_mode=SND_PCM_STOP_STOP;
 
-    data->cparams.buf.block.frag_size=device->UpdateSize*
-        ChannelsFromDevFmt(device->FmtChans)*BytesFromDevFmt(device->FmtType);
+    data->cparams.buf.block.frag_size=device->UpdateSize *
+        FrameSizeFromDevFmt(device->FmtChans, device->FmtType, device->AmbiOrder);
     data->cparams.buf.block.frags_max=device->NumUpdates;
     data->cparams.buf.block.frags_min=device->NumUpdates;
 
     data->cparams.format.interleave=1;
     data->cparams.format.rate=device->Frequency;
-    data->cparams.format.voices=ChannelsFromDevFmt(device->FmtChans);
+    data->cparams.format.voices=ChannelsFromDevFmt(device->FmtChans, device->AmbiOrder);
     data->cparams.format.format=format;
 
     if ((snd_pcm_plugin_params(data->pcmHandle, &data->cparams))<0)
@@ -556,7 +554,7 @@ static ALCboolean qsa_reset_playback(ALCdevice* device)
     SetDefaultChannelOrder(device);
 
     device->UpdateSize=data->csetup.buf.block.frag_size/
-        (ChannelsFromDevFmt(device->FmtChans)*BytesFromDevFmt(device->FmtType));
+        FrameSizeFromDevFmt(device->FmtChans, device->FmtType, device->AmbiOrder);
     device->NumUpdates=data->csetup.buf.block.frags;
 
     data->size=data->csetup.buf.block.frag_size;
@@ -624,7 +622,7 @@ static ALCenum qsa_open_capture(ALCdevice* device, const ALCchar* deviceName)
 #define MATCH_DEVNAME(iter) ((iter)->name && strcmp(deviceName, (iter)->name)==0)
         VECTOR_FIND_IF(iter, const DevMap, CaptureNameMap, MATCH_DEVNAME);
 #undef MATCH_DEVNAME
-        if(iter == VECTOR_ITER_END(CaptureNameMap))
+        if(iter == VECTOR_END(CaptureNameMap))
         {
             free(data);
             return ALC_INVALID_DEVICE;
@@ -647,7 +645,7 @@ static ALCenum qsa_open_capture(ALCdevice* device, const ALCchar* deviceName)
         return ALC_INVALID_DEVICE;
     }
 
-    al_string_copy_cstr(&device->DeviceName, deviceName);
+    alstr_copy_cstr(&device->DeviceName, deviceName);
     device->ExtraData = data;
 
     switch (device->FmtType)
@@ -688,13 +686,13 @@ static ALCenum qsa_open_capture(ALCdevice* device, const ALCchar* deviceName)
     data->cparams.stop_mode=SND_PCM_STOP_STOP;
 
     data->cparams.buf.block.frag_size=device->UpdateSize*
-        ChannelsFromDevFmt(device->FmtChans)*BytesFromDevFmt(device->FmtType);
+        FrameSizeFromDevFmt(device->FmtChans, device->FmtType, device->AmbiOrder);
     data->cparams.buf.block.frags_max=device->NumUpdates;
     data->cparams.buf.block.frags_min=device->NumUpdates;
 
     data->cparams.format.interleave=1;
     data->cparams.format.rate=device->Frequency;
-    data->cparams.format.voices=ChannelsFromDevFmt(device->FmtChans);
+    data->cparams.format.voices=ChannelsFromDevFmt(device->FmtChans, device->AmbiOrder);
     data->cparams.format.format=format;
 
     if(snd_pcm_plugin_params(data->pcmHandle, &data->cparams) < 0)
@@ -753,7 +751,7 @@ static ALCuint qsa_available_samples(ALCdevice* device)
 {
     qsa_data* data=(qsa_data*)device->ExtraData;
     snd_pcm_channel_status_t status;
-    ALint frame_size=FrameSizeFromDevFmt(device->FmtChans, device->FmtType);
+    ALint frame_size = FrameSizeFromDevFmt(device->FmtChans, device->FmtType, device->AmbiOrder);
     ALint free_size;
     int rstatus;
 
@@ -789,7 +787,7 @@ static ALCenum qsa_capture_samples(ALCdevice *device, ALCvoid *buffer, ALCuint s
     int selectret;
     struct timeval timeout;
     int bytes_read;
-    ALint frame_size=FrameSizeFromDevFmt(device->FmtChans, device->FmtType);
+    ALint frame_size=FrameSizeFromDevFmt(device->FmtChans, device->FmtType, device->AmbiOrder);
     ALint len=samples*frame_size;
     int rstatus;
 
@@ -893,8 +891,8 @@ void alc_qsa_probe(enum DevProbe type)
         case ALL_DEVICE_PROBE:
 #define FREE_NAME(iter) free((iter)->name)
             VECTOR_FOR_EACH(DevMap, DeviceNameMap, FREE_NAME);
+            VECTOR_RESIZE(DeviceNameMap, 0, 0);
 #undef FREE_NAME
-            VECTOR_RESIZE(DeviceNameMap, 0);
 
             deviceList(SND_PCM_CHANNEL_PLAYBACK, &DeviceNameMap);
 #define APPEND_DEVICE(iter) AppendAllDevicesList((iter)->name)
@@ -905,8 +903,8 @@ void alc_qsa_probe(enum DevProbe type)
         case CAPTURE_DEVICE_PROBE:
 #define FREE_NAME(iter) free((iter)->name)
             VECTOR_FOR_EACH(DevMap, CaptureNameMap, FREE_NAME);
+            VECTOR_RESIZE(CaptureNameMap, 0, 0);
 #undef FREE_NAME
-            VECTOR_RESIZE(CaptureNameMap, 0);
 
             deviceList(SND_PCM_CHANNEL_CAPTURE, &CaptureNameMap);
 #define APPEND_DEVICE(iter) AppendCaptureDeviceList((iter)->name)
