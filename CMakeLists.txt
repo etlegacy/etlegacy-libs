@@ -198,26 +198,41 @@ if(WIN32)
 	# Copy bundled SDL library to the etl.exe location
 	#-----------------------------------------------------------------
 	if(BUNDLED_SDL AND BUILD_CLIENT) # DLL
-		add_custom_target(bundled_sdl) # Dummy target just so cmake does not print warnings
-		# Enable the SDL2main when the windows main function has been removed....
-		if(WIN64)
-			file(COPY ${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
-			install(FILES "${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2.dll" DESTINATION "${INSTALL_DEFAULT_BINDIR}")
-			set(SDL32_BUNDLED_LIBRARIES
-					"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2main.lib"
-					"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2.lib"
-			)
-			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
-		else(WIN64)
-			file(COPY ${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
-			install(FILES "${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.dll" DESTINATION "${INSTALL_DEFAULT_BINDIR}")
-			set(SDL32_BUNDLED_LIBRARIES
-					"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2main.lib"
-					"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.lib"
-			)
-			set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
-		endif(WIN64)
+		# # Dummy target just so cmake does not print warnings
+		# add_custom_target(bundled_sdl)
+		# # Enable the SDL2main when the windows main function has been removed....
+		# if(WIN64)
+		# 	file(COPY ${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
+		# 	install(FILES "${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2.dll" DESTINATION "${INSTALL_DEFAULT_BINDIR}")
+		# 	set(SDL32_BUNDLED_LIBRARIES
+		# 			"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2main.lib"
+		# 			"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2.lib"
+		# 	)
+		# 	set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
+		# else(WIN64)
+		# 	file(COPY ${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
+		# 	install(FILES "${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.dll" DESTINATION "${INSTALL_DEFAULT_BINDIR}")
+		# 	set(SDL32_BUNDLED_LIBRARIES
+		# 			"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2main.lib"
+		# 			"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.lib"
+		# 	)
+		# 	set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
+		# endif(WIN64)
+		# set_target_properties(bundled_sdl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
+		ExternalProject_Add(bundled_sdl
+			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
+			BINARY_DIR	${LIBS_BINARYDIR_DIR}/sdl2
+			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}
+			-DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+			-DSDL_SHARED=OFF -DSDL_RENDER=OFF -DRENDER_D3D=OFF -DFORCE_STATIC_VCRT=ON -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/sdl2
+			PREFIX ${PROJECT_BINARY_DIR}/sdl2
+		)
+		set(SDL32_BUNDLED_LIBRARIES
+			"${PROJECT_BINARY_DIR}/sdl2/lib/SDL2main.lib"
+			"${PROJECT_BINARY_DIR}/sdl2/lib/SDL2.lib"
+		)
+		set(SDL32_BUNDLED_INCLUDE_DIR "${PROJECT_BINARY_DIR}/sdl2/include")
 		set_target_properties(bundled_sdl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 	endif()
 
@@ -388,25 +403,55 @@ if(WIN32)
 elseif(UNIX)
 
 	if(CROSS_COMPILE32)
-		set(CROSS_COMPILE32_FLAGS CFLAGS=-m32 LDFLAGS=-m32)
+		if(APPLE)
+			set(CROSS_COMPILE32_FLAGS CFLAGS=-mmacosx-version-min=10.7\ -O3\ -m32 LDFLAGS=-mmacosx-version-min=10.7\ -m32)
+		else()
+			set(CROSS_COMPILE32_FLAGS CFLAGS=-m32 LDFLAGS=-m32)
+		endif()
 	else(CROSS_COMPILE32)
-
 		# when we don't cross compile we have to enable position independant code '-fPIC' for all bundled libs
 		# see http://stackoverflow.com/questions/7216244/why-is-fpic-absolutely-necessary-on-64-and-not-on-32bit-platforms
 		# let's misuse CROSS_COMPILE32_FLAGS var (for 64bit) to set our flag. FIXME: rename to CROSS_COMPILE_OPTIONAL_FLAGS?
 		# notes: - cflag -mcmodel=large might be an option too
 		#        - this has to be done in all dependant CMakeLists-txt files see glew/CMakeLists.txt
-		set(CROSS_COMPILE32_FLAGS "CFLAGS=-fPIC")
-
+		if(APPLE)
+			set(CROSS_COMPILE32_FLAGS CFLAGS=-mmacosx-version-min=10.7\ -O3\ -fPIC LDFLAGS=-mmacosx-version-min=10.7)
+		else()
+			set(CROSS_COMPILE32_FLAGS "CFLAGS=-fPIC")
+		endif()
 	endif(CROSS_COMPILE32)
 
 	#-----------------------------------------------------------------
 	# Build bundled cURL library
 	#-----------------------------------------------------------------
 	if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
-		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/curl/lib/.libs/libcurl.a
-			COMMAND make clean || true
-			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure
+		# add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/curl/lib/.libs/libcurl.a
+		# 	COMMAND make clean || true
+		# 	COMMAND ${CROSS_COMPILE32_FLAGS} ./configure
+		# 	--enable-shared=no --enable-static=yes
+		# 	--enable-http --enable-ftp --disable-file
+		# 	--disable-ldap --disable-ldaps --disable-rtsp
+		# 	--enable-proxy --disable-dict --disable-telnet
+		# 	--disable-tftp --disable-pop3 --disable-imap
+		# 	--disable-smb --disable-smtp --disable-gopher
+		# 	--without-ssl --without-libssh2 --without-nghttp2
+		# 	--without-gssapi --with-zlib
+		# 	--disable-ares --enable-threaded-resolver
+		# 	--enable-ipv6 --enable-unix-sockets
+		# 	--without-libidn --disable-manual
+		# 	--disable-sspi --enable-libgcc
+		# 	--without-libmetalink --without-libpsl
+		# 	--without-librtmp && make
+		# 	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/curl
+		# )
+		# add_custom_target(bundled_curl
+		# 	DEPENDS ${CMAKE_CURRENT_LIST_DIR}/curl/lib/.libs/libcurl.a
+		# )
+
+		ExternalProject_Add(
+			bundled_curl
+			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/curl
+			CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/curl
 			--enable-shared=no --enable-static=yes
 			--enable-http --enable-ftp --disable-file
 			--disable-ldap --disable-ldaps --disable-rtsp
@@ -420,14 +465,15 @@ elseif(UNIX)
 			--without-libidn --disable-manual
 			--disable-sspi --enable-libgcc
 			--without-libmetalink --without-libpsl
-			--without-librtmp && make
-			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/curl
+			--without-librtmp ${CROSS_COMPILE32_FLAGS}
+			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/curl
+			BUILD_COMMAND make
+			INSTALL_COMMAND make install
+			BUILD_IN_SOURCE 1
 		)
-		add_custom_target(bundled_curl
-			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/curl/lib/.libs/libcurl.a
-		)
-		set(CURL_BUNDLED_LIBRARY "${CMAKE_CURRENT_LIST_DIR}/curl/lib/.libs/libcurl.a")
-		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/curl/include")
+
+		set(CURL_BUNDLED_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/lib/libcurl.a")
+		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/include")
 	endif()
 
 	#-----------------------------------------------------------------
@@ -436,48 +482,59 @@ elseif(UNIX)
 	if(BUNDLED_JPEG AND BUILD_CLIENT)
 		if(CROSS_COMPILE32)
 			if(APPLE)
-				SET(JPEG_TURBO_BUILD ${CROSS_COMPILE32_FLAGS} ./configure --with-jpeg8 --build i686-apple-darwin && make)
+				SET(JPEG_TURBO_BUILD ./configure --with-jpeg8 --build i686-apple-darwin ${CROSS_COMPILE32_FLAGS})
 			else()
-				SET(JPEG_TURBO_BUILD ${CROSS_COMPILE32_FLAGS} ./configure --with-jpeg8 --build i686-pc-linux-gnu && make)
+				SET(JPEG_TURBO_BUILD ./configure --with-jpeg8 --build i686-pc-linux-gnu ${CROSS_COMPILE32_FLAGS})
 			endif()
 		else(CROSS_COMPILE32)
 			if(APPLE)
-				SET(JPEG_TURBO_BUILD ${CROSS_COMPILE32_FLAGS} ./configure --with-jpeg8 --build x86_64-apple-darwin && make)
+				SET(JPEG_TURBO_BUILD ./configure --with-jpeg8 --build x86_64-apple-darwin ${CROSS_COMPILE32_FLAGS})
 			else()
-				SET(JPEG_TURBO_BUILD ${CROSS_COMPILE32_FLAGS} ./configure --with-jpeg8 && make)
+				SET(JPEG_TURBO_BUILD ./configure --with-jpeg8 ${CROSS_COMPILE32_FLAGS})
 			endif()
 		endif()
 
-		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/jpegturbo/.libs/libturbojpeg.a
-			COMMAND make clean || true
-			COMMAND ${JPEG_TURBO_BUILD}
-			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/jpegturbo
+		ExternalProject_Add(
+			bundled_jpeg
+			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/jpegturbo
+			CONFIGURE_COMMAND ${JPEG_TURBO_BUILD} --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/jpegturbo
+			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/jpegturbo
+			BUILD_COMMAND make
+			INSTALL_COMMAND make install
+			BUILD_IN_SOURCE 1
 		)
-
-		add_custom_target(bundled_jpeg
-			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/jpegturbo/.libs/libturbojpeg.a
-		)
-		set(JPEG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/jpegturbo/.libs/libturbojpeg.a")
-		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
+		set(JPEG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/jpegturbo/lib/libturbojpeg.a")
+		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/jpegturbo/include")
 	endif()
 
 	#-----------------------------------------------------------------
 	# Build bundled SDL library
 	#-----------------------------------------------------------------
 	if(BUNDLED_SDL AND BUILD_CLIENT)
-		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/sdl2/build/.libs/libSDL2.a
-			COMMAND make clean || true
-			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
-			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/sdl2
-		)
-		add_custom_target(bundled_sdl
-			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/sdl2/build/.libs/libSDL2.a
+		# add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/sdl2/build/.libs/libSDL2.a
+		# 	COMMAND make clean || true
+		# 	COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
+		# 	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/sdl2
+		# )
+		# add_custom_target(bundled_sdl
+		# 	DEPENDS ${CMAKE_CURRENT_LIST_DIR}/sdl2/build/.libs/libSDL2.a
+		# )
+		ExternalProject_Add(
+			bundled_sdl
+			# SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/sdl2
+			DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}/downloads
+			URL https://www.libsdl.org/release/SDL2-2.0.7.tar.gz
+			CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/sdl2 ${CROSS_COMPILE32_FLAGS}
+			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/sdl2
+			BUILD_COMMAND make
+			INSTALL_COMMAND make install
+			BUILD_IN_SOURCE 1
 		)
 		if(CMAKE_SYSTEM MATCHES "Darwin")
-			set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_CURRENT_LIST_DIR}/sdl2/build/libSDL2main.a")
+			set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_CURRENT_BINARY_DIR}/libs/sdl2/lib/libSDL2main.a")
 		endif(CMAKE_SYSTEM MATCHES "Darwin")
-		set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_CURRENT_LIST_DIR}/sdl2/build/.libs/libSDL2.a")
-		set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
+		set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_CURRENT_BINARY_DIR}/libs/sdl2/lib/libSDL2.a")
+		set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/sdl2/include")
 	endif()
 
 	#-----------------------------------------------------------------
@@ -487,24 +544,39 @@ elseif(UNIX)
 	if(BUNDLED_LUA AND BUILD_MOD)
 		if(CMAKE_SYSTEM MATCHES "OpenBSD*")
 			set(LUA_MAKE_TARGET "bsd")
+		elseif(CMAKE_SYSTEM MATCHES "Darwin")
+		set(LUA_MAKE_TARGET "macosx")
 		else()
-			if(NOT CROSS_COMPILE32)
-				set(LUA_MAKE_TARGET "posix")
-			else()
-				set(LUA_MAKE_TARGET "posix32bit")
-			endif()
+			set(LUA_MAKE_TARGET "posix")
+			# if(NOT CROSS_COMPILE32)
+			# 	set(LUA_MAKE_TARGET "posix")
+			# else()
+			# 	set(LUA_MAKE_TARGET "posix32bit")
+			# endif()
 		endif()
-		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
-			COMMAND make clean || true
-			COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
-			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
-		)
-		set(LUA_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a")
-		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
 
-		add_custom_target(bundled_lua
-			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
+		# add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
+		# 	COMMAND make clean || true
+		# 	COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
+		# 	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
+		# )
+
+		# add_custom_target(bundled_lua
+		# 	DEPENDS ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
+		# )
+
+		ExternalProject_Add(
+			bundled_lua
+			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/lua
+			CONFIGURE_COMMAND ${CMAKE_COMMAND} -E echo "Skipping lua configure"
+			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/lua
+			BUILD_COMMAND make ${LUA_MAKE_TARGET} ${CROSS_COMPILE32_FLAGS}
+			INSTALL_COMMAND make install INSTALL_TOP=${CMAKE_CURRENT_BINARY_DIR}/libs/lua
+			BUILD_IN_SOURCE 1
 		)
+
+		set(LUA_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/lua/lib/liblua.a")
+		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/lua/include")
 	endif()
 
 	#-----------------------------------------------------------------
@@ -512,40 +584,66 @@ elseif(UNIX)
 	#-----------------------------------------------------------------
 	if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 		# OGG
-		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs/libogg.a
-			COMMAND make clean || true
-			COMMAND ./autogen.sh
-			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
-			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/ogg
+		# add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs/libogg.a
+		# 	COMMAND make clean || true
+		# 	COMMAND ./autogen.sh
+		# 	COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
+		# 	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/ogg
+		# )
+		# add_custom_target(bundled_ogg
+		# 	DEPENDS ${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs/libogg.a
+		# )
+
+		ExternalProject_Add(
+			bundled_ogg
+			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/ogg
+			PATCH_COMMAND ./autogen.sh
+			CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg ${CROSS_COMPILE32_FLAGS}
+			--enable-silent-rules --disable-dependency-tracking --enable-shared=no
+			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/ogg
+			BUILD_COMMAND make
+			INSTALL_COMMAND make install
+			BUILD_IN_SOURCE 1
 		)
-		add_custom_target(bundled_ogg
-			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs/libogg.a
-		)
-		set(OGG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs/libogg.a")
-		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/ogg/include")
+
+		set(OGG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib/libogg.a")
+		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
 
 		# OGG Vorbis File
-		set(CFLAGS "${CFLAGS} -I${CMAKE_CURRENT_LIST_DIR}/ogg/include")
-		set(LDFLAGS "${LDFLAGS} -L${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs")
+		set(CFLAGS "${CFLAGS} -I${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
+		set(LDFLAGS "${LDFLAGS} -L${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib")
 
 		# the above set of CFLAGS and LDFLAGS don't trigger on some systems
 		# ensure vorbis configure uses our bundled ogg see --with-ogg-includes & --with-ogg-libraries
-		add_custom_command(
-			OUTPUT ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a
-			COMMAND make clean || true
-			COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_LIST_DIR}/ogg/include --with-ogg-libraries=${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs && make
-			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/vorbis
+		# add_custom_command(
+		# 	OUTPUT ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a
+		# 	COMMAND make clean || true
+		# 	COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_LIST_DIR}/ogg/include --with-ogg-libraries=${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs && make
+		# 	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/vorbis
+		# )
+		# add_custom_target(bundled_ogg_vorbis_file
+		# 	DEPENDS ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a
+		# )
+		# add_custom_target(bundled_ogg_vorbis
+		# 	DEPENDS ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbis.a
+		# )
+
+		ExternalProject_Add(
+			bundled_ogg_vorbis
+			DEPENDS bundled_ogg
+			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/vorbis
+			CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
+			--disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include
+			--with-ogg-libraries=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib ${CROSS_COMPILE32_FLAGS}
+			--disable-dependency-tracking --enable-silent-rules --enable-shared=no
+			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
+			BUILD_COMMAND make
+			INSTALL_COMMAND make install
+			BUILD_IN_SOURCE 1
 		)
-		add_custom_target(bundled_ogg_vorbis_file
-			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a
-		)
-		add_custom_target(bundled_ogg_vorbis
-			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbis.a
-		)
-		add_dependencies(bundled_ogg_vorbis_file bundled_ogg)
-		add_dependencies(bundled_ogg_vorbis bundled_ogg_vorbis_file)
-		set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a" "${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbis.a")
-		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/vorbis/include")
+		add_custom_target(bundled_ogg_vorbis_file)
+		set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
+		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/include")
 	endif()
 
 	#-----------------------------------------------------------------
@@ -553,11 +651,16 @@ elseif(UNIX)
 	#-----------------------------------------------------------------
 	if(BUNDLED_OPENAL AND BUILD_CLIENT)
 		ExternalProject_Add(bundled_openal
-				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
-				BINARY_DIR	${LIBS_BINARYDIR_DIR}/openal
-				CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal -DLIBTYPE=STATIC -DALSOFT_UTILS=0 -DALSOFT_NO_CONFIG_UTIL=1 -DALSOFT_EXAMPLES=0 -DALSOFT_TESTS=0 -DALSOFT_CONFIG=0 -DALSOFT_HRTF_DEFS=0
-				INSTALL_COMMAND  ""
-				)
+			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
+			BINARY_DIR	${LIBS_BINARYDIR_DIR}/openal
+			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+			-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal
+			-DCMAKE_OSX_DEPLOYMENT_TARGET="10.7" -DLIBTYPE=STATIC
+			-DALSOFT_UTILS=0 -DALSOFT_NO_CONFIG_UTIL=1 -DALSOFT_EXAMPLES=0 -DALSOFT_TESTS=0
+			-DALSOFT_CONFIG=0 -DALSOFT_HRTF_DEFS=0
+			INSTALL_COMMAND  ""
+		)
 
 		ExternalProject_Get_Property(bundled_openal binary_dir)
 
@@ -654,7 +757,10 @@ if(BUNDLED_FREETYPE AND BUILD_CLIENT)
 	ExternalProject_Add(bundled_freetype
 		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/freetype
 		BINARY_DIR	${LIBS_BINARYDIR_DIR}/freetype
-		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DWITH_BZip2=OFF -DWITH_PNG=OFF -DWITH_HarfBuzz=OFF -DWITH_ZLIB=OFF
+		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+		-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+		-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="10.7"
+		-DWITH_BZip2=OFF -DWITH_PNG=OFF -DWITH_HarfBuzz=OFF -DWITH_ZLIB=OFF
 		INSTALL_COMMAND  ""
 	)
 
@@ -719,7 +825,11 @@ if(BUNDLED_JANSSON AND (BUILD_CLIENT OR BUILD_SERVER))
 	ExternalProject_Add(bundled_jansson
 		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/jansson
 		BINARY_DIR	${LIBS_BINARYDIR_DIR}/jansson
-		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}  -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DJANSSON_WITHOUT_TESTS=1 -DBUILD_DOCS=0 -DJANSSON_STATIC_CRT=1 -DJANSSON_BUILD_DOCS=0
+		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+		-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+		-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="10.7"
+		-DJANSSON_WITHOUT_TESTS=1 -DBUILD_DOCS=0 -DJANSSON_STATIC_CRT=1
+		-DJANSSON_BUILD_DOCS=0
 		INSTALL_COMMAND  ""
 	)
 
