@@ -2,6 +2,31 @@ include(ExternalProject)
 include(CheckIncludeFile)
 
 set(LIBS_BINARYDIR_DIR ${PROJECT_BINARY_DIR}/libs)
+set(LIBS_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads)
+
+if(BUNLED_OPENSSL)
+	find_program(NASM_EXECUTABLE nasm)
+	if(NOT NASM_EXECUTABLE)
+		message(FATAL_ERROR "NASM not found")
+	endif()
+
+	FIND_PACKAGE(perl REQUIRED)
+	if(NOT PERL_FOUND)
+		message(FATAL_ERROR "Perl not found")
+	endif()
+
+	if(WIN32)
+		if(64BITS)
+			set(openssl_plat VC-WIN64)
+			# set(curl_plat x64)
+		else()
+			set(openssl_plat VC-WIN32)
+			# set(curl_plat x86)
+		endif()
+	endif()
+endif()
+
+#CMAKE_DEBUG_POSTFIX
 
 if(WIN32)
 	#-----------------------------------------------------------------
@@ -107,14 +132,48 @@ if(WIN32)
 		set_target_properties(bundled_jpeg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 	endif()
 
+	if(BUNLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
+		set(OPENSSL_PREFIX "${CMAKE_BINARY_DIR}/openssl/build")
+		set(OPENSSL_CONFIGURE "${PERL_EXECUTABLE}" Configure "${openssl_plat}" "--prefix=${OPENSSL_PREFIX}" "--openssldir=${OPENSSL_PREFIX}" no-shared no-unit-test -static)
+		set(OPENSSL_BUILD nmake)
+		set(OPENSSL_INSTALL nmake install)
+		ExternalProject_Add(bundled_openssl
+			# Use github archive instead of the one hosted on openssl.org because of CMake bug #13251
+			#URL_MD5 "9e380f6f9cc497bd2f47c944019239ac"
+			#GIT_REPOSITORY "https://github.com/openssl/openssl.git"
+			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}/openssl
+			URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_0g.tar.gz
+			SOURCE_DIR "${CMAKE_BINARY_DIR}/openssl"
+			BUILD_IN_SOURCE 1
+			CONFIGURE_COMMAND ${OPENSSL_CONFIGURE}
+			BUILD_COMMAND ${OPENSSL_BUILD}
+			INSTALL_COMMAND ${OPENSSL_INSTALL}
+		)
+		set(OPENSSD_BUNDLED_INCLUDE_DIR "${OPENSSL_PREFIX}/include")
+		set(OPENSSL_BUNDLED_LIBRARY "${OPENSSL_PREFIX}/lib/libcrypto.lib" "${OPENSSL_PREFIX}/lib/libssl.lib")
+	else()
+		add_custom_target(bundled_openssl)
+	endif()
+
 	#-----------------------------------------------------------------
 	# Build bundled cURL library
 	#-----------------------------------------------------------------
 	if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER)) # DLL
+		# -DHTTP_ONLY=1
 		ExternalProject_Add(bundled_curl
+			DEPENDS bundled_openssl
 			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/curl
 			BINARY_DIR	${LIBS_BINARYDIR_DIR}/curl
-			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DBUILD_CURL_EXE=0 -DCURL_STATICLIB=1 -DENABLE_ARES=0 -DENABLE_THREADED_RESOLVER=1 -DENABLE_DEBUG=0 -DENABLE_CURLDEBUG=0 -DBUILD_TESTING=0 -DHTTP_ONLY=1 -DENABLE_IPV6=1 -DENABLE_MANUAL=0 -DCMAKE_USE_OPENSSL=0 -DCMAKE_USE_LIBSSH2=0 -DUSE_NGHTTP2=0 -DCURL_WINDOWS_SSPI=0 -DCURL_ZLIB=1 -DCMAKE_USE_GSSAPI=0 -DENABLE_UNIX_SOCKETS=1 -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/curl
+			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+			-DBUILD_CURL_EXE=0 -DCURL_STATICLIB=1 -DENABLE_ARES=0 -DENABLE_THREADED_RESOLVER=1 -DENABLE_DEBUG=0
+			-DENABLE_CURLDEBUG=0 -DBUILD_TESTING=0 -DENABLE_IPV6=1 -DENABLE_MANUAL=0 -DCMAKE_USE_LIBSSH2=0
+			-DUSE_NGHTTP2=0 -DCURL_WINDOWS_SSPI=0 -DCURL_ZLIB=1 -DCMAKE_USE_GSSAPI=0
+			-DCURL_DISABLE_LDAP=1 -DCURL_DISABLE_LDAPS=1 -DCURL_DISABLE_TELNET=1 -DCURL_DISABLE_DICT=1
+			-DCURL_DISABLE_FILE=1 -DCURL_DISABLE_TFTP=1 -DCURL_DISABLE_RTSP=1 -DCURL_DISABLE_POP3=1 -DCURL_DISABLE_IMAP=1
+			-DCURL_DISABLE_SMTP=1 -DCURL_DISABLE_GOPHER=1
+			-DOPENSSL_ROOT_DIR=${OPENSSL_PREFIX} -DCMAKE_USE_OPENSSL=${FEATURE_OPENSSL}
+			-DENABLE_UNIX_SOCKETS=1 -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/curl
 			INSTALL_COMMAND  ""
 		)
 
@@ -195,48 +254,6 @@ if(WIN32)
 	endif()
 
 	#-----------------------------------------------------------------
-	# Copy bundled SDL library to the etl.exe location
-	#-----------------------------------------------------------------
-	if(BUNDLED_SDL AND BUILD_CLIENT) # DLL
-		# # Dummy target just so cmake does not print warnings
-		# add_custom_target(bundled_sdl)
-		# # Enable the SDL2main when the windows main function has been removed....
-		# if(WIN64)
-		# 	file(COPY ${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
-		# 	install(FILES "${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2.dll" DESTINATION "${INSTALL_DEFAULT_BINDIR}")
-		# 	set(SDL32_BUNDLED_LIBRARIES
-		# 			"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2main.lib"
-		# 			"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x64/SDL2.lib"
-		# 	)
-		# 	set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
-		# else(WIN64)
-		# 	file(COPY ${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.dll DESTINATION ${CMAKE_BINARY_DIR})
-		# 	install(FILES "${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.dll" DESTINATION "${INSTALL_DEFAULT_BINDIR}")
-		# 	set(SDL32_BUNDLED_LIBRARIES
-		# 			"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2main.lib"
-		# 			"${CMAKE_CURRENT_LIST_DIR}/sdl2-windows/lib/x86/SDL2.lib"
-		# 	)
-		# 	set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sdl2/include")
-		# endif(WIN64)
-		# set_target_properties(bundled_sdl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-
-		ExternalProject_Add(bundled_sdl
-			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
-			BINARY_DIR	${LIBS_BINARYDIR_DIR}/sdl2
-			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}
-			-DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
-			-DSDL_SHARED=OFF -DSDL_RENDER=OFF -DRENDER_D3D=OFF -DFORCE_STATIC_VCRT=ON -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/sdl2
-			PREFIX ${PROJECT_BINARY_DIR}/sdl2
-		)
-		set(SDL32_BUNDLED_LIBRARIES
-			"${PROJECT_BINARY_DIR}/sdl2/lib/SDL2main.lib"
-			"${PROJECT_BINARY_DIR}/sdl2/lib/SDL2.lib"
-		)
-		set(SDL32_BUNDLED_INCLUDE_DIR "${PROJECT_BINARY_DIR}/sdl2/include")
-		set_target_properties(bundled_sdl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-	endif()
-
-	#-----------------------------------------------------------------
 	# Build bundled OGG and Vorbis file library
 	#-----------------------------------------------------------------
 	if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
@@ -254,15 +271,15 @@ if(WIN32)
 		ENDIF(MSVC)
 
 		IF("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-	        # libogg expects configure to be called on linux to
-	        # generate config_types.h
-		    LIST(APPEND OGG_HEADERS ${OPATH}/include/ogg/config_types.h)
-		    add_custom_command(OUTPUT ${OPATH}/include/ogg/config_types.h
-		        COMMAND ${OPATH}/configure
-		        DEPENDS ${OPATH}/include/ogg/ogg.h  # Hopefully if the libogg version changes, so does this file
+			# libogg expects configure to be called on linux to
+			# generate config_types.h
+			LIST(APPEND OGG_HEADERS ${OPATH}/include/ogg/config_types.h)
+			add_custom_command(OUTPUT ${OPATH}/include/ogg/config_types.h
+				COMMAND ${OPATH}/configure
+				DEPENDS ${OPATH}/include/ogg/ogg.h  # Hopefully if the libogg version changes, so does this file
 													# so configure_types.h will be regenerated.
-		        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-		    )
+				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+			)
 		ENDIF()
 
 		add_library(bundled_ogg STATIC ${OGG_SRC} ${OGG_HEADERS})
@@ -270,82 +287,82 @@ if(WIN32)
 		SET(VPATH "${CMAKE_CURRENT_LIST_DIR}/vorbis")
 
 		SET(VORBIS_SRC
-		    ${VPATH}/lib/analysis.c
-		    ${VPATH}/lib/bitrate.c
-		    ${VPATH}/lib/block.c
-		    ${VPATH}/lib/codebook.c
-		    ${VPATH}/lib/envelope.c
-		    ${VPATH}/lib/floor0.c
-		    ${VPATH}/lib/floor1.c
-		    ${VPATH}/lib/info.c
-		    ${VPATH}/lib/lookup.c
-		    ${VPATH}/lib/lpc.c
-		    ${VPATH}/lib/lsp.c
-		    ${VPATH}/lib/mapping0.c
-		    ${VPATH}/lib/mdct.c
-		    ${VPATH}/lib/psy.c
-		    ${VPATH}/lib/registry.c
-		    ${VPATH}/lib/res0.c
-		    ${VPATH}/lib/sharedbook.c
-		    ${VPATH}/lib/smallft.c
-		    ${VPATH}/lib/synthesis.c
-		    ${VPATH}/lib/vorbisenc.c
-		    ${VPATH}/lib/window.c
+			${VPATH}/lib/analysis.c
+			${VPATH}/lib/bitrate.c
+			${VPATH}/lib/block.c
+			${VPATH}/lib/codebook.c
+			${VPATH}/lib/envelope.c
+			${VPATH}/lib/floor0.c
+			${VPATH}/lib/floor1.c
+			${VPATH}/lib/info.c
+			${VPATH}/lib/lookup.c
+			${VPATH}/lib/lpc.c
+			${VPATH}/lib/lsp.c
+			${VPATH}/lib/mapping0.c
+			${VPATH}/lib/mdct.c
+			${VPATH}/lib/psy.c
+			${VPATH}/lib/registry.c
+			${VPATH}/lib/res0.c
+			${VPATH}/lib/sharedbook.c
+			${VPATH}/lib/smallft.c
+			${VPATH}/lib/synthesis.c
+			${VPATH}/lib/vorbisenc.c
+			${VPATH}/lib/window.c
 		)
 
 		SET(VORBIS_HEADERS
-		    ${VPATH}/lib/backends.h
-		    ${VPATH}/lib/bitrate.h
-		    ${VPATH}/lib/codebook.h
-		    ${VPATH}/lib/codec_internal.h
-		    ${VPATH}/lib/envelope.h
-		    ${VPATH}/lib/modes/floor_all.h
-		    ${VPATH}/lib/books/floor/floor_books.h
-		    ${VPATH}/lib/highlevel.h
-		    ${VPATH}/lib/lookup.h
-		    ${VPATH}/lib/lookup_data.h
-		    ${VPATH}/lib/lpc.h
-		    ${VPATH}/lib/lsp.h
-		    ${VPATH}/lib/masking.h
-		    ${VPATH}/lib/mdct.h
-		    ${VPATH}/lib/misc.h
-		    ${VPATH}/lib/os.h
-		    ${VPATH}/lib/psy.h
-		    ${VPATH}/lib/modes/psych_11.h
-		    ${VPATH}/lib/modes/psych_16.h
-		    ${VPATH}/lib/modes/psych_44.h
-		    ${VPATH}/lib/modes/psych_8.h
-		    ${VPATH}/lib/registry.h
-		    ${VPATH}/lib/books/coupled/res_books_stereo.h
-		    ${VPATH}/lib/books/uncoupled/res_books_uncoupled.h
-		    ${VPATH}/lib/modes/residue_16.h
-		    ${VPATH}/lib/modes/residue_44.h
-		    ${VPATH}/lib/modes/residue_44u.h
-		    ${VPATH}/lib/modes/residue_8.h
-		    ${VPATH}/lib/scales.h
-		    ${VPATH}/lib/modes/setup_11.h
-		    ${VPATH}/lib/modes/setup_16.h
-		    ${VPATH}/lib/modes/setup_22.h
-		    ${VPATH}/lib/modes/setup_32.h
-		    ${VPATH}/lib/modes/setup_44.h
-		    ${VPATH}/lib/modes/setup_44u.h
-		    ${VPATH}/lib/modes/setup_8.h
-		    ${VPATH}/lib/modes/setup_X.h
-		    ${VPATH}/lib/smallft.h
-		    ${VPATH}/lib/window.h
+			${VPATH}/lib/backends.h
+			${VPATH}/lib/bitrate.h
+			${VPATH}/lib/codebook.h
+			${VPATH}/lib/codec_internal.h
+			${VPATH}/lib/envelope.h
+			${VPATH}/lib/modes/floor_all.h
+			${VPATH}/lib/books/floor/floor_books.h
+			${VPATH}/lib/highlevel.h
+			${VPATH}/lib/lookup.h
+			${VPATH}/lib/lookup_data.h
+			${VPATH}/lib/lpc.h
+			${VPATH}/lib/lsp.h
+			${VPATH}/lib/masking.h
+			${VPATH}/lib/mdct.h
+			${VPATH}/lib/misc.h
+			${VPATH}/lib/os.h
+			${VPATH}/lib/psy.h
+			${VPATH}/lib/modes/psych_11.h
+			${VPATH}/lib/modes/psych_16.h
+			${VPATH}/lib/modes/psych_44.h
+			${VPATH}/lib/modes/psych_8.h
+			${VPATH}/lib/registry.h
+			${VPATH}/lib/books/coupled/res_books_stereo.h
+			${VPATH}/lib/books/uncoupled/res_books_uncoupled.h
+			${VPATH}/lib/modes/residue_16.h
+			${VPATH}/lib/modes/residue_44.h
+			${VPATH}/lib/modes/residue_44u.h
+			${VPATH}/lib/modes/residue_8.h
+			${VPATH}/lib/scales.h
+			${VPATH}/lib/modes/setup_11.h
+			${VPATH}/lib/modes/setup_16.h
+			${VPATH}/lib/modes/setup_22.h
+			${VPATH}/lib/modes/setup_32.h
+			${VPATH}/lib/modes/setup_44.h
+			${VPATH}/lib/modes/setup_44u.h
+			${VPATH}/lib/modes/setup_8.h
+			${VPATH}/lib/modes/setup_X.h
+			${VPATH}/lib/smallft.h
+			${VPATH}/lib/window.h
 		)
 
 		SET(VORBIS_PUB_HEADERS
-		    ${VPATH}/include/vorbis/codec.h
-		    ${VPATH}/include/vorbis/vorbisenc.h
-		    ${VPATH}/include/vorbis/vorbisfile.h
+			${VPATH}/include/vorbis/codec.h
+			${VPATH}/include/vorbis/vorbisenc.h
+			${VPATH}/include/vorbis/vorbisfile.h
 		)
 
 		INCLUDE_DIRECTORIES("${VPATH}/include" "${VPATH}/lib")
 
 		IF(MSVC)
 			#ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
-		    LIST(APPEND VORBIS_SRC ${VPATH}/win32/vorbis.def)
+			LIST(APPEND VORBIS_SRC ${VPATH}/win32/vorbis.def)
 		ENDIF(MSVC)
 
 		add_library(bundled_ogg_vorbis STATIC ${VORBIS_SRC} ${VORBIS_HEADERS} ${VORBIS_PUB_HEADERS})
@@ -381,11 +398,15 @@ if(WIN32)
 	#-----------------------------------------------------------------
 	if(BUNDLED_OPENAL AND BUILD_CLIENT)
 		ExternalProject_Add(bundled_openal
-				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
-				BINARY_DIR	${LIBS_BINARYDIR_DIR}/openal
-				CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal -DLIBTYPE=STATIC -DFORCE_STATIC_VCRT=1 -DALSOFT_UTILS=0 -DALSOFT_NO_CONFIG_UTIL=1 -DALSOFT_EXAMPLES=0 -DALSOFT_TESTS=0 -DALSOFT_CONFIG=0 -DALSOFT_HRTF_DEFS=0
-				INSTALL_COMMAND  ""
-				)
+			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
+			BINARY_DIR	${LIBS_BINARYDIR_DIR}/openal
+			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+			-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal
+			-DLIBTYPE=STATIC -DFORCE_STATIC_VCRT=1 -DALSOFT_UTILS=0 -DALSOFT_NO_CONFIG_UTIL=1
+			-DALSOFT_EXAMPLES=0 -DALSOFT_TESTS=0 -DALSOFT_CONFIG=0 -DALSOFT_HRTF_DEFS=0
+			INSTALL_COMMAND  ""
+		)
 
 		ExternalProject_Get_Property(bundled_openal binary_dir)
 
@@ -505,36 +526,6 @@ elseif(UNIX)
 		)
 		set(JPEG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/jpegturbo/lib/libturbojpeg.a")
 		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/jpegturbo/include")
-	endif()
-
-	#-----------------------------------------------------------------
-	# Build bundled SDL library
-	#-----------------------------------------------------------------
-	if(BUNDLED_SDL AND BUILD_CLIENT)
-		# add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/sdl2/build/.libs/libSDL2.a
-		# 	COMMAND make clean || true
-		# 	COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
-		# 	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/sdl2
-		# )
-		# add_custom_target(bundled_sdl
-		# 	DEPENDS ${CMAKE_CURRENT_LIST_DIR}/sdl2/build/.libs/libSDL2.a
-		# )
-		ExternalProject_Add(
-			bundled_sdl
-			# SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/sdl2
-			DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}/downloads
-			URL https://www.libsdl.org/release/SDL2-2.0.7.tar.gz
-			CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/sdl2 ${CROSS_COMPILE32_FLAGS}
-			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/sdl2
-			BUILD_COMMAND make
-			INSTALL_COMMAND make install
-			BUILD_IN_SOURCE 1
-		)
-		if(CMAKE_SYSTEM MATCHES "Darwin")
-			set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_CURRENT_BINARY_DIR}/libs/sdl2/lib/libSDL2main.a")
-		endif(CMAKE_SYSTEM MATCHES "Darwin")
-		set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${CMAKE_CURRENT_BINARY_DIR}/libs/sdl2/lib/libSDL2.a")
-		set(SDL32_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/sdl2/include")
 	endif()
 
 	#-----------------------------------------------------------------
@@ -669,6 +660,33 @@ elseif(UNIX)
 	elseif(BUNDLED_OPENAL_INCLUDE AND BUILD_CLIENT)
 		include_directories(SYSTEM "${CMAKE_CURRENT_LIST_DIR}/openal/include")
 	endif()
+endif()
+
+#-----------------------------------------------------------------
+# Copy bundled SDL library to the etl.exe location
+#-----------------------------------------------------------------
+if(BUNDLED_SDL AND BUILD_CLIENT)
+	# ${CMAKE_CURRENT_BINARY_DIR}/libs/sdl2
+	# ${PROJECT_BINARY_DIR}/sdl2
+	ExternalProject_Add(bundled_sdl
+		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
+		# DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}/sdl2
+		# URL https://www.libsdl.org/release/SDL2-2.0.7.tar.gz
+		BINARY_DIR	${LIBS_BINARYDIR_DIR}/sdl2
+		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}
+		-DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="10.7"
+		-DVIDEO_OPENGLES=${FEATURE_RENDERER_GLES} -DSDL_SHARED=OFF -DSDL_RENDER=OFF -DRENDER_D3D=OFF -DFORCE_STATIC_VCRT=ON
+		-DCMAKE_INSTALL_PREFIX=${LIBS_BINARYDIR_DIR}/sdl2
+		PREFIX ${LIBS_BINARYDIR_DIR}/sdl2
+	)
+
+	if(CMAKE_SYSTEM MATCHES "Darwin" OR WIN32)
+		set(SDL32_BUNDLED_LIBRARIES "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2main${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	endif()
+	set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+	set(SDL32_BUNDLED_INCLUDE_DIR "${LIBS_BINARYDIR_DIR}/sdl2/include")
+	set_target_properties(bundled_sdl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
 #-----------------------------------------------------------------
