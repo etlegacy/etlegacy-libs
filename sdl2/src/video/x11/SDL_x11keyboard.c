@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -267,7 +267,7 @@ X11_InitKeyboard(_THIS)
     int best_index;
     int distance;
     BOOL xkb_repeat = 0;
-
+    
     X11_XAutoRepeatOn(data->display);
 
 #if SDL_VIDEO_DRIVER_X11_HAS_XKBKEYCODETOKEYSYM
@@ -283,11 +283,11 @@ X11_InitKeyboard(_THIS)
         X11_XkbSetDetectableAutoRepeat(data->display, True, &xkb_repeat);
     }
 #endif
-
+    
     /* Open a connection to the X input manager */
 #ifdef X_HAVE_UTF8_STRING
     if (SDL_X11_HAVE_UTF8) {
-        /* Set the locale, and call XSetLocaleModifiers before XOpenIM so that
+        /* Set the locale, and call XSetLocaleModifiers before XOpenIM so that 
            Compose keys will work correctly. */
         char *prev_locale = setlocale(LC_ALL, NULL);
         char *prev_xmods  = X11_XSetLocaleModifiers(NULL);
@@ -307,7 +307,7 @@ X11_InitKeyboard(_THIS)
 
         /* IBus resends some key events that were filtered by XFilterEvents
            when it is used via XIM which causes issues. Prevent this by forcing
-           @im=none if XMODIFIERS contains @im=ibus. IBus can still be used via
+           @im=none if XMODIFIERS contains @im=ibus. IBus can still be used via 
            the DBus implementation, which also has support for pre-editing. */
 #ifdef HAVE_IBUS_IBUS_H
         if (env_xmods && SDL_strstr(env_xmods, "@im=ibus") != NULL) {
@@ -380,7 +380,7 @@ X11_InitKeyboard(_THIS)
         SDL_Keycode keymap[SDL_NUM_SCANCODES];
 
         printf
-            ("Keyboard layout unknown, please send the following to the SDL mailing list (sdl@libsdl.org):\n");
+            ("Keyboard layout unknown, please report the following to the SDL forums/mailing list (https://discourse.libsdl.org/):\n");
 
         /* Determine key_layout - only works on US QWERTY layout */
         SDL_GetDefaultKeymap(keymap);
@@ -484,7 +484,7 @@ X11_QuitKeyboard(_THIS)
 
 #if SDL_VIDEO_DRIVER_X11_HAS_XKBKEYCODETOKEYSYM
     if (data->xkb) {
-        X11_XkbFreeClientMap(data->xkb, 0, True);
+        X11_XkbFreeKeyboard(data->xkb, 0, True);
         data->xkb = NULL;
     }
 #endif
