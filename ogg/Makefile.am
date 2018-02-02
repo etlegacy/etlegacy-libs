@@ -12,8 +12,6 @@ m4data_DATA = ogg.m4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = ogg.pc
 
-ACLOCAL_AMFLAGS = -I m4
-
 EXTRA_DIST = README.md AUTHORS CHANGES COPYING \
 	libogg.spec libogg.spec.in \
 	ogg.m4 ogg.pc.in ogg-uninstalled.pc.in \
