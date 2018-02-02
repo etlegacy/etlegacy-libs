@@ -9,6 +9,7 @@
 SampleConverter *CreateSampleConverter(enum DevFmtType srcType, enum DevFmtType dstType, ALsizei numchans, ALsizei srcRate, ALsizei dstRate)
 {
     SampleConverter *converter;
+    ALsizei step;
 
     if(numchans <= 0 || srcRate <= 0 || dstRate <= 0)
         return NULL;
@@ -21,17 +22,21 @@ SampleConverter *CreateSampleConverter(enum DevFmtType srcType, enum DevFmtType 
     converter->mDstTypeSize = BytesFromDevFmt(dstType);
 
     converter->mSrcPrepCount = 0;
-
     converter->mFracOffset = 0;
-    converter->mIncrement = (ALsizei)clampu64((ALuint64)srcRate*FRACTIONONE/dstRate,
-                                              1, MAX_PITCH*FRACTIONONE);
+
+    /* Have to set the mixer FPU mode since that's what the resampler code expects. */
+    START_MIXER_MODE();
+    step = fastf2i(minf((ALdouble)srcRate / dstRate, MAX_PITCH)*FRACTIONONE + 0.5f);
+    converter->mIncrement = maxi(step, 1);
     if(converter->mIncrement == FRACTIONONE)
         converter->mResample = Resample_copy32_C;
     else
     {
         /* TODO: Allow other resamplers. */
-        converter->mResample = SelectResampler(LinearResampler);
+        BsincPrepare(converter->mIncrement, &converter->mState.bsinc);
+        converter->mResample = SelectResampler(BSincResampler);
     }
+    END_MIXER_MODE();
 
     return converter;
 }
@@ -59,7 +64,7 @@ static inline ALfloat Sample_ALushort(ALushort val)
 static inline ALfloat Sample_ALint(ALint val)
 { return (val>>7) * (1.0f/16777216.0f); }
 static inline ALfloat Sample_ALuint(ALuint val)
-{ return ((ALint)(val>>7) - 16777216) * (1.0f/16777216.0f); }
+{ return Sample_ALint(val - INT_MAX - 1); }
 
 static inline ALfloat Sample_ALfloat(ALfloat val)
 { return val; }
@@ -113,17 +118,17 @@ static void LoadSamples(ALfloat *dst, const ALvoid *src, ALint srcstep, enum Dev
 
 
 static inline ALbyte ALbyte_Sample(ALfloat val)
-{ return (ALbyte)clampf(val*128.0f, -128.0f, 127.0f); }
+{ return fastf2i(clampf(val*128.0f, -128.0f, 127.0f)); }
 static inline ALubyte ALubyte_Sample(ALfloat val)
 { return ALbyte_Sample(val)+128; }
 
 static inline ALshort ALshort_Sample(ALfloat val)
-{ return (ALshort)clampf(val*32768.0f, -32768.0f, 32767.0f); }
+{ return fastf2i(clampf(val*32768.0f, -32768.0f, 32767.0f)); }
 static inline ALushort ALushort_Sample(ALfloat val)
 { return ALshort_Sample(val)+32768; }
 
 static inline ALint ALint_Sample(ALfloat val)
-{ return (ALint)clampf(val*16777216.0f, -16777216.0f, 16777215.0f) << 7; }
+{ return fastf2i(clampf(val*16777216.0f, -16777216.0f, 16777215.0f)) << 7; }
 static inline ALuint ALuint_Sample(ALfloat val)
 { return ALint_Sample(val)+INT_MAX+1; }
 
@@ -194,6 +199,12 @@ ALsizei SampleConverterAvailableOut(SampleConverter *converter, ALsizei srcframe
         prepcount = 0;
     }
 
+    if(srcframes < 1)
+    {
+        /* No output samples if there's no input samples. */
+        return 0;
+    }
+
     if(prepcount < MAX_POST_SAMPLES+MAX_PRE_SAMPLES &&
        MAX_POST_SAMPLES+MAX_PRE_SAMPLES-prepcount >= srcframes)
     {
@@ -208,7 +219,7 @@ ALsizei SampleConverterAvailableOut(SampleConverter *converter, ALsizei srcframe
     DataSize64 -= DataPosFrac;
 
     /* If we have a full prep, we can generate at least one sample. */
-    return (ALsizei)clampu64(DataSize64/increment, 1, INT_MAX);
+    return (ALsizei)clampu64((DataSize64 + increment-1)/increment, 1, BUFFERSIZE);
 }
 
 
@@ -219,7 +230,8 @@ ALsizei SampleConverterInput(SampleConverter *converter, const ALvoid **src, ALs
     const ALsizei increment = converter->mIncrement;
     ALsizei pos = 0;
 
-    while(pos < dstframes)
+    START_MIXER_MODE();
+    while(pos < dstframes && *srcframes > 0)
     {
         ALfloat *restrict SrcData = ASSUME_ALIGNED(converter->mSrcSamples, 16);
         ALfloat *restrict DstData = ASSUME_ALIGNED(converter->mDstSamples, 16);
@@ -241,7 +253,8 @@ ALsizei SampleConverterInput(SampleConverter *converter, const ALvoid **src, ALs
             }
             *src = (const ALbyte*)*src + SrcFrameSize*-prepcount;
             *srcframes += prepcount;
-            prepcount = 0;
+            converter->mSrcPrepCount = 0;
+            continue;
         }
         toread = mini(*srcframes, BUFFERSIZE-(MAX_POST_SAMPLES+MAX_PRE_SAMPLES));
 
@@ -253,7 +266,7 @@ ALsizei SampleConverterInput(SampleConverter *converter, const ALvoid **src, ALs
              */
             for(chan = 0;chan < converter->mNumChannels;chan++)
                 LoadSamples(&converter->Chan[chan].mPrevSamples[prepcount],
-                    (const ALbyte*)src + converter->mSrcTypeSize*chan,
+                    (const ALbyte*)*src + converter->mSrcTypeSize*chan,
                     converter->mNumChannels, converter->mSrcType, toread
                 );
 
@@ -269,13 +282,13 @@ ALsizei SampleConverterInput(SampleConverter *converter, const ALvoid **src, ALs
         DataSize64 -= DataPosFrac;
 
         /* If we have a full prep, we can generate at least one sample. */
-        DstSize = (ALsizei)clampu64(DataSize64/increment, 1, BUFFERSIZE);
+        DstSize = (ALsizei)clampu64((DataSize64 + increment-1)/increment, 1, BUFFERSIZE);
         DstSize = mini(DstSize, dstframes-pos);
 
         for(chan = 0;chan < converter->mNumChannels;chan++)
         {
             const ALbyte *SrcSamples = (const ALbyte*)*src + converter->mSrcTypeSize*chan;
-            ALbyte *DstSamples = (ALbyte*)dst + converter->mSrcTypeSize*chan;
+            ALbyte *DstSamples = (ALbyte*)dst + converter->mDstTypeSize*chan;
             const ALfloat *ResampledData;
             ALsizei SrcDataEnd;
 
@@ -294,7 +307,7 @@ ALsizei SampleConverterInput(SampleConverter *converter, const ALvoid **src, ALs
             SrcDataEnd = (DataPosFrac + increment*DstSize)>>FRACTIONBITS;
             if(SrcDataEnd >= prepcount+toread)
                 memset(converter->Chan[chan].mPrevSamples, 0,
-                    sizeof(converter->Chan[chan].mPrevSamples));
+                       sizeof(converter->Chan[chan].mPrevSamples));
             else
             {
                 size_t len = mini(MAX_PRE_SAMPLES+MAX_POST_SAMPLES, prepcount+toread-SrcDataEnd);
@@ -305,7 +318,7 @@ ALsizei SampleConverterInput(SampleConverter *converter, const ALvoid **src, ALs
             }
 
             /* Now resample, and store the result in the output buffer. */
-            ResampledData = converter->mResample(NULL,
+            ResampledData = converter->mResample(&converter->mState,
                 SrcData+MAX_PRE_SAMPLES, DataPosFrac, increment,
                 DstData, DstSize
             );
@@ -329,6 +342,7 @@ ALsizei SampleConverterInput(SampleConverter *converter, const ALvoid **src, ALs
         dst = (ALbyte*)dst + DstFrameSize*DstSize;
         pos += DstSize;
     }
+    END_MIXER_MODE();
 
     return pos;
 }

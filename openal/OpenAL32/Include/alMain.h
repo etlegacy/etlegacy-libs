@@ -409,6 +409,24 @@ inline size_t RoundUp(size_t value, size_t r)
     return value - (value%r);
 }
 
+/* Scales the given value using 64-bit integer math, rounding the result. */
+inline ALuint64 ScaleRound(ALuint64 val, ALuint64 new_scale, ALuint64 old_scale)
+{
+    return (val*new_scale + old_scale/2) / old_scale;
+}
+
+/* Scales the given value using 64-bit integer math, flooring the result. */
+inline ALuint64 ScaleFloor(ALuint64 val, ALuint64 new_scale, ALuint64 old_scale)
+{
+    return val * new_scale / old_scale;
+}
+
+/* Scales the given value using 64-bit integer math, ceiling the result. */
+inline ALuint64 ScaleCeil(ALuint64 val, ALuint64 new_scale, ALuint64 old_scale)
+{
+    return (val*new_scale + old_scale-1) / old_scale;
+}
+
 /* Fast float-to-int conversion. Assumes the FPU is already in round-to-zero
  * mode. */
 inline ALint fastf2i(ALfloat f)
@@ -425,35 +443,11 @@ inline ALint fastf2i(ALfloat f)
 #endif
 }
 
-/* Fast float-to-uint conversion. Assumes the FPU is already in round-to-zero
- * mode. */
-inline ALuint fastf2u(ALfloat f)
-{ return fastf2i(f); }
-
 
 enum DevProbe {
     ALL_DEVICE_PROBE,
     CAPTURE_DEVICE_PROBE
 };
-
-typedef struct {
-    ALCenum (*OpenPlayback)(ALCdevice*, const ALCchar*);
-    void (*ClosePlayback)(ALCdevice*);
-    ALCboolean (*ResetPlayback)(ALCdevice*);
-    ALCboolean (*StartPlayback)(ALCdevice*);
-    void (*StopPlayback)(ALCdevice*);
-
-    ALCenum (*OpenCapture)(ALCdevice*, const ALCchar*);
-    void (*CloseCapture)(ALCdevice*);
-    void (*StartCapture)(ALCdevice*);
-    void (*StopCapture)(ALCdevice*);
-    ALCenum (*CaptureSamples)(ALCdevice*, void*, ALCuint);
-    ALCuint (*AvailableSamples)(ALCdevice*);
-} BackendFuncs;
-
-ALCboolean alc_qsa_init(BackendFuncs *func_list);
-void alc_qsa_deinit(void);
-void alc_qsa_probe(enum DevProbe type);
 
 struct ALCbackend;
 
@@ -794,7 +788,7 @@ struct ALCdevice_struct
     DistanceComp ChannelDelay[MAX_OUTPUT_CHANNELS];
 
     /* Dithering control. */
-    bool DitherEnabled;
+    ALfloat DitherDepth;
     ALuint DitherSeed;
 
     /* Running count of the mixer invocations, in 31.1 fixed point. This
@@ -804,21 +798,13 @@ struct ALCdevice_struct
      */
     RefCount MixCount;
 
-    /* Default effect slot */
-    struct ALeffectslot *DefaultSlot;
-
     // Contexts created on this device
     ATOMIC(ALCcontext*) ContextList;
 
     almtx_t BackendLock;
     struct ALCbackend *Backend;
 
-    void *ExtraData; // For the backend's use
-
     ALCdevice *volatile next;
-
-    /* Memory space used by the default slot (Playback devices only) */
-    alignas(16) ALCbyte _slot_mem[];
 };
 
 // Frequency was requested by the app or config file
@@ -880,12 +866,15 @@ struct ALCcontext_struct {
 
     ATOMIC(struct ALeffectslotArray*) ActiveAuxSlots;
 
+    /* Default effect slot */
+    struct ALeffectslot *DefaultSlot;
+
     ALCdevice  *Device;
     const ALCchar *ExtensionList;
 
     ALCcontext *volatile next;
 
-    /* Memory space used by the listener */
+    /* Memory space used by the listener (and possibly default effect slot) */
     alignas(16) ALCbyte _listener_mem[];
 };
 
@@ -909,6 +898,9 @@ void ALCcontext_ProcessUpdates(ALCcontext *context);
 typedef struct {
 #ifdef HAVE_FENV_H
     DERIVE_FROM_TYPE(fenv_t);
+#ifdef _WIN32
+    int round_mode;
+#endif
 #else
     int state;
 #endif
@@ -918,6 +910,17 @@ typedef struct {
 } FPUCtl;
 void SetMixerFPUMode(FPUCtl *ctl);
 void RestoreFPUMode(const FPUCtl *ctl);
+#ifdef __GNUC__
+/* Use an alternate macro set with GCC to avoid accidental continue or break
+ * statements within the mixer mode.
+ */
+#define START_MIXER_MODE() __extension__({ FPUCtl _oldMode; SetMixerFPUMode(&_oldMode);
+#define END_MIXER_MODE() RestoreFPUMode(&_oldMode); })
+#else
+#define START_MIXER_MODE() do { FPUCtl _oldMode; SetMixerFPUMode(&_oldMode);
+#define END_MIXER_MODE() RestoreFPUMode(&_oldMode); } while(0)
+#endif
+#define LEAVE_MIXER_MODE() RestoreFPUMode(&_oldMode)
 
 
 typedef struct ll_ringbuffer ll_ringbuffer_t;

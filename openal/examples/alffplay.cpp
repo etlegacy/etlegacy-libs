@@ -16,6 +16,7 @@
 #include <atomic>
 #include <mutex>
 #include <deque>
+#include <array>
 
 extern "C" {
 #include "libavcodec/avcodec.h"
@@ -40,6 +41,7 @@ namespace
 
 static const std::string AppName("alffplay");
 
+static bool do_direct_out = false;
 static bool has_latency_check = false;
 static LPALGETSOURCEDVSOFT alGetSourcedvSOFT;
 
@@ -730,6 +732,17 @@ int AudioState::handler()
     alGenBuffers(AUDIO_BUFFER_QUEUE_SIZE, mBuffers);
     alGenSources(1, &mSource);
 
+    if(do_direct_out)
+    {
+        if(!alIsExtensionPresent("AL_SOFT_direct_channels"))
+            std::cerr<< "AL_SOFT_direct_channels not supported for direct output" <<std::endl;
+        else
+        {
+            alSourcei(mSource, AL_DIRECT_CHANNELS_SOFT, AL_TRUE);
+            std::cout<< "Direct out enabled" <<std::endl;
+        }
+    }
+
     while(alGetError() == AL_NO_ERROR && !mMovie->mQuit.load())
     {
         /* First remove any processed buffers. */
@@ -1358,7 +1371,7 @@ int main(int argc, char *argv[])
 
     if(argc < 2)
     {
-        std::cerr<< "Usage: "<<argv[0]<<" [-device <device name>] <files...>" <<std::endl;
+        std::cerr<< "Usage: "<<argv[0]<<" [-device <device name>] [-direct] <files...>" <<std::endl;
         return 1;
     }
     /* Register all formats and codecs */
@@ -1418,12 +1431,9 @@ int main(int argc, char *argv[])
         ALCdevice *dev = NULL;
         if(argc > 3 && strcmp(argv[1], "-device") == 0)
         {
+            fileidx = 3;
             dev = alcOpenDevice(argv[2]);
-            if(dev)
-            {
-                fileidx = 3;
-                return dev;
-            }
+            if(dev) return dev;
             std::cerr<< "Failed to open \""<<argv[2]<<"\" - trying default" <<std::endl;
         }
         return alcOpenDevice(nullptr);
@@ -1435,6 +1445,19 @@ int main(int argc, char *argv[])
         if(context)
             alcDestroyContext(context);
         return 1;
+    }
+
+    const ALCchar *name = nullptr;
+    if(alcIsExtensionPresent(device, "ALC_ENUMERATE_ALL_EXT"))
+        name = alcGetString(device, ALC_ALL_DEVICES_SPECIFIER);
+    if(!name || alcGetError(device) != AL_NO_ERROR)
+        name = alcGetString(device, ALC_DEVICE_SPECIFIER);
+    std::cout<< "Opened \""<<name<<"\"" <<std::endl;
+
+    if(fileidx < argc && strcmp(argv[fileidx], "-direct") == 0)
+    {
+        ++fileidx;
+        do_direct_out = true;
     }
 
     while(fileidx < argc && !movState)

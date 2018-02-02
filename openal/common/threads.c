@@ -257,7 +257,7 @@ int alcnd_timedwait(alcnd_t *cond, almtx_t *mtx, const struct timespec *time_poi
     else
     {
         sleeptime  = (time_point->tv_nsec - curtime.tv_nsec + 999999)/1000000;
-        sleeptime += (time_point->tv_sec - curtime.tv_sec)*1000;
+        sleeptime += (DWORD)(time_point->tv_sec - curtime.tv_sec)*1000;
         if(SleepConditionVariableCS(cond, mtx, sleeptime) != 0)
             return althrd_success;
     }
@@ -364,7 +364,7 @@ int alcnd_timedwait(alcnd_t *cond, almtx_t *mtx, const struct timespec *time_poi
     else
     {
         sleeptime  = (time_point->tv_nsec - curtime.tv_nsec + 999999)/1000000;
-        sleeptime += (time_point->tv_sec - curtime.tv_sec)*1000;
+        sleeptime += (DWORD)(time_point->tv_sec - curtime.tv_sec)*1000;
     }
 
     IncrementRef(&icond->wait_count);
@@ -500,6 +500,8 @@ void althrd_setname(althrd_t thr, const char *name)
 #if defined(PTHREAD_SETNAME_NP_ONE_PARAM)
     if(althrd_equal(thr, althrd_current()))
         pthread_setname_np(name);
+#elif defined(PTHREAD_SETNAME_NP_THREE_PARAMS)
+    pthread_setname_np(thr, "%s", (void*)name);
 #else
     pthread_setname_np(thr, name);
 #endif

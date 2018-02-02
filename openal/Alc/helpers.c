@@ -40,6 +40,11 @@
 #include <dirent.h>
 #endif
 
+#ifdef __FreeBSD__
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
+
 #ifndef AL_NO_UID_DEFS
 #if defined(HAVE_GUIDDEF_H) || defined(HAVE_INITGUID_H)
 #define INITGUID
@@ -113,8 +118,10 @@ DEFINE_PROPERTYKEY(PKEY_AudioEndpoint_GUID, 0x1da5d803, 0xd492, 0x4edd, 0x8c, 0x
 
 extern inline ALuint NextPowerOf2(ALuint value);
 extern inline size_t RoundUp(size_t value, size_t r);
+extern inline ALuint64 ScaleRound(ALuint64 val, ALuint64 new_scale, ALuint64 old_scale);
+extern inline ALuint64 ScaleFloor(ALuint64 val, ALuint64 new_scale, ALuint64 old_scale);
+extern inline ALuint64 ScaleCeil(ALuint64 val, ALuint64 new_scale, ALuint64 old_scale);
 extern inline ALint fastf2i(ALfloat f);
-extern inline ALuint fastf2u(ALfloat f);
 
 
 ALuint CPUCapFlags = 0;
@@ -289,6 +296,13 @@ void SetMixerFPUMode(FPUCtl *ctl)
 {
 #ifdef HAVE_FENV_H
     fegetenv(STATIC_CAST(fenv_t, ctl));
+#ifdef _WIN32
+    /* HACK: A nasty bug in MinGW-W64 causes fegetenv and fesetenv to not save
+     * and restore the FPU rounding mode, so we have to do it manually. Don't
+     * know if this also applies to MSVC.
+     */
+    ctl->round_mode = fegetround();
+#endif
 #if defined(__GNUC__) && defined(HAVE_SSE)
     /* FIXME: Some fegetenv implementations can get the SSE environment too?
      * How to tell when it does? */
@@ -335,6 +349,9 @@ void RestoreFPUMode(const FPUCtl *ctl)
 {
 #ifdef HAVE_FENV_H
     fesetenv(STATIC_CAST(fenv_t, ctl));
+#ifdef _WIN32
+    fesetround(ctl->round_mode);
+#endif
 #if defined(__GNUC__) && defined(HAVE_SSE)
     if((CPUCapFlags&CPU_CAP_SSE))
         __asm__ __volatile__("ldmxcsr %0" : : "m" (*&ctl->sse_state));
@@ -707,9 +724,22 @@ void UnmapFileMem(const struct FileMapping *mapping)
 al_string GetProcPath(void)
 {
     al_string ret = AL_STRING_INIT_STATIC();
-    const char *fname;
     char *pathname, *sep;
     size_t pathlen;
+
+#ifdef __FreeBSD__
+    int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
+    mib[3] = getpid();
+    if (sysctl(mib, 4, NULL, &pathlen, NULL, 0) == -1) {
+        WARN("Failed to sysctl kern.proc.pathname.%d: %s\n", mib[3], strerror(errno));
+        return ret;
+    }
+
+    pathname = malloc(pathlen + 1);
+    sysctl(mib, 4, (void*)pathname, &pathlen, NULL, 0);
+    pathname[pathlen] = 0;
+#else
+    const char *fname;
     ssize_t len;
 
     pathlen = 256;
@@ -738,6 +768,8 @@ al_string GetProcPath(void)
     }
 
     pathname[len] = 0;
+#endif
+
     sep = strrchr(pathname, '/');
     if(sep)
         alstr_copy_range(&ret, pathname, sep);

@@ -142,11 +142,11 @@ static inline HrtfDirectMixerFunc SelectHrtfMixer(void)
 
 /* Prior to VS2013, MSVC lacks the round() family of functions. */
 #if defined(_MSC_VER) && _MSC_VER < 1800
-static long lroundf(float val)
+static float roundf(float val)
 {
-    if(val < 0.0)
-        return fastf2i(ceilf(val-0.5f));
-    return fastf2i(floorf(val+0.5f));
+    if(val < 0.0f)
+        return ceilf(val-0.5f);
+    return floorf(val+0.5f);
 }
 #endif
 
@@ -214,7 +214,7 @@ static aluVector aluMatrixfVector(const aluMatrixf *mtx, const aluVector *vec)
  * modified for use with an interpolated increment for buttery-smooth pitch
  * changes.
  */
-static ALboolean BsincPrepare(const ALuint increment, BsincState *state)
+ALboolean BsincPrepare(const ALuint increment, BsincState *state)
 {
     static const ALfloat scaleBase = 1.510578918e-01f, scaleRange = 1.177936623e+00f;
     static const ALuint m[BSINC_SCALE_COUNT] = { 24, 24, 24, 24, 24, 24, 24, 20, 20, 20, 16, 16, 16, 12, 12, 12 };
@@ -231,7 +231,7 @@ static ALboolean BsincPrepare(const ALuint increment, BsincState *state)
         { 24, 24, 24, 24, 24, 24, 24, 20, 20, 20, 16, 16, 16, 12, 12, 0 }
     };
     ALfloat sf;
-    ALuint si, pi;
+    ALsizei si, pi;
     ALboolean uncut = AL_TRUE;
 
     if(increment > FRACTIONONE)
@@ -249,7 +249,7 @@ static ALboolean BsincPrepare(const ALuint increment, BsincState *state)
         else
         {
             sf = (BSINC_SCALE_COUNT - 1) * (sf - scaleBase) * scaleRange;
-            si = fastf2u(sf);
+            si = fastf2i(sf);
             /* The interpolation factor is fit to this diagonally-symmetric
              * curve to reduce the transition ripple caused by interpolating
              * different scales of the sinc function.
@@ -1030,7 +1030,7 @@ static void CalcNonAttnSourceParams(ALvoice *voice, const struct ALvoiceProps *p
     {
         SendSlots[i] = props->Send[i].Slot;
         if(!SendSlots[i] && i == 0)
-            SendSlots[i] = Device->DefaultSlot;
+            SendSlots[i] = ALContext->DefaultSlot;
         if(!SendSlots[i] || SendSlots[i]->Params.EffectType == AL_EFFECT_NULL)
         {
             SendSlots[i] = NULL;
@@ -1100,7 +1100,7 @@ static void CalcAttnSourceParams(ALvoice *voice, const struct ALvoiceProps *prop
     {
         SendSlots[i] = props->Send[i].Slot;
         if(!SendSlots[i] && i == 0)
-            SendSlots[i] = Device->DefaultSlot;
+            SendSlots[i] = ALContext->DefaultSlot;
         if(!SendSlots[i] || SendSlots[i]->Params.EffectType == AL_EFFECT_NULL)
         {
             SendSlots[i] = NULL;
@@ -1526,11 +1526,37 @@ static void ApplyDistanceComp(ALfloatBUFFERSIZE *restrict Samples, DistanceComp 
     }
 }
 
+static void ApplyDither(ALfloatBUFFERSIZE *restrict Samples, ALuint *dither_seed,
+                        const ALfloat quant_scale, const ALsizei SamplesToDo,
+                        const ALsizei numchans)
+{
+    const ALfloat invscale = 1.0f / quant_scale;
+    ALuint seed = *dither_seed;
+    ALsizei c, i;
 
-/* NOTE: Non-dithered conversions have unused extra parameters. */
-static inline ALfloat aluF2F(ALfloat val, ...)
+    /* Dithering. Step 1, generate whitenoise (uniform distribution of random
+     * values between -1 and +1). Step 2 is to add the noise to the samples,
+     * before rounding and after scaling up to the desired quantization depth.
+     */
+    for(c = 0;c < numchans;c++)
+    {
+        ALfloat *restrict samples = Samples[c];
+        for(i = 0;i < SamplesToDo;i++)
+        {
+            ALfloat val = samples[i] * quant_scale;
+            ALuint rng0 = dither_rng(&seed);
+            ALuint rng1 = dither_rng(&seed);
+            val += (ALfloat)(rng0*(1.0/UINT_MAX) - rng1*(1.0/UINT_MAX));
+            samples[i] = roundf(val) * invscale;
+        }
+    }
+    *dither_seed = seed;
+}
+
+
+static inline ALfloat Conv_ALfloat(ALfloat val)
 { return val; }
-static inline ALint aluF2I(ALfloat val, ...)
+static inline ALint Conv_ALint(ALfloat val)
 {
     /* Floats only have a 24-bit mantissa, so [-16777216, +16777216] is the max
      * integer range normalized floats can be safely converted to (a bit of the
@@ -1538,87 +1564,58 @@ static inline ALint aluF2I(ALfloat val, ...)
      */
     return fastf2i(clampf(val*16777216.0f, -16777216.0f, 16777215.0f))<<7;
 }
-static inline ALshort aluF2S(ALfloat val, ...)
+static inline ALshort Conv_ALshort(ALfloat val)
 { return fastf2i(clampf(val*32768.0f, -32768.0f, 32767.0f)); }
-static inline ALbyte aluF2B(ALfloat val, ...)
+static inline ALbyte Conv_ALbyte(ALfloat val)
 { return fastf2i(clampf(val*128.0f, -128.0f, 127.0f)); }
 
-/* Dithered conversion functions. Only applies to 8- and 16-bit output for now,
- * as 32-bit int and float are at the limits of the rendered sample depth. This
- * can change if the dithering bit depth becomes configurable (effectively
- * quantizing to a lower bit depth than the output is capable of).
- */
-static inline ALshort aluF2SDithered(ALfloat val, const ALfloat dither_val)
-{
-    val = val*32768.0f + dither_val;
-    return lroundf(clampf(val, -32768.0f, 32767.0f));
-}
-static inline ALbyte aluF2BDithered(ALfloat val, const ALfloat dither_val)
-{
-    val = val*128.0f + dither_val;
-    return lroundf(clampf(val, -128.0f, 127.0f));
-}
-
 /* Define unsigned output variations. */
-#define DECL_TEMPLATE(T, Name, func, O)                     \
-static inline T Name(ALfloat val, const ALfloat dither_val) \
-{ return func(val, dither_val)+O; }
+#define DECL_TEMPLATE(T, func, O)                             \
+static inline T Conv_##T(ALfloat val) { return func(val)+O; }
 
-DECL_TEMPLATE(ALubyte, aluF2UB, aluF2B, 128)
-DECL_TEMPLATE(ALushort, aluF2US, aluF2S, 32768)
-DECL_TEMPLATE(ALuint, aluF2UI, aluF2I, 2147483648u)
-DECL_TEMPLATE(ALubyte, aluF2UBDithered, aluF2BDithered, 128)
-DECL_TEMPLATE(ALushort, aluF2USDithered, aluF2SDithered, 32768)
+DECL_TEMPLATE(ALubyte, Conv_ALbyte, 128)
+DECL_TEMPLATE(ALushort, Conv_ALshort, 32768)
+DECL_TEMPLATE(ALuint, Conv_ALint, 2147483648u)
 
 #undef DECL_TEMPLATE
 
-#define DECL_TEMPLATE(T, D, func)                                             \
-static void Write##T##D(const ALfloatBUFFERSIZE *InBuffer, ALvoid *OutBuffer, \
-                        const ALfloat *restrict DitherValues,                 \
-                        ALsizei SamplesToDo, ALsizei numchans)                \
+#define DECL_TEMPLATE(T, A)                                                   \
+static void Write##A(const ALfloatBUFFERSIZE *InBuffer, ALvoid *OutBuffer,    \
+                     ALsizei Offset, ALsizei SamplesToDo, ALsizei numchans)   \
 {                                                                             \
     ALsizei i, j;                                                             \
     for(j = 0;j < numchans;j++)                                               \
     {                                                                         \
         const ALfloat *restrict in = ASSUME_ALIGNED(InBuffer[j], 16);         \
-        T *restrict out = (T*)OutBuffer + j;                                  \
+        T *restrict out = (T*)OutBuffer + Offset*numchans + j;                \
                                                                               \
         for(i = 0;i < SamplesToDo;i++)                                        \
-            out[i*numchans] = func(in[i], DitherValues[i]);                   \
+            out[i*numchans] = Conv_##T(in[i]);                                \
     }                                                                         \
 }
 
-DECL_TEMPLATE(ALfloat, /*no dither*/, aluF2F)
-DECL_TEMPLATE(ALuint, /*no dither*/, aluF2UI)
-DECL_TEMPLATE(ALint, /*no dither*/, aluF2I)
-DECL_TEMPLATE(ALushort, /*no dither*/, aluF2US)
-DECL_TEMPLATE(ALshort, /*no dither*/, aluF2S)
-DECL_TEMPLATE(ALubyte, /*no dither*/, aluF2UB)
-DECL_TEMPLATE(ALbyte, /*no dither*/, aluF2B)
-
-DECL_TEMPLATE(ALushort, _Dithered, aluF2USDithered)
-DECL_TEMPLATE(ALshort, _Dithered, aluF2SDithered)
-DECL_TEMPLATE(ALubyte, _Dithered, aluF2UBDithered)
-DECL_TEMPLATE(ALbyte, _Dithered, aluF2BDithered)
+DECL_TEMPLATE(ALfloat, F32)
+DECL_TEMPLATE(ALuint, UI32)
+DECL_TEMPLATE(ALint, I32)
+DECL_TEMPLATE(ALushort, UI16)
+DECL_TEMPLATE(ALshort, I16)
+DECL_TEMPLATE(ALubyte, UI8)
+DECL_TEMPLATE(ALbyte, I8)
 
 #undef DECL_TEMPLATE
 
 
-void aluMixData(ALCdevice *device, ALvoid *buffer, ALsizei size)
+void aluMixData(ALCdevice *device, ALvoid *OutBuffer, ALsizei NumSamples)
 {
     ALsizei SamplesToDo;
-    ALvoice **voice, **voice_end;
-    ALeffectslot *slot;
-    ALsource *source;
+    ALsizei SamplesDone;
     ALCcontext *ctx;
-    FPUCtl oldMode;
     ALsizei i, c;
 
-    SetMixerFPUMode(&oldMode);
-
-    while(size > 0)
+    START_MIXER_MODE();
+    for(SamplesDone = 0;SamplesDone < NumSamples;)
     {
-        SamplesToDo = mini(size, BUFFERSIZE);
+        SamplesToDo = mini(NumSamples-SamplesDone, BUFFERSIZE);
         for(c = 0;c < device->Dry.NumChannels;c++)
             memset(device->Dry.Buffer[c], 0, SamplesToDo*sizeof(ALfloat));
         if(device->Dry.Buffer != device->FOAOut.Buffer)
@@ -1629,13 +1626,6 @@ void aluMixData(ALCdevice *device, ALvoid *buffer, ALsizei size)
                 memset(device->RealOut.Buffer[c], 0, SamplesToDo*sizeof(ALfloat));
 
         IncrementRef(&device->MixCount);
-
-        if((slot=device->DefaultSlot) != NULL)
-        {
-            CalcEffectSlotParams(device->DefaultSlot, device);
-            for(c = 0;c < slot->NumChannels;c++)
-                memset(slot->WetBuffer[c], 0, SamplesToDo*sizeof(ALfloat));
-        }
 
         ctx = ATOMIC_LOAD(&device->ContextList, almemory_order_acquire);
         while(ctx)
@@ -1653,18 +1643,17 @@ void aluMixData(ALCdevice *device, ALvoid *buffer, ALsizei size)
             }
 
             /* source processing */
-            voice = ctx->Voices;
-            voice_end = voice + ctx->VoiceCount;
-            for(;voice != voice_end;++voice)
+            for(i = 0;i < ctx->VoiceCount;i++)
             {
-                source = ATOMIC_LOAD(&(*voice)->Source, almemory_order_acquire);
-                if(source && ATOMIC_LOAD(&(*voice)->Playing, almemory_order_relaxed) &&
-                   (*voice)->Step > 0)
+                ALvoice *voice = ctx->Voices[i];
+                ALsource *source = ATOMIC_LOAD(&voice->Source, almemory_order_acquire);
+                if(source && ATOMIC_LOAD(&voice->Playing, almemory_order_relaxed) &&
+                   voice->Step > 0)
                 {
-                    if(!MixSource(*voice, source, device, SamplesToDo))
+                    if(!MixSource(voice, source, device, SamplesToDo))
                     {
-                        ATOMIC_STORE(&(*voice)->Source, NULL, almemory_order_relaxed);
-                        ATOMIC_STORE(&(*voice)->Playing, false, almemory_order_release);
+                        ATOMIC_STORE(&voice->Source, NULL, almemory_order_relaxed);
+                        ATOMIC_STORE(&voice->Playing, false, almemory_order_release);
                     }
                 }
             }
@@ -1679,14 +1668,6 @@ void aluMixData(ALCdevice *device, ALvoid *buffer, ALsizei size)
             }
 
             ctx = ctx->next;
-        }
-
-        if(device->DefaultSlot != NULL)
-        {
-            const ALeffectslot *slot = device->DefaultSlot;
-            ALeffectState *state = slot->Params.EffectState;
-            V(state,process)(SamplesToDo, slot->WetBuffer, state->OutBuffer,
-                             state->OutChannels);
         }
 
         /* Increment the clock time. Every second's worth of samples is
@@ -1770,133 +1751,80 @@ void aluMixData(ALCdevice *device, ALvoid *buffer, ALsizei size)
             }
         }
 
-        if(buffer)
+        if(OutBuffer)
         {
-            ALfloat (*OutBuffer)[BUFFERSIZE] = device->RealOut.Buffer;
-            ALsizei OutChannels = device->RealOut.NumChannels;
-            struct Compressor *Limiter = device->Limiter;
-            ALfloat *DitherValues;
+            ALfloat (*Buffer)[BUFFERSIZE] = device->RealOut.Buffer;
+            ALsizei Channels = device->RealOut.NumChannels;
 
             /* Use NFCtrlData for temp value storage. */
-            ApplyDistanceComp(OutBuffer, device->ChannelDelay, device->NFCtrlData,
-                              SamplesToDo, OutChannels);
+            ApplyDistanceComp(Buffer, device->ChannelDelay, device->NFCtrlData,
+                              SamplesToDo, Channels);
 
-            if(Limiter)
-                ApplyCompression(Limiter, OutChannels, SamplesToDo, OutBuffer);
+            if(device->Limiter)
+                ApplyCompression(device->Limiter, Channels, SamplesToDo, Buffer);
 
-            /* Dithering. Step 1, generate whitenoise (uniform distribution of
-             * random values between -1 and +1). Use NFCtrlData for random
-             * value storage. Step 2 is to add the noise to the samples, before
-             * rounding and after scaling up to the desired quantization depth,
-             * which occurs in the sample conversion stage.
-             */
-            if(!device->DitherEnabled)
-                memset(device->NFCtrlData, 0, SamplesToDo*sizeof(ALfloat));
-            else
-            {
-                ALuint dither_seed = device->DitherSeed;
-                ALsizei i;
+            if(device->DitherDepth > 0.0f)
+                ApplyDither(Buffer, &device->DitherSeed, device->DitherDepth, SamplesToDo,
+                            Channels);
 
-                for(i = 0;i < SamplesToDo;i++)
-                {
-                    ALuint rng0 = dither_rng(&dither_seed);
-                    ALuint rng1 = dither_rng(&dither_seed);
-                    device->NFCtrlData[i] = (ALfloat)(rng0*(1.0/UINT_MAX) - rng1*(1.0/UINT_MAX));
-                }
-                device->DitherSeed = dither_seed;
-            }
-            DitherValues = device->NFCtrlData;
-
-#define WRITE(T, D, a, b, c, d, e) do {                                       \
-    Write##T##D(SAFE_CONST(ALfloatBUFFERSIZE*,(a)), (b), (c), (d), (e));      \
-    buffer = (T*)buffer + (d)*(e);                                            \
-} while(0)
             switch(device->FmtType)
             {
                 case DevFmtByte:
-                    if(device->DitherEnabled)
-                        WRITE(ALbyte, _Dithered, OutBuffer, buffer, DitherValues,
-                              SamplesToDo, OutChannels);
-                    else
-                        WRITE(ALbyte, /*no dither*/, OutBuffer, buffer, DitherValues,
-                              SamplesToDo, OutChannels);
+                    WriteI8(Buffer, OutBuffer, SamplesDone, SamplesToDo, Channels);
                     break;
                 case DevFmtUByte:
-                    if(device->DitherEnabled)
-                        WRITE(ALubyte, _Dithered, OutBuffer, buffer, DitherValues,
-                              SamplesToDo, OutChannels);
-                    else
-                        WRITE(ALubyte, /*no dither*/, OutBuffer, buffer, DitherValues,
-                              SamplesToDo, OutChannels);
+                    WriteUI8(Buffer, OutBuffer, SamplesDone, SamplesToDo, Channels);
                     break;
                 case DevFmtShort:
-                    if(device->DitherEnabled)
-                        WRITE(ALshort, _Dithered, OutBuffer, buffer, DitherValues,
-                              SamplesToDo, OutChannels);
-                    else
-                        WRITE(ALshort, /*no dither*/, OutBuffer, buffer, DitherValues,
-                              SamplesToDo, OutChannels);
+                    WriteI16(Buffer, OutBuffer, SamplesDone, SamplesToDo, Channels);
                     break;
                 case DevFmtUShort:
-                    if(device->DitherEnabled)
-                        WRITE(ALushort, _Dithered, OutBuffer, buffer, DitherValues,
-                              SamplesToDo, OutChannels);
-                    else
-                        WRITE(ALushort, /*no dither*/, OutBuffer, buffer, DitherValues,
-                              SamplesToDo, OutChannels);
+                    WriteUI16(Buffer, OutBuffer, SamplesDone, SamplesToDo, Channels);
                     break;
                 case DevFmtInt:
-                    WRITE(ALint, /*no dither*/, OutBuffer, buffer, DitherValues,
-                          SamplesToDo, OutChannels);
+                    WriteI32(Buffer, OutBuffer, SamplesDone, SamplesToDo, Channels);
                     break;
                 case DevFmtUInt:
-                    WRITE(ALuint, /*no dither*/, OutBuffer, buffer, DitherValues,
-                          SamplesToDo, OutChannels);
+                    WriteUI32(Buffer, OutBuffer, SamplesDone, SamplesToDo, Channels);
                     break;
                 case DevFmtFloat:
-                    WRITE(ALfloat, /*no dither*/, OutBuffer, buffer, DitherValues,
-                          SamplesToDo, OutChannels);
+                    WriteF32(Buffer, OutBuffer, SamplesDone, SamplesToDo, Channels);
                     break;
             }
-#undef WRITE
         }
 
-        size -= SamplesToDo;
+        SamplesDone += SamplesToDo;
     }
-
-    RestoreFPUMode(&oldMode);
+    END_MIXER_MODE();
 }
 
 
 void aluHandleDisconnect(ALCdevice *device)
 {
-    ALCcontext *Context;
+    ALCcontext *ctx;
 
     device->Connected = ALC_FALSE;
 
-    Context = ATOMIC_LOAD_SEQ(&device->ContextList);
-    while(Context)
+    ctx = ATOMIC_LOAD_SEQ(&device->ContextList);
+    while(ctx)
     {
-        ALvoice **voice, **voice_end;
-
-        voice = Context->Voices;
-        voice_end = voice + Context->VoiceCount;
-        while(voice != voice_end)
+        ALsizei i;
+        for(i = 0;i < ctx->VoiceCount;i++)
         {
-            ALsource *source = ATOMIC_EXCHANGE_PTR(&(*voice)->Source, NULL,
-                                                   almemory_order_acq_rel);
-            ATOMIC_STORE(&(*voice)->Playing, false, almemory_order_release);
+            ALvoice *voice = ctx->Voices[i];
+            ALsource *source;
+
+            source = ATOMIC_EXCHANGE_PTR(&voice->Source, NULL, almemory_order_acq_rel);
+            ATOMIC_STORE(&voice->Playing, false, almemory_order_release);
 
             if(source)
             {
                 ALenum playing = AL_PLAYING;
                 (void)(ATOMIC_COMPARE_EXCHANGE_STRONG_SEQ(&source->state, &playing, AL_STOPPED));
             }
-
-            voice++;
         }
-        Context->VoiceCount = 0;
+        ctx->VoiceCount = 0;
 
-        Context = Context->next;
+        ctx = ctx->next;
     }
 }

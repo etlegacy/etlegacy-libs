@@ -1,3 +1,37 @@
+openal-soft-1.18.2:
+
+    Fixed resetting the FPU rounding mode after certain function calls on
+    Windows.
+
+    Fixed use of SSE intrinsics when building with Clang on Windows.
+
+    Fixed a crash with the JACK backend when using JACK1.
+
+    Fixed use of pthread_setnane_np on NetBSD.
+
+    Fixed building on FreeBSD with an older freebsd-lib.
+
+    OSS now links with libossaudio if found at build time (for NetBSD).
+
+openal-soft-1.18.1:
+
+    Fixed an issue where resuming a source might not restart playing it.
+
+    Fixed PulseAudio playback when the configured stream length is much less
+    than the requested length.
+
+    Fixed MMDevAPI capture with sample rates not matching the backing device.
+
+    Fixed int32 output for the Wave Writer.
+
+    Fixed enumeration of OSS devices that are missing device files.
+
+    Added correct retrieval of the executable's path on FreeBSD.
+
+    Added a config option to specify the dithering depth.
+
+    Added a 5.1 decoder preset that excludes front-center output.
+
 openal-soft-1.18.0:
 
     Implemented the AL_EXT_STEREO_ANGLES and AL_EXT_SOURCE_RADIUS extensions.

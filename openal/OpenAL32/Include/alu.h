@@ -85,6 +85,8 @@ typedef union InterpState {
     BsincState bsinc;
 } InterpState;
 
+ALboolean BsincPrepare(const ALuint increment, BsincState *state);
+
 typedef const ALfloat* (*ResamplerFunc)(const InterpState *state,
     const ALfloat *restrict src, ALsizei frac, ALint increment,
     ALfloat *restrict dst, ALsizei dstlen
@@ -500,7 +502,7 @@ void ComputeFirstOrderGainsBF(const BFChannelConfig *chanmap, ALsizei numchans, 
 
 ALboolean MixSource(struct ALvoice *voice, struct ALsource *Source, ALCdevice *Device, ALsizei SamplesToDo);
 
-void aluMixData(ALCdevice *device, ALvoid *buffer, ALsizei size);
+void aluMixData(ALCdevice *device, ALvoid *OutBuffer, ALsizei NumSamples);
 /* Caller must lock the device. */
 void aluHandleDisconnect(ALCdevice *device);
 

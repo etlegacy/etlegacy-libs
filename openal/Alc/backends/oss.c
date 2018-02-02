@@ -163,12 +163,12 @@ static void ALCossListPopulate(struct oss_device *devlist, int type_flag)
 
     if((fd=open("/dev/mixer", O_RDONLY)) < 0)
     {
-        ERR("Could not open /dev/mixer\n");
+        TRACE("Could not open /dev/mixer: %s\n", strerror(errno));
         return;
     }
     if(ioctl(fd, SNDCTL_SYSINFO, &si) == -1)
     {
-        ERR("SNDCTL_SYSINFO failed: %s\n", strerror(errno));
+        TRACE("SNDCTL_SYSINFO failed: %s\n", strerror(errno));
         goto done;
     }
     for(i = 0;i < si.numaudios;i++)
@@ -821,7 +821,11 @@ void ALCossBackendFactory_probe(ALCossBackendFactory* UNUSED(self), enum DevProb
             cur = &oss_playback;
             while(cur != NULL)
             {
-                AppendAllDevicesList(cur->handle);
+#ifdef HAVE_STAT
+                struct stat buf;
+                if(stat(cur->path, &buf) == 0)
+#endif
+                    AppendAllDevicesList(cur->handle);
                 cur = cur->next;
             }
             break;
@@ -832,7 +836,11 @@ void ALCossBackendFactory_probe(ALCossBackendFactory* UNUSED(self), enum DevProb
             cur = &oss_capture;
             while(cur != NULL)
             {
-                AppendCaptureDeviceList(cur->handle);
+#ifdef HAVE_STAT
+                struct stat buf;
+                if(stat(cur->path, &buf) == 0)
+#endif
+                    AppendCaptureDeviceList(cur->handle);
                 cur = cur->next;
             }
             break;
