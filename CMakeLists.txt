@@ -46,13 +46,11 @@ if(WIN32)
 		endif()
 		set(WITH_JPEG8 true)
 
-		configure_file (${JPEG_LIB}/config.h.cmake ${JPEG_LIB}/config.h)
 		configure_file (${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
 		configure_file (${JPEG_LIB}/jconfigint.h.cmake ${JPEG_LIB}/jconfigint.h)
 
 		#include_directories(${CMAKE_CURRENT_BINARY_DIR})
 		FILE(GLOB JPEG_LIB_HEADERS
-			${JPEG_LIB}/config.h
 			${JPEG_LIB}/jerror.h
 			${JPEG_LIB}/jmorecfg.h
 			${JPEG_LIB}/jpeglib.h
