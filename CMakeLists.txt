@@ -444,28 +444,6 @@ elseif(UNIX)
 	# Build bundled cURL library
 	#-----------------------------------------------------------------
 	if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
-		# add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/curl/lib/.libs/libcurl.a
-		# 	COMMAND make clean || true
-		# 	COMMAND ${CROSS_COMPILE32_FLAGS} ./configure
-		# 	--enable-shared=no --enable-static=yes
-		# 	--enable-http --enable-ftp --disable-file
-		# 	--disable-ldap --disable-ldaps --disable-rtsp
-		# 	--enable-proxy --disable-dict --disable-telnet
-		# 	--disable-tftp --disable-pop3 --disable-imap
-		# 	--disable-smb --disable-smtp --disable-gopher
-		# 	--without-ssl --without-libssh2 --without-nghttp2
-		# 	--without-gssapi --with-zlib
-		# 	--disable-ares --enable-threaded-resolver
-		# 	--enable-ipv6 --enable-unix-sockets
-		# 	--without-libidn2 --disable-manual
-		# 	--disable-sspi --enable-libgcc
-		# 	--without-libmetalink --without-libpsl
-		# 	--without-librtmp && make
-		# 	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/curl
-		# )
-		# add_custom_target(bundled_curl
-		# 	DEPENDS ${CMAKE_CURRENT_LIST_DIR}/curl/lib/.libs/libcurl.a
-		# )
 
 		ExternalProject_Add(
 			bundled_curl
@@ -534,7 +512,7 @@ elseif(UNIX)
 		if(CMAKE_SYSTEM MATCHES "OpenBSD*")
 			set(LUA_MAKE_TARGET "bsd")
 		elseif(CMAKE_SYSTEM MATCHES "Darwin")
-		set(LUA_MAKE_TARGET "macosx")
+			set(LUA_MAKE_TARGET "macosx")
 		else()
 			set(LUA_MAKE_TARGET "posix")
 			# if(NOT CROSS_COMPILE32)
@@ -543,16 +521,6 @@ elseif(UNIX)
 			# 	set(LUA_MAKE_TARGET "posix32bit")
 			# endif()
 		endif()
-
-		# add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
-		# 	COMMAND make clean || true
-		# 	COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
-		# 	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
-		# )
-
-		# add_custom_target(bundled_lua
-		# 	DEPENDS ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
-		# )
 
 		ExternalProject_Add(
 			bundled_lua
@@ -572,16 +540,6 @@ elseif(UNIX)
 	# Build bundled OGG and Vorbis file library
 	#-----------------------------------------------------------------
 	if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
-		# OGG
-		# add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs/libogg.a
-		# 	COMMAND make clean || true
-		# 	COMMAND ./autogen.sh
-		# 	COMMAND ${CROSS_COMPILE32_FLAGS} ./configure && make
-		# 	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/ogg
-		# )
-		# add_custom_target(bundled_ogg
-		# 	DEPENDS ${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs/libogg.a
-		# )
 
 		ExternalProject_Add(
 			bundled_ogg
@@ -604,18 +562,6 @@ elseif(UNIX)
 
 		# the above set of CFLAGS and LDFLAGS don't trigger on some systems
 		# ensure vorbis configure uses our bundled ogg see --with-ogg-includes & --with-ogg-libraries
-		# add_custom_command(
-		# 	OUTPUT ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a
-		# 	COMMAND make clean || true
-		# 	COMMAND ${CROSS_COMPILE32_FLAGS} ./configure --disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_LIST_DIR}/ogg/include --with-ogg-libraries=${CMAKE_CURRENT_LIST_DIR}/ogg/src/.libs && make
-		# 	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/vorbis
-		# )
-		# add_custom_target(bundled_ogg_vorbis_file
-		# 	DEPENDS ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbisfile.a
-		# )
-		# add_custom_target(bundled_ogg_vorbis
-		# 	DEPENDS ${CMAKE_CURRENT_LIST_DIR}/vorbis/lib/.libs/libvorbis.a
-		# )
 
 		ExternalProject_Add(
 			bundled_ogg_vorbis
@@ -679,7 +625,7 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 	)
 
 	if(CMAKE_SYSTEM MATCHES "Darwin" OR WIN32)
-			set(SDL32_BUNDLED_LIBRARIES optimized "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2main${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2maind${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		set(SDL32_BUNDLED_LIBRARIES optimized "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2main${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2maind${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	endif()
 	set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} optimized "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2d${CMAKE_STATIC_LIBRARY_SUFFIX}")
 
