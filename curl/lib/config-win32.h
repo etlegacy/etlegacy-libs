@@ -61,9 +61,6 @@
 /* Define if you have the <io.h> header file. */
 #define HAVE_IO_H 1
 
-/* Define if you have the <limits.h> header file. */
-#define HAVE_LIMITS_H 1
-
 /* Define if you have the <locale.h> header file. */
 #define HAVE_LOCALE_H 1
 
@@ -399,12 +396,18 @@
 /* Define to the size of `short', as computed by sizeof. */
 #define SIZEOF_SHORT 2
 
+/* Define to the size of `long', as computed by sizeof. */
+#define SIZEOF_LONG 4
+
 /* Define to the size of `size_t', as computed by sizeof. */
 #if defined(_WIN64)
 #  define SIZEOF_SIZE_T 8
 #else
 #  define SIZEOF_SIZE_T 4
 #endif
+
+/* Define to the size of `curl_off_t', as computed by sizeof. */
+#define SIZEOF_CURL_OFF_T 8
 
 /* ---------------------------------------------------------------- */
 /*               BSD-style lwIP TCP/IP stack SPECIFIC               */
@@ -703,9 +706,7 @@ Vista
 #endif
 
 /* Define to use the Windows crypto library. */
-#if !defined(USE_OPENSSL) && !defined(USE_NSS)
 #define USE_WIN32_CRYPTO
-#endif
 
 /* ---------------------------------------------------------------- */
 /*                       ADDITIONAL DEFINITIONS                     */

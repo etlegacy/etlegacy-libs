@@ -3630,6 +3630,10 @@
 			>
 			</File>
 			<File
+				RelativePath="..\..\..\..\lib\curl_path.c"
+			>
+			</File>
+			<File
 				RelativePath="..\..\..\..\lib\curl_rtmp.c"
 			>
 			</File>
@@ -3798,6 +3802,10 @@
 			>
 			</File>
 			<File
+				RelativePath="..\..\..\..\lib\mime.c"
+			>
+			</File>
+			<File
 				RelativePath="..\..\..\..\lib\mprintf.c"
 			>
 			</File>
@@ -3862,6 +3870,14 @@
 			>
 			</File>
 			<File
+				RelativePath="..\..\..\..\lib\setopt.c"
+			>
+			</File>
+			<File
+				RelativePath="..\..\..\..\lib\sha256.c"
+			>
+			</File>
+			<File
 				RelativePath="..\..\..\..\lib\share.c"
 			>
 			</File>
@@ -3899,6 +3915,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\lib\ssh.c"
+			>
+			</File>
+			<File
+				RelativePath="..\..\..\..\lib\ssh-libssh.c"
 			>
 			</File>
 			<File
@@ -4062,6 +4082,10 @@
 			>
 			</File>
 			<File
+				RelativePath="..\..\..\..\lib\curl_path.h"
+			>
+			</File>
+			<File
 				RelativePath="..\..\..\..\lib\curl_printf.h"
 			>
 			</File>
@@ -4083,6 +4107,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\lib\curl_setup_once.h"
+			>
+			</File>
+			<File
+				RelativePath="..\..\..\..\lib\curl_sha256.h"
 			>
 			</File>
 			<File
@@ -4206,6 +4234,10 @@
 			>
 			</File>
 			<File
+				RelativePath="..\..\..\..\lib\mime.h"
+			>
+			</File>
+			<File
 				RelativePath="..\..\..\..\lib\multihandle.h"
 			>
 			</File>
@@ -4259,6 +4291,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\lib\sendf.h"
+			>
+			</File>
+			<File
+				RelativePath="..\..\..\..\lib\setopt.h"
 			>
 			</File>
 			<File
