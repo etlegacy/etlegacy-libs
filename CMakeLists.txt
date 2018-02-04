@@ -457,7 +457,7 @@ elseif(UNIX)
 		# 	--without-gssapi --with-zlib
 		# 	--disable-ares --enable-threaded-resolver
 		# 	--enable-ipv6 --enable-unix-sockets
-		# 	--without-libidn --disable-manual
+		# 	--without-libidn2 --disable-manual
 		# 	--disable-sspi --enable-libgcc
 		# 	--without-libmetalink --without-libpsl
 		# 	--without-librtmp && make
@@ -481,7 +481,7 @@ elseif(UNIX)
 			--without-gssapi --with-zlib
 			--disable-ares --enable-threaded-resolver
 			--enable-ipv6 --enable-unix-sockets
-			--without-libidn --disable-manual
+			--without-libidn2 --disable-manual
 			--disable-sspi --enable-libgcc
 			--without-libmetalink --without-libpsl
 			--without-librtmp ${CROSS_COMPILE32_FLAGS}
