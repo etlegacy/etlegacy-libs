@@ -494,6 +494,7 @@ elseif(UNIX)
 		ExternalProject_Add(
 			bundled_jpeg
 			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/jpegturbo
+			PATCH_COMMAND autoreconf -fiv
 			CONFIGURE_COMMAND ${JPEG_TURBO_BUILD} --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/jpegturbo
 			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/jpegturbo
 			BUILD_COMMAND make
@@ -567,6 +568,7 @@ elseif(UNIX)
 			bundled_ogg_vorbis
 			DEPENDS bundled_ogg
 			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/vorbis
+			PATCH_COMMAND ./autogen.sh
 			CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
 			--disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include
 			--with-ogg-libraries=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib ${CROSS_COMPILE32_FLAGS}
