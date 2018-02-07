@@ -568,9 +568,8 @@ elseif(UNIX)
 			bundled_ogg_vorbis
 			DEPENDS bundled_ogg
 			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/vorbis
-			PATCH_COMMAND ./autogen.sh
+			#PATCH_COMMAND ./autogen.sh
 			CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
-			--with-ogg=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg
 			--disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include
 			--with-ogg-libraries=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib ${CROSS_COMPILE32_FLAGS}
 			--disable-dependency-tracking --enable-silent-rules --enable-shared=no
