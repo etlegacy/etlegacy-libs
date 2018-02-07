@@ -545,7 +545,7 @@ elseif(UNIX)
 		ExternalProject_Add(
 			bundled_ogg
 			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/ogg
-			PATCH_COMMAND ./autogen.sh
+			PATCH_COMMAND autoreconf -fiv
 			CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg ${CROSS_COMPILE32_FLAGS}
 			--enable-silent-rules --disable-dependency-tracking --enable-shared=no
 			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/ogg
