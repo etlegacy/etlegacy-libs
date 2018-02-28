@@ -196,41 +196,7 @@ if(WIN32)
 	if(BUNDLED_LUA AND BUILD_MOD)
 		set(LUA_LIB "${CMAKE_CURRENT_LIST_DIR}/lua/src")
 		FILE(GLOB LUA_LIB_SRC
-			#core
-			${LUA_LIB}/lapi.c
-			${LUA_LIB}/lcode.c
-			${LUA_LIB}/lctype.c
-			${LUA_LIB}/ldebug.c
-			${LUA_LIB}/ldo.c
-			${LUA_LIB}/ldump.c
-			${LUA_LIB}/lfunc.c
-			${LUA_LIB}/lgc.c
-			${LUA_LIB}/llex.c
-			${LUA_LIB}/lmem.c
-			${LUA_LIB}/lobject.c
-			${LUA_LIB}/lopcodes.c
-			${LUA_LIB}/lparser.c
-			${LUA_LIB}/lstate.c
-			${LUA_LIB}/lstring.c
-			${LUA_LIB}/ltable.c
-			${LUA_LIB}/ltm.c
-			${LUA_LIB}/lundump.c
-			${LUA_LIB}/lvm.c
-			${LUA_LIB}/lzio.c
-			#lib
-			${LUA_LIB}/lauxlib.c
-			${LUA_LIB}/lbaselib.c
-			${LUA_LIB}/lbitlib.c
-			${LUA_LIB}/lcorolib.c
-			${LUA_LIB}/ldblib.c
-			${LUA_LIB}/linit.c
-			${LUA_LIB}/liolib.c
-			${LUA_LIB}/lmathlib.c
-			${LUA_LIB}/loadlib.c
-			${LUA_LIB}/loslib.c
-			${LUA_LIB}/lstrlib.c
-			${LUA_LIB}/ltablib.c
-			${LUA_LIB}/lutf8lib.c
+			${LUA_LIB}/*.c
 		)
 
 		FILE(GLOB LUA_LIB_HEADERS
@@ -238,13 +204,6 @@ if(WIN32)
 		)
 
 		add_library(bundled_lua STATIC ${LUA_LIB_SRC} ${LUA_LIB_HEADERS})
-
-		# If LUA_ANSI is enabled on windows the library loading functionality is disabled
-		if(NOT WIN32)
-			set_target_properties(bundled_lua
-				PROPERTIES COMPILE_DEFINITIONS "LUA_ANSI"
-			)
-		endif()
 
 		set_target_properties(bundled_lua PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 		set(LUA_BUNDLED_LIBRARIES bundled_lua)
