@@ -389,6 +389,11 @@
 #  define LSEEK_ERROR (off_t)-1
 #endif
 
+#ifndef SIZEOF_TIME_T
+/* assume default size of time_t to be 32 bit */
+#define SIZEOF_TIME_T 4
+#endif
+
 /*
  * Default sizeof(off_t) in case it hasn't been defined in config file.
  */
@@ -423,6 +428,24 @@
 #  define CURL_OFF_T_MAX CURL_OFF_T_C(0x7FFFFFFFFFFFFFFF)
 #endif
 #define CURL_OFF_T_MIN (-CURL_OFF_T_MAX - CURL_OFF_T_C(1))
+
+#if (SIZEOF_TIME_T == 4)
+#  ifdef HAVE_TIME_T_UNSIGNED
+#  define TIME_T_MAX UINT_MAX
+#  define TIME_T_MIN 0
+#  else
+#  define TIME_T_MAX INT_MAX
+#  define TIME_T_MIN INT_MIN
+#  endif
+#else
+#  ifdef HAVE_TIME_T_UNSIGNED
+#  define TIME_T_MAX 0xFFFFFFFFFFFFFFFF
+#  define TIME_T_MIN 0
+#  else
+#  define TIME_T_MAX 0x7FFFFFFFFFFFFFFF
+#  define TIME_T_MIN (-TIME_T_MAX - 1)
+#  endif
+#endif
 
 /*
  * Arg 2 type for gethostname in case it hasn't been defined in config file.
@@ -607,11 +630,6 @@ int netware_init(void);
 #error "Both libidn2 and WinIDN are enabled, choose one."
 #endif
 
-#ifndef SIZEOF_TIME_T
-/* assume default size of time_t to be 32 bit */
-#define SIZEOF_TIME_T 4
-#endif
-
 #define LIBIDN_REQUIRED_VERSION "0.4.1"
 
 #if defined(USE_GNUTLS) || defined(USE_OPENSSL) || defined(USE_NSS) || \
@@ -751,11 +769,11 @@ endings either CRLF or LF so 't' is appropriate.
 #  if defined(WIN32) || defined(__CYGWIN__)
 #    define USE_RECV_BEFORE_SEND_WORKAROUND
 #  endif
-#else  /* DONT_USE_RECV_BEFORE_SEND_WORKAROUNDS */
+#else  /* DONT_USE_RECV_BEFORE_SEND_WORKAROUND */
 #  ifdef USE_RECV_BEFORE_SEND_WORKAROUND
 #    undef USE_RECV_BEFORE_SEND_WORKAROUND
 #  endif
-#endif /* DONT_USE_RECV_BEFORE_SEND_WORKAROUNDS */
+#endif /* DONT_USE_RECV_BEFORE_SEND_WORKAROUND */
 
 /* Detect Windows App environment which has a restricted access
  * to the Win32 APIs. */

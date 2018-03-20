@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2017, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2018, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -342,6 +342,7 @@ static void state(struct connectdata *conn, sshstate nowstate)
     "SSH_AUTH_HOST",
     "SSH_AUTH_KEY_INIT",
     "SSH_AUTH_KEY",
+    "SSH_AUTH_GSSAPI",
     "SSH_AUTH_DONE",
     "SSH_SFTP_INIT",
     "SSH_SFTP_REALPATH",
@@ -376,6 +377,7 @@ static void state(struct connectdata *conn, sshstate nowstate)
     "SSH_SCP_TRANS_INIT",
     "SSH_SCP_UPLOAD_INIT",
     "SSH_SCP_DOWNLOAD_INIT",
+    "SSH_SCP_DOWNLOAD",
     "SSH_SCP_DONE",
     "SSH_SCP_SEND_EOF",
     "SSH_SCP_WAIT_EOF",
@@ -385,6 +387,9 @@ static void state(struct connectdata *conn, sshstate nowstate)
     "SSH_SESSION_FREE",
     "QUIT"
   };
+
+  /* a precaution to make sure the lists are in sync */
+  DEBUGASSERT(sizeof(names)/sizeof(names[0]) == SSH_LAST);
 
   if(sshc->state != nowstate) {
     infof(conn->data, "SFTP %p state change from %s to %s\n",
@@ -523,9 +528,11 @@ static CURLcode ssh_knownhost(struct connectdata *conn)
       keymatch = (enum curl_khmatch)keycheck;
 
       /* Ask the callback how to behave */
+      Curl_set_in_callback(data, true);
       rc = func(data, knownkeyp, /* from the knownhosts file */
                 &foundkey, /* from the remote host */
                 keymatch, data->set.ssh_keyfunc_userp);
+      Curl_set_in_callback(data, false);
     }
     else
       /* no remotekey means failure! */
@@ -1627,7 +1634,7 @@ static CURLcode ssh_statemach_act(struct connectdata *conn, bool *block)
         break;
       }
       if(rc == 0) {
-        data->info.filetime = (long)attrs.mtime;
+        data->info.filetime = attrs.mtime;
       }
 
       state(conn, SSH_SFTP_TRANS_INIT);
@@ -1747,8 +1754,10 @@ static CURLcode ssh_statemach_act(struct connectdata *conn, bool *block)
       if(data->state.resume_from > 0) {
         /* Let's read off the proper amount of bytes from the input. */
         if(conn->seek_func) {
+          Curl_set_in_callback(data, true);
           seekerr = conn->seek_func(conn->seek_client, data->state.resume_from,
                                     SEEK_SET);
+          Curl_set_in_callback(data, false);
         }
 
         if(seekerr != CURL_SEEKFUNC_OK) {
@@ -1765,9 +1774,12 @@ static CURLcode ssh_statemach_act(struct connectdata *conn, bool *block)
               (size_t)data->set.buffer_size :
               curlx_sotouz(data->state.resume_from - passed);
 
-            size_t actuallyread =
-              data->state.fread_func(data->state.buffer, 1,
-                                     readthisamountnow, data->state.in);
+            size_t actuallyread;
+            Curl_set_in_callback(data, true);
+            actuallyread = data->state.fread_func(data->state.buffer, 1,
+                                                  readthisamountnow,
+                                                  data->state.in);
+            Curl_set_in_callback(data, false);
 
             passed += actuallyread;
             if((actuallyread == 0) || (actuallyread > readthisamountnow)) {

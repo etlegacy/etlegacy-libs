@@ -43,6 +43,7 @@
 #include "sendf.h"
 #include "http2.h"
 #include "setopt.h"
+#include "multiif.h"
 
 /* The last 3 #include files should be in this order */
 #include "curl_printf.h"
@@ -359,6 +360,14 @@ CURLcode Curl_vsetopt(struct Curl_easy *data, CURLoption option,
      * method set with CURLOPT_TIMECONDITION
      */
     data->set.timevalue = (time_t)va_arg(param, long);
+    break;
+
+  case CURLOPT_TIMEVALUE_LARGE:
+    /*
+     * This is the value to compare with the remote document with the
+     * method set with CURLOPT_TIMECONDITION
+     */
+    data->set.timevalue = (time_t)va_arg(param, curl_off_t);
     break;
 
   case CURLOPT_SSLVERSION:
@@ -2101,6 +2110,21 @@ CURLcode Curl_vsetopt(struct Curl_easy *data, CURLoption option,
     data->set.fclosesocket = va_arg(param, curl_closesocket_callback);
     break;
 
+  case CURLOPT_RESOLVER_START_FUNCTION:
+    /*
+     * resolver start callback function: called before a new resolver request
+     * is started
+     */
+    data->set.resolver_start = va_arg(param, curl_resolver_start_callback);
+    break;
+
+  case CURLOPT_RESOLVER_START_DATA:
+    /*
+     * resolver start callback data pointer. Might be NULL.
+     */
+    data->set.resolver_start_client = va_arg(param, void *);
+    break;
+
   case CURLOPT_CLOSESOCKETDATA:
     /*
      * socket callback data pointer. Might be NULL.
@@ -2524,6 +2548,12 @@ CURLcode Curl_vsetopt(struct Curl_easy *data, CURLoption option,
   case CURLOPT_SSH_COMPRESSION:
     data->set.ssh_compression = (0 != va_arg(param, long))?TRUE:FALSE;
     break;
+  case CURLOPT_HAPPY_EYEBALLS_TIMEOUT_MS:
+    arg = va_arg(param, long);
+    if(arg < 0)
+      return CURLE_BAD_FUNCTION_ARGUMENT;
+    data->set.happy_eyeballs_timeout = arg;
+    break;
   default:
     /* unknown tag and its companion, just ignore: */
     result = CURLE_UNKNOWN_OPTION;
@@ -2536,6 +2566,9 @@ CURLcode Curl_vsetopt(struct Curl_easy *data, CURLoption option,
 /*
  * curl_easy_setopt() is the external interface for setting options on an
  * easy handle.
+ *
+ * NOTE: This is one of few API functions that are allowed to be called from
+ * within a callback.
  */
 
 #undef curl_easy_setopt

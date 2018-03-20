@@ -766,6 +766,10 @@ SOURCE=..\..\..\..\lib\curl_addrinfo.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\..\..\lib\curl_ctype.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\..\..\lib\curl_des.c
 # End Source File
 # Begin Source File
@@ -803,6 +807,10 @@ SOURCE=..\..\..\..\lib\curl_ntlm_wb.c
 # Begin Source File
 
 SOURCE=..\..\..\..\lib\curl_path.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\..\lib\curl_range.c
 # End Source File
 # Begin Source File
 
@@ -1294,6 +1302,10 @@ SOURCE=..\..\..\..\lib\curl_base64.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\..\..\lib\curl_ctype.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\..\..\lib\curl_des.h
 # End Source File
 # Begin Source File
@@ -1355,6 +1367,10 @@ SOURCE=..\..\..\..\lib\curl_path.h
 # Begin Source File
 
 SOURCE=..\..\..\..\lib\curl_printf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\..\lib\curl_range.h
 # End Source File
 # Begin Source File
 

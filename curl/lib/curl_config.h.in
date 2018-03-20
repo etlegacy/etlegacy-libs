@@ -516,6 +516,9 @@
 /* Define to 1 if you have the `pipe' function. */
 #undef HAVE_PIPE
 
+/* if you have the PK11_CreateManagedGenericObject function */
+#undef HAVE_PK11_CREATEMANAGEDGENERICOBJECT
+
 /* Define to 1 if you have a working poll function. */
 #undef HAVE_POLL
 
@@ -728,6 +731,9 @@
 
 /* Define to 1 if you have the <time.h> header file. */
 #undef HAVE_TIME_H
+
+/* Define this if time_t is unsigned */
+#undef HAVE_TIME_T_UNSIGNED
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H

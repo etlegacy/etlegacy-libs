@@ -5,7 +5,7 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1998 - 2017, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 1998 - 2018, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
@@ -2483,6 +2483,15 @@ if test -z "$ssl_backends" -o "x$OPT_NSS" != xno; then
     if test "x$USE_NSS" = "xyes"; then
       AC_MSG_NOTICE([detected NSS version $version])
 
+      dnl PK11_CreateManagedGenericObject() was introduced in NSS 3.34 because
+      dnl PK11_DestroyGenericObject() does not release resources allocated by
+      dnl PK11_CreateGenericObject() early enough.
+      AC_CHECK_FUNC(PK11_CreateManagedGenericObject,
+        [
+          AC_DEFINE(HAVE_PK11_CREATEMANAGEDGENERICOBJECT, 1,
+                    [if you have the PK11_CreateManagedGenericObject function])
+        ])
+
       dnl needed when linking the curl tool without USE_EXPLICIT_LIB_DEPS
       NSS_LIBS=$addlib
       AC_SUBST([NSS_LIBS])
@@ -3481,6 +3490,23 @@ AC_CHECK_TYPE([bool],[
 #ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
 #endif
+])
+
+AC_MSG_CHECKING([if time_t is unsigned])
+AC_RUN_IFELSE([
+  AC_LANG_SOURCE([[
+  #include <time.h>
+  #include <limits.h>
+  time_t t = -1;
+  return (t > 0);
+  ]])] ,[
+  AC_MSG_RESULT([yes])
+  AC_DEFINE(HAVE_TIME_T_UNSIGNED, 1, [Define this if time_t is unsigned])
+],[
+  AC_MSG_RESULT([no])
+],[
+  dnl cross-compiling, most systems are unsigned
+  AC_MSG_RESULT([no])
 ])
 
 CURL_CONFIGURE_CURL_SOCKLEN_T

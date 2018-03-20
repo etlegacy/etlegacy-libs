@@ -1283,6 +1283,9 @@
 				RelativePath="..\..\..\..\lib\curl_addrinfo.c">
 			</File>
 			<File
+				RelativePath="..\..\..\..\lib\curl_ctype.c">
+			</File>
+			<File
 				RelativePath="..\..\..\..\lib\curl_des.c">
 			</File>
 			<File
@@ -1311,6 +1314,9 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\lib\curl_path.c">
+			</File>
+			<File
+				RelativePath="..\..\..\..\lib\curl_range.c">
 			</File>
 			<File
 				RelativePath="..\..\..\..\lib\curl_rtmp.c">
@@ -1608,6 +1614,9 @@
 				RelativePath="..\..\..\..\lib\curl_base64.h">
 			</File>
 			<File
+				RelativePath="..\..\..\..\lib\curl_ctype.h">
+			</File>
+			<File
 				RelativePath="..\..\..\..\lib\curl_des.h">
 			</File>
 			<File
@@ -1654,6 +1663,9 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\lib\curl_printf.h">
+			</File>
+			<File
+				RelativePath="..\..\..\..\lib\curl_range.h">
 			</File>
 			<File
 				RelativePath="..\..\..\..\lib\curl_rtmp.h">

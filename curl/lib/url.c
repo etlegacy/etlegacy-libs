@@ -527,6 +527,7 @@ CURLcode Curl_init_userdefined(struct Curl_easy *data)
   set->expect_100_timeout = 1000L; /* Wait for a second by default. */
   set->sep_headers = TRUE; /* separated header lists by default */
   set->buffer_size = READBUFFER_SIZE;
+  set->happy_eyeballs_timeout = CURL_HET_DEFAULT;
 
   Curl_http2_init_userset(set);
   return result;
@@ -2573,7 +2574,15 @@ static bool check_noproxy(const char *name, const char *no_proxy)
     /* NO_PROXY was specified and it wasn't just an asterisk */
 
     no_proxy_len = strlen(no_proxy);
-    endptr = strchr(name, ':');
+    if(name[0] == '[') {
+      /* IPv6 numerical address */
+      endptr = strchr(name, ']');
+      if(!endptr)
+        return FALSE;
+      name++;
+    }
+    else
+      endptr = strchr(name, ':');
     if(endptr)
       namelen = endptr - name;
     else
@@ -4116,7 +4125,7 @@ static CURLcode create_conn(struct Curl_easy *data,
    *************************************************************/
   if(prot_missing) {
     /* We're guessing prefixes here and if we're told to use a proxy or if
-       we're gonna follow a Location: later or... then we need the protocol
+       we're going to follow a Location: later or... then we need the protocol
        part added so that we have a valid URL. */
     char *reurl;
     char *ch_lower;

@@ -233,9 +233,10 @@ if test $xc_tst_dirs_sem -eq $xc_tst_dirs_col; then
   # When both counting methods give the same result we do not want to
   # chose one over the other, and consider auto-detection not possible.
   if test -z "$PATH_SEPARATOR"; then
-    # Stop dead until user provides 'PATH_SEPARATOR' definition.
-    echo "$xc_msg_err 'PATH_SEPARATOR' variable not set. $xc_msg_abrt" >&2
-    exit 1
+    # User should provide the correct 'PATH_SEPARATOR' definition.
+    # Until then, guess that it is colon!
+    echo "$xc_msg_warn path separator not determined, guessing colon" >&2
+    PATH_SEPARATOR=':'
   fi
 else
   # Separator with the greater directory count is the auto-detected one.
@@ -23142,6 +23143,7 @@ rm -f conftest.err conftest.i conftest.$ac_ext
         ;;
     esac
     case $tst_api in
+      0x111) tst_show="1.1.1" ;;
       0x110) tst_show="1.1.0" ;;
       0x102) tst_show="1.0.2" ;;
       0x101) tst_show="1.0.1" ;;
@@ -23172,6 +23174,42 @@ $as_echo "$tst_show" >&6; }
   #
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OpenSSL library version" >&5
 $as_echo_n "checking for OpenSSL library version... " >&6; }
+  if test "$tst_api" = "unknown"; then
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#define ERR_clear_last_mark innocuous_ERR_clear_last_mark
+#ifdef __STDC__
+# include <limits.h>
+#else
+# include <assert.h>
+#endif
+#undef ERR_clear_last_mark
+#ifdef __cplusplus
+extern "C"
+#endif
+char ERR_clear_last_mark ();
+#if defined __stub_ERR_clear_last_mark || defined __stub___ERR_clear_last_mark
+choke me
+#endif
+
+int main (void)
+{
+return ERR_clear_last_mark ();
+ ;
+ return 0;
+}
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+
+      tst_api="0x111"
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  fi
   if test "$tst_api" = "unknown"; then
     case $host in
       *-*-vms*)
@@ -23645,6 +23683,7 @@ rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
   fi
   case $tst_api in
+    0x111) tst_show="1.1.1" ;;
     0x110) tst_show="1.1.0" ;;
     0x102) tst_show="1.0.2" ;;
     0x101) tst_show="1.0.1" ;;
@@ -25360,6 +25399,16 @@ fi
     if test "x$USE_NSS" = "xyes"; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: detected NSS version $version" >&5
 $as_echo "$as_me: detected NSS version $version" >&6;}
+
+                        ac_fn_c_check_func "$LINENO" "PK11_CreateManagedGenericObject" "ac_cv_func_PK11_CreateManagedGenericObject"
+if test "x$ac_cv_func_PK11_CreateManagedGenericObject" = xyes; then :
+
+
+$as_echo "#define HAVE_PK11_CREATEMANAGEDGENERICOBJECT 1" >>confdefs.h
+
+
+fi
+
 
             NSS_LIBS=$addlib
 
@@ -28840,6 +28889,43 @@ if test "x$ac_cv_type_bool" = xyes; then :
 $as_echo "#define HAVE_BOOL_T 1" >>confdefs.h
 
 
+fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if time_t is unsigned" >&5
+$as_echo_n "checking if time_t is unsigned... " >&6; }
+if test "$cross_compiling" = yes; then :
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+  #include <time.h>
+  #include <limits.h>
+  time_t t = -1;
+  return (t > 0);
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+$as_echo "#define HAVE_TIME_T_UNSIGNED 1" >>confdefs.h
+
+
+else
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 
 

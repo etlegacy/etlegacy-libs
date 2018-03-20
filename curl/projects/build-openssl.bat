@@ -6,7 +6,7 @@ rem *                             / __| | | | |_) | |
 rem *                            | (__| |_| |  _ <| |___
 rem *                             \___|\___/|_| \_\_____|
 rem *
-rem * Copyright (C) 2012 - 2017, Steve Holme, <steve_holme@hotmail.com>.
+rem * Copyright (C) 2012 - 2018, Steve Holme, <steve_holme@hotmail.com>.
 rem *
 rem * This software is licensed as described in the file COPYING, which
 rem * you should have received as part of this distribution. The terms
@@ -32,6 +32,16 @@ rem ***************************************************************************
 
   rem Ensure we have the required arguments
   if /i "%~1" == "" goto syntax
+
+  rem Calculate the program files directory
+  if defined PROGRAMFILES (
+    set "PF=%PROGRAMFILES%"
+    set OS_PLATFORM=x86
+  )
+  if defined PROGRAMFILES(x86) (
+    set "PF=%PROGRAMFILES(x86)%"
+    set OS_PLATFORM=x64
+  )
 
 :parseArgs
   if "%~1" == "" goto prerequisites
@@ -75,7 +85,16 @@ rem ***************************************************************************
   ) else if /i "%~1" == "vc15" (
     set VC_VER=15.0
     set VC_DESC=VC15
-    set "VC_PATH=Microsoft Visual Studio\2017\Community\VC"
+
+    rem Determine the VC15 path based on the installed edition in decending
+    rem order (Enterprise, then Professional and finally Community)
+    if exist "%PF%\Microsoft Visual Studio\2017\Enterprise\VC" (
+      set "VC_PATH=Microsoft Visual Studio\2017\Enterprise\VC"
+    ) else if exist "%PF%\Microsoft Visual Studio\2017\Professional\VC" (
+      set "VC_PATH=Microsoft Visual Studio\2017\Professional\VC"
+    ) else (
+      set "VC_PATH=Microsoft Visual Studio\2017\Community\VC"
+    )
   ) else if /i "%~1%" == "x86" (
     set BUILD_PLATFORM=x86
   ) else if /i "%~1%" == "x64" (
@@ -101,22 +120,11 @@ rem ***************************************************************************
   shift & goto parseArgs
 
 :prerequisites
-  rem Compiler and platform are required parameters.
+  rem Compiler is a required parameter
   if not defined VC_VER goto syntax
-  if not defined BUILD_PLATFORM goto syntax
 
   rem Default the start directory if one isn't specified
   if not defined START_DIR set START_DIR=..\..\openssl
-
-  rem Calculate the program files directory
-  if defined PROGRAMFILES (
-    set "PF=%PROGRAMFILES%"
-    set OS_PLATFORM=x86
-  )
-  if defined PROGRAMFILES(x86) (
-    set "PF=%PROGRAMFILES(x86)%"
-    set OS_PLATFORM=x64
-  )
 
   rem Check we have a program files directory
   if not defined PF goto nopf
@@ -211,12 +219,22 @@ rem ***************************************************************************
   nmake -f ms\ntdll.mak
 
   rem Move the output directories
-  move out32.dbg "%OUTDIR%\LIB Debug"
-  move out32dll.dbg "%OUTDIR%\DLL Debug"
+  if exist "%OUTDIR%\LIB Debug" (
+    copy /y out32.dbg\* "%OUTDIR%\LIB Debug" 1>nul
+    rd out32.dbg /s /q
+  ) else (
+    move out32.dbg "%OUTDIR%\LIB Debug" 1>nul
+  )
+  if exist "%OUTDIR%\DLL Debug" (
+    copy /y out32dll.dbg\* "%OUTDIR%\DLL Debug" 1>nul
+    rd out32dll.dbg /s /q
+  ) else (
+    move out32dll.dbg "%OUTDIR%\DLL Debug" 1>nul
+  )
 
   rem Move the PDB files
-  move tmp32.dbg\lib.pdb "%OUTDIR%\LIB Debug"
-  move tmp32dll.dbg\lib.pdb "%OUTDIR%\DLL Debug"
+  move tmp32.dbg\lib.pdb "%OUTDIR%\LIB Debug" 1>nul
+  move tmp32dll.dbg\lib.pdb "%OUTDIR%\DLL Debug" 1>nul
   
   rem Remove the intermediate directories
   rd tmp32.dbg /s /q
@@ -232,14 +250,24 @@ rem ***************************************************************************
   call ms\do_win64a
   nmake -f ms\nt.mak
   nmake -f ms\ntdll.mak
-  
+
   rem Move the output directories
-  move out32 "%OUTDIR%\LIB Release"
-  move out32dll "%OUTDIR%\DLL Release"
+  if exist "%OUTDIR%\LIB Release" (
+    copy /y out32\* "%OUTDIR%\LIB Release" 1>nul
+    rd out32 /s /q
+  ) else (
+    move out32 "%OUTDIR%\LIB Release" 1>nul
+  )
+  if exist "%OUTDIR%\DLL Release" (
+    copy /y out32dll\* "%OUTDIR%\DLL Release" 1>nul
+    rd out32dll /s /q
+  ) else (
+    move out32dll "%OUTDIR%\DLL Release" 1>nul
+  )
 
   rem Move the PDB files
-  move tmp32\lib.pdb "%OUTDIR%\LIB Release"
-  move tmp32dll\lib.pdb "%OUTDIR%\DLL Release"
+  move tmp32\lib.pdb "%OUTDIR%\LIB Release" 1>nul
+  move tmp32dll\lib.pdb "%OUTDIR%\DLL Release" 1>nul
 
   rem Remove the intermediate directories
   rd tmp32 /s /q
@@ -264,12 +292,22 @@ rem ***************************************************************************
   nmake -f ms\ntdll.mak
 
   rem Move the output directories
-  move out32.dbg "%OUTDIR%\LIB Debug"
-  move out32dll.dbg "%OUTDIR%\DLL Debug"
+  if exist "%OUTDIR%\LIB Debug" (
+    copy /y out32.dbg\* "%OUTDIR%\LIB Debug" 1>nul
+    rd out32.dbg /s /q
+  ) else (
+    move out32.dbg "%OUTDIR%\LIB Debug" 1>nul
+  )
+  if exist "%OUTDIR%\DLL Debug" (
+    copy /y out32dll.dbg\* "%OUTDIR%\DLL Debug" 1>nul
+    rd out32dll.dbg /s /q
+  ) else (
+    move out32dll.dbg "%OUTDIR%\DLL Debug" 1>nul
+  )
 
   rem Move the PDB files
-  move tmp32.dbg\lib.pdb "%OUTDIR%\LIB Debug"
-  move tmp32dll.dbg\lib.pdb "%OUTDIR%\DLL Debug"
+  move tmp32.dbg\lib.pdb "%OUTDIR%\LIB Debug" 1>nul
+  move tmp32dll.dbg\lib.pdb "%OUTDIR%\DLL Debug" 1>nul
 
   rem Remove the intermediate directories
   rd tmp32.dbg /s /q
@@ -285,14 +323,24 @@ rem ***************************************************************************
   call ms\do_ms
   nmake -f ms\nt.mak
   nmake -f ms\ntdll.mak
-  
+
   rem Move the output directories
-  move out32 "%OUTDIR%\LIB Release"
-  move out32dll "%OUTDIR%\DLL Release"
+  if exist "%OUTDIR%\LIB Release" (
+    copy /y out32\* "%OUTDIR%\LIB Release" 1>nul
+    rd out32 /s /q
+  ) else (
+    move out32 "%OUTDIR%\LIB Release" 1>nul
+  )
+  if exist "%OUTDIR%\DLL Release" (
+    copy /y out32dll\* "%OUTDIR%\DLL Release" 1>nul
+    rd out32dll /s /q
+  ) else (
+    move out32dll "%OUTDIR%\DLL Release" 1>nul
+  )
 
   rem Move the PDB files
-  move tmp32\lib.pdb "%OUTDIR%\LIB Release"
-  move tmp32dll\lib.pdb "%OUTDIR%\DLL Release"
+  move tmp32\lib.pdb "%OUTDIR%\LIB Release" 1>nul
+  move tmp32dll\lib.pdb "%OUTDIR%\DLL Release" 1>nul
 
   rem Remove the intermediate directories
   rd tmp32 /s /q
@@ -303,7 +351,7 @@ rem ***************************************************************************
 :syntax
   rem Display the help
   echo.
-  echo Usage: build-openssl ^<compiler^> ^<platform^> [configuration] [directory]
+  echo Usage: build-openssl ^<compiler^> [platform] [configuration] [directory]
   echo.
   echo Compiler:
   echo.
