@@ -83,26 +83,6 @@ if(WIN32)
   add_definitions( -D_USRDLL )
 endif()
 
-if(MSVC)
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /EHsc /O2")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /EHa /W3")
-
-  set(CompilerFlags
-    CMAKE_CXX_FLAGS
-    CMAKE_CXX_FLAGS_DEBUG
-    CMAKE_CXX_FLAGS_RELEASE
-    CMAKE_C_FLAGS
-    CMAKE_C_FLAGS_DEBUG
-    CMAKE_C_FLAGS_RELEASE
-  )
-
-  foreach(CompilerFlag ${CompilerFlags})
-    string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
-  endforeach()
-
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:MSVCRT.lib")
-endif()
-
 set_target_properties(${LIB_NAME} PROPERTIES COMPILE_DEFINITIONS BUILDING_LIBCURL)
 
 if(HIDES_CURL_PRIVATE_SYMBOLS)
@@ -118,13 +98,6 @@ if(WIN32)
   if(NOT CURL_STATICLIB)
     # Add "_imp" as a suffix before the extension to avoid conflicting with the statically linked "libcurl.lib"
     set_target_properties(${LIB_NAME} PROPERTIES IMPORT_SUFFIX "_imp.lib")
-
-    set_target_properties (${LIB_NAME} PROPERTIES
-       DEBUG_POSTFIX "-d"
-       # Note: no postfix for release variants, let user choose what style of release he wants
-       # MINSIZEREL_POSTFIX "-z"
-       # RELWITHDEBINFO_POSTFIX "-g"
-       )
   endif()
 endif()
 
