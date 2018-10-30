@@ -147,10 +147,12 @@ if(WIN32)
 			BUILD_COMMAND ${OPENSSL_BUILD}
 			INSTALL_COMMAND ${OPENSSL_INSTALL}
 		)
-		set(OPENSSD_BUNDLED_INCLUDE_DIR "${OPENSSL_PREFIX}/include")
+		set(OPENSSL_BUNDLED_INCLUDE_DIR "${OPENSSL_PREFIX}/include")
 		set(OPENSSL_BUNDLED_LIBRARY "${OPENSSL_PREFIX}/lib/libcrypto.lib" "${OPENSSL_PREFIX}/lib/libssl.lib")
+		set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 	else()
 		add_custom_target(bundled_openssl)
+		set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 	endif()
 
 	#-----------------------------------------------------------------
