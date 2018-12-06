@@ -417,7 +417,7 @@ elseif(UNIX)
 			--disable-tftp --disable-pop3 --disable-imap
 			--disable-smb --disable-smtp --disable-gopher
 			--without-ssl --without-libssh2 --without-nghttp2
-			--without-gssapi --with-zlib
+			--without-gssapi --with-zlib --without-brotli
 			--disable-ares --enable-threaded-resolver
 			--enable-ipv6 --enable-unix-sockets
 			--without-libidn2 --disable-manual
