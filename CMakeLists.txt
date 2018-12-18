@@ -575,9 +575,9 @@ endif()
 if(BUNDLED_SDL AND BUILD_CLIENT)
 	# GL render builds (not GLES) for RPI require VIDEO_OPENGLES=1
 	if(ARM AND NOT FEATURE_RENDERER_GLES)
-		set(SDL_WITH_GLES, "ON")
+		set(SDL_WITH_GLES "ON")
 	else()
-		set(SDL_WITH_GLES, "${FEATURE_RENDERER_GLES}")
+		set(SDL_WITH_GLES "${FEATURE_RENDERER_GLES}")
 	endif()
 
 	# ${CMAKE_CURRENT_BINARY_DIR}/libs/sdl2
