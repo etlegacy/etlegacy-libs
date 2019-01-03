@@ -67,6 +67,7 @@ Alexander Sinditskiy
 Alexander Traud
 Alexander Zhuravlev
 Alexey Borzov
+Alexey Eremikhin
 Alexey Melnichuk
 Alexey Pesternikov
 Alexey Simak
@@ -85,6 +86,7 @@ Anders Bakken
 Anders Gustafsson
 Anders Havn
 Anders Roxell
+Anderson Toshiyuki Sasaki
 Andi Jahja
 Andre Guibert de Bruet
 Andre Heinecke
@@ -105,6 +107,7 @@ Andrei Cipu
 Andrei Karas
 Andrei Kurushin
 Andrei Sedoi
+Andrei Virtosu
 Andrej E Baranov
 Andrew Benham
 Andrew Biggs
@@ -132,9 +135,11 @@ Anthony G. Basile
 Antoine Aubert
 Antoine Calando
 Anton Bychkov
+Anton Gerasimov
 Anton Kalmykov
 Anton Malov
 Anton Yabchinskiy
+Antoni Villalonga
 Antonio Larrosa
 Antony74 on github
 Antti Hätälä
@@ -235,6 +240,7 @@ Cameron Kaiser
 Cameron MacMinn
 Camille Moncelier
 Caolan McNamara
+Carie Pointer
 Carlo Cannas
 Carlo Teubner
 Carlo Wood
@@ -275,6 +281,7 @@ Christian Weisgerber
 Christophe Demory
 Christophe Legry
 Christopher Conroy
+Christopher Head
 Christopher Palow
 Christopher R. Palmer
 Christopher Stone
@@ -334,6 +341,7 @@ Daniel Cater
 Daniel Egger
 Daniel Gustafsson
 Daniel Hwang
+Daniel Jeliński
 Daniel Johnson
 Daniel Kahn Gillmor
 Daniel Krügler
@@ -350,7 +358,7 @@ Daniel Theron
 Daniel at touchtunes
 Daphne Luong
 Dario Nieuwenhuis
-Dario Weisser
+Dario Weißer
 Darryl House
 Darshan Mody
 Darío Hereñú
@@ -404,11 +412,13 @@ Dennis Clarke
 Derek Higgins
 Desmond O. Chang
 Detlef Schmier
+Dheeraj Sangamkar
 Didier Brisebourg
 Diego Bes
 Diego Casorran
 Dilyan Palauzov
 Dima Barsky
+Dima Pasechnik
 Dima Tisnek
 Dimitar Boevski
 Dimitre Dimitrov
@@ -438,6 +448,7 @@ Dominik Hölzl
 Dominique Leuenberger
 Don J Olmstead
 Dongliang Mu
+Doron Behar
 Doug Kaufman
 Doug Porter
 Douglas Creager
@@ -459,6 +470,7 @@ Dylan Salisbury
 Dániel Bakai
 Early Ehlinger
 Earnestly on github
+Eason-Yu on github
 Ebenezer Ikonne
 Ed Morley
 Edin Kadribasic
@@ -471,6 +483,7 @@ Eelco Dolstra
 Eetu Ojanen
 Egon Eckert
 Eldar Zaitov
+Elia Tufarolo
 Elliot Saba
 Ellis Pritchard
 Elmira A Semenova
@@ -501,6 +514,7 @@ Eric Young
 Erick Nuwendam
 Erik Janssen
 Erik Johansson
+Erik Minekus
 Ernest Beinrohr
 Ernst Sjöstrand
 Erwan Legrand
@@ -612,7 +626,9 @@ GwanYeong Kim
 Gwenole Beauchesne
 Gökhan Şengün
 Götz Babin-Ebell
+Hagai Auro
 Hamish Mackenzie
+Han Han
 Han Qiao
 Hang Kin Lau
 Hang Su
@@ -624,6 +640,7 @@ Hans-Jurgen May
 Hardeep Singh
 Haris Okanovic
 Harold Stuart
+Harry Sintonen
 Harshal Pradhan
 Hauke Duden
 He Qin
@@ -656,6 +673,7 @@ Ignacio Vazquez-Abrams
 Igor Franchuk
 Igor Novoseltsev
 Igor Polyakov
+Ihor Karpenko
 Iida Yosiaki
 Ilguiz Latypov
 Ilja van Sprundel
@@ -689,6 +707,7 @@ James Dury
 James Gallagher
 James Griffiths
 James Housley
+James Knight
 James MacMillan
 James Slaughter
 Jamie Lokier
@@ -717,6 +736,7 @@ Javier Sixto
 Jay Austin
 Jayesh A Shah
 Jaz Fresh
+Jean Fabrice
 Jean Gressmann
 Jean Jacques Drouin
 Jean-Claude Chauve
@@ -756,6 +776,7 @@ Jesse Tan
 Jie He
 Jim Drash
 Jim Freeman
+Jim Fuller
 Jim Hollinger
 Jim Meyering
 Jiri Dvorak
@@ -777,6 +798,7 @@ Johannes Bauer
 Johannes Ernst
 Johannes Schindelin
 John Bradshaw
+John Butterfield
 John Coffey
 John Crow
 John David Anglin
@@ -826,6 +848,7 @@ Joonas Kuorilehto
 Jose Alf
 Jose Kahan
 Josef Wolf
+Josh Bialkowski
 Josh Kapell
 Joshua Kwan
 Josue Andrade Gomes
@@ -852,6 +875,7 @@ Justin Fletcher
 Justin Karneges
 Justin Maggard
 János Fekete
+Jérémy Rocher
 Jörg Mueller-Tolk
 Jörn Hartroth
 K. R. Walker
@@ -891,12 +915,14 @@ Kim Minjoong
 Kim Rinnewitz
 Kim Vandry
 Kimmo Kinnunen
+Kirill Marchuk
 Kjell Ericson
 Kjetil Jacobsen
 Klaus Stein
 Klevtsov Vadim
 Kobi Gurkan
 Konstantin Isakov
+Konstantin Kushnir
 Kris Kennaway
 Krishnendu Majumdar
 Krister Johansen
@@ -921,6 +947,7 @@ Lars Johannesen
 Lars Nilsson
 Lars Torben Wilson
 Lau Hang Kin
+Laurent Bonnans
 Laurent Rabret
 Lauri Kasanen
 Laurie Clark-Michalek
@@ -935,6 +962,7 @@ Lenaic Lefever
 Lenny Rachitsky
 Leon Winter
 Leonardo Rosati
+Leonardo Taccari
 Liam Healy
 Lijo Antony
 Linas Vepstas
@@ -949,6 +977,7 @@ Liviu Chircu
 Liza Alenchery
 Lloyd Fournier
 Lluís Batlle i Rossell
+Loganaden Velvindron
 Loic Dachary
 Loren Kirkby
 Luan Cestari
@@ -1001,6 +1030,7 @@ Marcin Konicki
 Marco Deckel
 Marco G. Salvagno
 Marco Maggi
+Marcos Diazr
 Marcus Hoffmann
 Marcus Sundberg
 Marcus Webster
@@ -1026,6 +1056,7 @@ Markus Oberhumer
 Markus Westerlind
 Marquis de Muesli
 Martijn Koster
+Martin Ankerl
 Martin C. Martin
 Martin Drasar
 Martin Dreher
@@ -1059,6 +1090,7 @@ Matthew Blain
 Matthew Clarke
 Matthew Hall
 Matthew Kerwin
+Matthew Whitehead
 Matthias Bolte
 Mattias Fornander
 Maurice Barnum
@@ -1072,6 +1104,7 @@ Maxim Ivanov
 Maxim Perenesenko
 Maxim Prohorov
 Maxime Larocque
+Maxime Legros
 Mehmet Bozkurt
 Mekonikum
 Melissa Mears
@@ -1138,8 +1171,10 @@ Mostyn Bramley-Moore
 Moti Avrahami
 Muz Dima
 Myk Taylor
+NTMan on Github
 Nach M. S.
 Nagai H
+Nate Prewitt
 Nathan Coulter
 Nathan O'Sullivan
 Nathanael Nerode
@@ -1159,6 +1194,7 @@ Nick Gimbrone
 Nick Humfrey
 Nick Miyake
 Nick Zitzmann
+Nicklas Avén
 Nico Baggus
 Nicolas Berloquin
 Nicolas Croiset
@@ -1285,6 +1321,7 @@ Philip Craig
 Philip Gladstone
 Philip Langdale
 Philip Prindeville
+Philipp Waehnert
 Philippe Hameau
 Philippe Raoult
 Philippe Vaucher
@@ -1299,6 +1336,7 @@ Pramod Sharma
 Prash Dush
 Praveen Pvs
 Priyanka Shah
+Przemysław Tomaszewski
 Puneet Pawaia
 Quagmire
 Quanah Gibson-Mount
@@ -1320,6 +1358,7 @@ Ralf S. Engelschall
 Ralph Beckmann
 Ralph Mitchell
 Ramana Mokkapati
+Ran Mozes
 Randall S. Becker
 Randy Armstrong
 Randy McMurchy
@@ -1346,6 +1385,7 @@ Ricardo Cadime
 Rich Burridge
 Rich Gray
 Rich Rauenzahn
+Rich Turner
 Richard Alcock
 Richard Archer
 Richard Atterer
@@ -1366,6 +1406,7 @@ Rick Deist
 Rick Jones
 Rick Richardson
 Ricki Hirner
+Ricky-Tigg on github
 Rider Linden
 Rikard Falkeborn
 Rob Cotrone
@@ -1391,6 +1432,7 @@ Robin Johnson
 Robin Kay
 Robson Braga Araujo
 Rod Widdowson
+Rodger Combs
 Rodney Simmons
 Rodric Glaser
 Rodrigo Silva
@@ -1400,6 +1442,7 @@ Roland Krikava
 Roland Zimmermann
 Rolland Dudemaine
 Romain Coltel
+Romain Fliedel
 Roman Koifman
 Roman Mamedov
 Romulo A. Ceccon
@@ -1434,6 +1477,7 @@ Sam Schanken
 Sampo Kellomaki
 Samuel Díaz García
 Samuel Listopad
+Samuel Surtees
 Samuel Thibault
 Sander Gates
 Sandor Feldi
@@ -1467,11 +1511,13 @@ Sergio Borghese
 Serj Kalichev
 Seshubabu Pasam
 Seth Mos
+Sevan Janiyan
 Sh Diao
 Shachaf Ben-Kiki
 Shao Shuchao
 Sharad Gupta
 Shard
+Shaun Jackman
 Shawn Landden
 Shawn Poulson
 Shine Fan
@@ -1534,6 +1580,7 @@ Stuart Henderson
 Sune Ahlgren
 Sunny Purushe
 Sven Anders
+Sven Blumenstein
 Sven Neuhaus
 Sven Wegener
 Svyatoslav Mishyn
@@ -1584,6 +1631,8 @@ Timotej Lazar
 Timothe Litt
 Timothy Polich
 Tinus van den Berg
+Tobias Blomberg
+Tobias Hintze
 Tobias Markus
 Tobias Rundström
 Tobias Stoeckmann
@@ -1629,6 +1678,7 @@ Travis Burtrum
 Travis Obenhaus
 Troels Walsted Hansen
 Troy Engel
+Tuomo Rinne
 Tupone Alfredo
 Tyler Hall
 Török Edwin
@@ -1691,9 +1741,11 @@ Yamada Yasuharu
 Yang Tse
 Yarram Sunil
 Yasuharu Yamada
+Yasuhiro Matsumoto
 Yehezkel Horowitz
 Yehoshua Hershberg
 Yi Huang
+Yiming Jing
 Yingwei Liu
 Yonggang Luo
 Yousuke Kimoto
@@ -1706,29 +1758,38 @@ Zachary Seguin
 Zdenek Pavlas
 Zekun Ni
 Zenju on github
+Zero King
+Zhaoyang Wu
 Zhouyihai Ding
 Zmey Petroff
 Zvi Har'El
+adnn on github
 afrind on github
 ahodesuka on github
 anshnd on github
 arainchik on github
 asavah on github
 baumanj on github
+bobmitchell1956 on github
 bsammon on github
 cbartl on github
+clbr on github
 cmfrolick on github
+daboul on github
 dasimx on github
 destman on github
 dkjjr89 on github
 dpull on github
+dtmsecurity on github
 eXeC64 on github
 elelel on github
 elephoenix on github
 guitared on github
 hsiao yi
 imilli on github
+infinnovation-dev on github
 iz8mbw on github
+jakirkham on github
 jonrumsey on github
 joshhe on github
 jungle-boogie on github
@@ -1759,6 +1820,8 @@ stootill on github
 swalkaus at yahoo.com
 tarek112 on github
 tommink[at]post.pl
+tonystz on Github
+tpaukrt on github
 vanillajonathan on github
 wmsch on github
 wncboy on github

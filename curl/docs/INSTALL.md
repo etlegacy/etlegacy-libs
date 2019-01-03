@@ -45,11 +45,11 @@ your own home directory:
 The configure script always tries to find a working SSL library unless
 explicitly told not to. If you have OpenSSL installed in the default search
 path for your compiler/linker, you don't need to do anything special. If you
-have OpenSSL installed in /usr/local/ssl, you can run configure like:
+have OpenSSL installed in `/usr/local/ssl`, you can run configure like:
 
     ./configure --with-ssl
 
-If you have OpenSSL installed somewhere else (for example, /opt/OpenSSL) and
+If you have OpenSSL installed somewhere else (for example, `/opt/OpenSSL`) and
 you have pkg-config installed, set the pkg-config path first, like this:
 
     env PKG_CONFIG_PATH=/opt/OpenSSL/lib/pkgconfig ./configure --with-ssl
@@ -105,9 +105,9 @@ libressl.
  - NSS: `--without-ssl --with-nss`
  - PolarSSL: `--without-ssl --with-polarssl`
  - mbedTLS: `--without-ssl --with-mbedtls`
- - axTLS: `--without-ssl --with-axtls`
  - schannel: `--without-ssl --with-winssl`
  - secure transport: `--without-ssl --with-darwinssl`
+ - MesaLink: `--without-ssl --with-mesalink`
 
 # Windows
 
@@ -248,7 +248,7 @@ look for dynamic import symbols.
 
 ## Legacy Windows and SSL
 
-WinSSL (specifically SChannel from Windows SSPI), is the native SSL library in
+WinSSL (specifically Schannel from Windows SSPI), is the native SSL library in
 Windows. However, WinSSL in Windows <= XP is unable to connect to servers that
 no longer support the legacy handshakes and algorithms used by those
 versions. If you will be using curl in one of those earlier versions of

@@ -97,7 +97,7 @@ CURLcode curl_easy_perform_ev(CURL *easy);
 static bool is_fatal_error(CURLcode code)
 {
   switch(code) {
-  /* TODO: Should CURLE_SSL_CACERT be included as critical error ? */
+  /* TODO: Should CURLE_PEER_FAILED_VERIFICATION be a critical error? */
   case CURLE_FAILED_INIT:
   case CURLE_OUT_OF_MEMORY:
   case CURLE_UNKNOWN_OPTION:
@@ -111,6 +111,19 @@ static bool is_fatal_error(CURLcode code)
 
   /* no error or not critical */
   return FALSE;
+}
+
+/*
+ * Check if a given string is a PKCS#11 URI
+ */
+static bool is_pkcs11_uri(const char *string)
+{
+  if(curl_strnequal(string, "pkcs11:", 7)) {
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
 }
 
 #ifdef __VMS
@@ -1073,6 +1086,46 @@ static CURLcode operate_do(struct GlobalConfig *global,
           my_setopt_str(curl, CURLOPT_PINNEDPUBLICKEY, config->pinnedpubkey);
 
         if(curlinfo->features & CURL_VERSION_SSL) {
+          /* Check if config->cert is a PKCS#11 URI and set the
+           * config->cert_type if necessary */
+          if(config->cert) {
+            if(!config->cert_type) {
+              if(is_pkcs11_uri(config->cert)) {
+                config->cert_type = strdup("ENG");
+              }
+            }
+          }
+
+          /* Check if config->key is a PKCS#11 URI and set the
+           * config->key_type if necessary */
+          if(config->key) {
+            if(!config->key_type) {
+              if(is_pkcs11_uri(config->key)) {
+                config->key_type = strdup("ENG");
+              }
+            }
+          }
+
+          /* Check if config->proxy_cert is a PKCS#11 URI and set the
+           * config->proxy_type if necessary */
+          if(config->proxy_cert) {
+            if(!config->proxy_cert_type) {
+              if(is_pkcs11_uri(config->proxy_cert)) {
+                config->proxy_cert_type = strdup("ENG");
+              }
+            }
+          }
+
+          /* Check if config->proxy_key is a PKCS#11 URI and set the
+           * config->proxy_key_type if necessary */
+          if(config->proxy_key) {
+            if(!config->proxy_key_type) {
+              if(is_pkcs11_uri(config->proxy_key)) {
+                config->proxy_key_type = strdup("ENG");
+              }
+            }
+          }
+
           my_setopt_str(curl, CURLOPT_SSLCERT, config->cert);
           my_setopt_str(curl, CURLOPT_PROXY_SSLCERT, config->proxy_cert);
           my_setopt_str(curl, CURLOPT_SSLCERTTYPE, config->cert_type);
@@ -1209,6 +1262,9 @@ static CURLcode operate_do(struct GlobalConfig *global,
         my_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS,
                   (long)(config->connecttimeout * 1000));
 
+        if(config->doh_url)
+          my_setopt_str(curl, CURLOPT_DOH_URL, config->doh_url);
+
         if(config->cipher_list)
           my_setopt_str(curl, CURLOPT_SSL_CIPHER_LIST, config->cipher_list);
 
@@ -1220,7 +1276,7 @@ static CURLcode operate_do(struct GlobalConfig *global,
           my_setopt_str(curl, CURLOPT_TLS13_CIPHERS, config->cipher13_list);
 
         if(config->proxy_cipher13_list)
-          my_setopt_str(curl, CURLOPT_PROXY_SSL_CIPHER_LIST,
+          my_setopt_str(curl, CURLOPT_PROXY_TLS13_CIPHERS,
                         config->proxy_cipher13_list);
 
         /* new in libcurl 7.9.2: */
@@ -1315,9 +1371,8 @@ static CURLcode operate_do(struct GlobalConfig *global,
 
         /* curl 7.15.2 */
         if(config->localport) {
-          my_setopt(curl, CURLOPT_LOCALPORT, (long)config->localport);
-          my_setopt_str(curl, CURLOPT_LOCALPORTRANGE,
-                        (long)config->localportrange);
+          my_setopt(curl, CURLOPT_LOCALPORT, config->localport);
+          my_setopt_str(curl, CURLOPT_LOCALPORTRANGE, config->localportrange);
         }
 
         /* curl 7.15.5 */
@@ -1578,6 +1633,7 @@ static CURLcode operate_do(struct GlobalConfig *global,
                 curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response);
 
                 switch(response) {
+                case 408: /* Request Timeout */
                 case 500: /* Internal Server Error */
                 case 502: /* Bad Gateway */
                 case 503: /* Service Unavailable */
@@ -1749,7 +1805,7 @@ static CURLcode operate_do(struct GlobalConfig *global,
         else if(result && global->showerror) {
           fprintf(global->errors, "curl: (%d) %s\n", result, (errorbuffer[0]) ?
                   errorbuffer : curl_easy_strerror(result));
-          if(result == CURLE_SSL_CACERT)
+          if(result == CURLE_PEER_FAILED_VERIFICATION)
             fputs(CURL_CA_CERT_ERRORMSG, global->errors);
         }
 
