@@ -476,26 +476,25 @@ elseif(UNIX)
 		elseif(CMAKE_SYSTEM MATCHES "Darwin")
 			set(LUA_MAKE_TARGET "macosx")
 		else()
-			set(LUA_MAKE_TARGET "posix")
-			# if(NOT CROSS_COMPILE32)
-			# 	set(LUA_MAKE_TARGET "posix")
-			# else()
-			# 	set(LUA_MAKE_TARGET "posix32bit")
-			# endif()
+			if(NOT CROSS_COMPILE32)
+				set(LUA_MAKE_TARGET "posix")
+			else()
+				set(LUA_MAKE_TARGET "posix32bit")
+			endif()
 		endif()
 
-		ExternalProject_Add(
-			bundled_lua
-			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/lua
-			CONFIGURE_COMMAND ${CMAKE_COMMAND} -E echo "Skipping lua configure"
-			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/lua
-			BUILD_COMMAND make ${LUA_MAKE_TARGET} ${CROSS_COMPILE32_FLAGS}
-			INSTALL_COMMAND make install INSTALL_TOP=${CMAKE_CURRENT_BINARY_DIR}/libs/lua
-			BUILD_IN_SOURCE 1
+		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
+			COMMAND make clean || true
+			COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
+			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
 		)
 
-		set(LUA_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/lua/lib/liblua.a")
-		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/lua/include")
+		set(LUA_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a")
+		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
+
+		add_custom_target(bundled_lua
+			DEPENDS ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
+		)
 	endif()
 
 	#-----------------------------------------------------------------
