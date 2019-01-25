@@ -574,10 +574,13 @@ endif()
 if(BUNDLED_SDL AND BUILD_CLIENT)
 	# GL render builds (not GLES) for RPI require VIDEO_OPENGLES=1
 	if(ARM AND NOT FEATURE_RENDERER_GLES)
-		set(SDL_WITH_GLES "ON")		
-		set(HOST_CONFIGURE "--host=armv7l-raspberry-linux-gnueabihf" STRING)
+		set(SDL_WITH_GLES "ON")				
 	else()
 		set(SDL_WITH_GLES "${FEATURE_RENDERER_GLES}")
+	endif()
+
+	if(ARM)
+		set(HOST_CONFIGURE "--host=armv7l-raspberry-linux-gnueabihf" STRING)
 	endif()
 
 	# ${CMAKE_CURRENT_BINARY_DIR}/libs/sdl2
