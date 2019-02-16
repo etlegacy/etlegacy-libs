@@ -485,11 +485,19 @@ elseif(UNIX)
 			endif()
 		endif()
 
-		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
-			COMMAND make clean || true
-			COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
-			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
-		)
+		if(NOT CMAKE_SYSTEM MATCHES "Darwin")
+			add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
+				COMMAND make clean || true
+				COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
+				WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
+			)
+		else ()
+			add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
+				COMMAND make clean || true
+				COMMAND make ${LUA_MAKE_TARGET} ${CROSS_COMPILE32_FLAGS}
+				WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
+			)
+		endif()
 
 		set(LUA_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a")
 		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
