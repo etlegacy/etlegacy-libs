@@ -535,7 +535,7 @@ elseif(UNIX)
 
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
 			COMMAND make clean || true
-			COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
+			COMMAND make ${LUA_MAKE_TARGET} ${CROSS_COMPILE32_FLAGS}
 			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
 		)
 
