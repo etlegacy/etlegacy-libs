@@ -4,7 +4,7 @@ include(CheckIncludeFile)
 set(LIBS_BINARYDIR_DIR ${PROJECT_BINARY_DIR}/libs)
 set(LIBS_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads)
 
-if(FEATURE_OPENSSL AND BUNDLED_OPENSSL)
+if(BUNDLED_OPENSSL)
 	find_program(NASM_EXECUTABLE nasm)
 	if(NOT NASM_EXECUTABLE)
 		message(FATAL_ERROR "NASM not found")
@@ -130,31 +130,29 @@ if(WIN32)
 		set_target_properties(bundled_jpeg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 	endif()
 
-	if(FEATURE_OPENSSL)
-		if(BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
-			set(OPENSSL_PREFIX "${CMAKE_BINARY_DIR}/openssl/build")
-			set(OPENSSL_CONFIGURE "${PERL_EXECUTABLE}" Configure "${openssl_plat}" "--prefix=${OPENSSL_PREFIX}" "--openssldir=${OPENSSL_PREFIX}" no-shared no-unit-test -static)
-			set(OPENSSL_BUILD nmake)
-			set(OPENSSL_INSTALL nmake install)
-			ExternalProject_Add(bundled_openssl
-				# Use github archive instead of the one hosted on openssl.org because of CMake bug #13251
-				#URL_MD5 "9e380f6f9cc497bd2f47c944019239ac"
-				#GIT_REPOSITORY "https://github.com/openssl/openssl.git"
-				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}/openssl
-				URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_0j.tar.gz
-				SOURCE_DIR "${CMAKE_BINARY_DIR}/openssl"
-				BUILD_IN_SOURCE 1
-				CONFIGURE_COMMAND ${OPENSSL_CONFIGURE}
-				BUILD_COMMAND ${OPENSSL_BUILD}
-				INSTALL_COMMAND ${OPENSSL_INSTALL}
-			)
-			set(OPENSSL_BUNDLED_INCLUDE_DIR "${OPENSSL_PREFIX}/include")
-			set(OPENSSL_BUNDLED_LIBRARY "${OPENSSL_PREFIX}/lib/libcrypto.lib" "${OPENSSL_PREFIX}/lib/libssl.lib")
-			set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-		else()
-			add_custom_target(bundled_openssl)
-			set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-		endif()
+	if(BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
+		set(OPENSSL_PREFIX "${CMAKE_BINARY_DIR}/openssl/build")
+		set(OPENSSL_CONFIGURE "${PERL_EXECUTABLE}" Configure "${openssl_plat}" "--prefix=${OPENSSL_PREFIX}" "--openssldir=${OPENSSL_PREFIX}" no-shared no-unit-test -static)
+		set(OPENSSL_BUILD nmake)
+		set(OPENSSL_INSTALL nmake install)
+		ExternalProject_Add(bundled_openssl
+			# Use github archive instead of the one hosted on openssl.org because of CMake bug #13251
+			#URL_MD5 "9e380f6f9cc497bd2f47c944019239ac"
+			#GIT_REPOSITORY "https://github.com/openssl/openssl.git"
+			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}/openssl
+			URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_0j.tar.gz
+			SOURCE_DIR "${CMAKE_BINARY_DIR}/openssl"
+			BUILD_IN_SOURCE 1
+			CONFIGURE_COMMAND ${OPENSSL_CONFIGURE}
+			BUILD_COMMAND ${OPENSSL_BUILD}
+			INSTALL_COMMAND ${OPENSSL_INSTALL}
+		)
+		set(OPENSSL_BUNDLED_INCLUDE_DIR "${OPENSSL_PREFIX}/include")
+		set(OPENSSL_BUNDLED_LIBRARY "${OPENSSL_PREFIX}/lib/libcrypto.lib" "${OPENSSL_PREFIX}/lib/libssl.lib")
+		set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	else()
+		add_custom_target(bundled_openssl)
+		set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 	endif()
 
 	#-----------------------------------------------------------------
