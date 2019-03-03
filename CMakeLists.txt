@@ -4,31 +4,39 @@ include(CheckIncludeFile)
 set(LIBS_BINARYDIR_DIR ${PROJECT_BINARY_DIR}/libs)
 set(LIBS_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads)
 
-if(BUNDLED_OPENSSL)
-	find_program(NASM_EXECUTABLE nasm)
-	if(NOT NASM_EXECUTABLE)
-		message(FATAL_ERROR "NASM not found")
-	endif()
-
-	FIND_PACKAGE(perl REQUIRED)
-	if(NOT PERL_FOUND)
-		message(FATAL_ERROR "Perl not found")
-	endif()
-
-	if(WIN32)
-		if(64BITS)
-			set(openssl_plat VC-WIN64)
-			# set(curl_plat x64)
-		else()
-			set(openssl_plat VC-WIN32)
-			# set(curl_plat x86)
-		endif()
-	endif()
-endif()
+# note/FIXME/clarify: 
+# when features are disabled this script is still
+# adding the related targets? F.e. LUA_FEATURE is Off and BUNDLED_LUA On
+# see usage of BUNDLED_LUA below (BUNDLED_OPENSSL, BUNDLED OPENAL ...)
 
 #CMAKE_DEBUG_POSTFIX
 
 if(WIN32)
+
+	# moved for now until linux BUNDLED_OPENSSL is done
+	if(BUNDLED_OPENSSL)
+		find_program(NASM_EXECUTABLE nasm)
+		if(NOT NASM_EXECUTABLE)
+			message(FATAL_ERROR "NASM not found")
+		endif()
+	
+		# FIXME: there is no findPerl cmake script in project?! (at least for *NIX)
+		FIND_PACKAGE(perl REQUIRED)
+		if(NOT PERL_FOUND)
+			message(FATAL_ERROR "Perl not found")
+		endif()
+	
+		if(WIN32)
+			if(64BITS)
+				set(openssl_plat VC-WIN64)
+				# set(curl_plat x64)
+			else()
+				set(openssl_plat VC-WIN32)
+				# set(curl_plat x86)
+			endif()
+		endif()
+	endif()
+
 	#-----------------------------------------------------------------
 	# Build bundled JPEG library
 	#-----------------------------------------------------------------
@@ -401,10 +409,21 @@ elseif(UNIX)
 		endif()
 	endif(CROSS_COMPILE32)
 
+	if (BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
+
+		# FIXME:
+		# add BUNDLED_OPENSSL
+		# and enable ssl in CURL
+	
+	endif()
+	
 	#-----------------------------------------------------------------
 	# Build bundled cURL library
 	#-----------------------------------------------------------------
 	if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
+
+		# FIXME: add openssl lib to project
+		# set --with-ssl / remove --without-ssl
 
 		ExternalProject_Add(
 			bundled_curl
@@ -416,7 +435,7 @@ elseif(UNIX)
 			--enable-proxy --disable-dict --disable-telnet
 			--disable-tftp --disable-pop3 --disable-imap
 			--disable-smb --disable-smtp --disable-gopher
-			--without-ssl --without-libssh2 --without-nghttp2
+			--without-libssh2 --without-nghttp2
 			--without-gssapi --with-zlib --without-brotli
 			--disable-ares --enable-threaded-resolver
 			--enable-ipv6 --enable-unix-sockets
@@ -424,6 +443,7 @@ elseif(UNIX)
 			--disable-sspi --enable-libgcc
 			--without-libmetalink --without-libpsl
 			--without-librtmp ${CROSS_COMPILE32_FLAGS}
+			--without-ssl
 			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/curl
 			BUILD_COMMAND make
 			INSTALL_COMMAND make install
