@@ -410,10 +410,40 @@ elseif(UNIX)
 	endif(CROSS_COMPILE32)
 
 	if (BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
+		# FIXME: check flags
+		if(CROSS_COMPILE32)
+			if(APPLE)
+				SET(OPENSSL_BUILD ./Configure darwin-i386-cc ${CROSS_COMPILE32_FLAGS})
+			else()
+				SET(OPENSSL_BUILD ./Configure linux-x86 ${CROSS_COMPILE32_FLAGS})
+			endif()
+		else(CROSS_COMPILE32)
+			if(APPLE)
+				SET(OPENSSL_BUILD ./Configure darwin64-x86_64-cc ${CROSS_COMPILE32_FLAGS})
+			else()
+				#SET(OPENSSL_BUILD ./Configure linux-x86_64 ${CROSS_COMPILE32_FLAGS})
+				# better use ./config here?! (..and not the CROSS_COMPILE32_FLAGS?!)
+				SET(OPENSSL_BUILD ./Configure ${CROSS_COMPILE32_FLAGS})
+			endif()
+		endif()
 
 		# FIXME:
-		# add BUNDLED_OPENSSL
+		# check all the locations of the files (runtime files?!)
 		# and enable ssl in CURL
+		ExternalProject_Add(
+			bundled_openssl
+			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/openssl
+			CONFIGURE_COMMAND ${OPENSSL_BUILD} --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/openssl
+			--openssldir=${CMAKE_CURRENT_BINARY_DIR}/libs/openssl
+			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/openssl
+			BUILD_COMMAND make
+			INSTALL_COMMAND make install
+			BUILD_IN_SOURCE 1
+		)
+
+		# also generates libcrypto.a
+		set(OPENSSL_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/openssl/lib/libssl.a")
+		set(OPENSSL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/openssl/include")
 	
 	endif()
 	
