@@ -724,7 +724,7 @@ endif()
 #-----------------------------------------------------------------
 # Build bundled SQLITE3 library
 #-----------------------------------------------------------------
-if(BUNDLED_SQLITE3 AND (BUILD_CLIENT OR BUILD_SERVER))
+if(BUNDLED_SQLITE3 AND (BUILD_CLIENT OR BUILD_SERVER OR BUILD_MOD))
 	include(${CMAKE_CURRENT_LIST_DIR}/sqlite3/CMakeLists.txt)
 	set(SQLITE3_BUNDLED_LIBRARIES bundled_sqlite3)
 	set(SQLITE3_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sqlite3/src")
