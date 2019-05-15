@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2018, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -199,6 +199,7 @@ static const struct LongShort aliases[]= {
   {"01",  "http1.1",                 ARG_NONE},
   {"02",  "http2",                   ARG_NONE},
   {"03",  "http2-prior-knowledge",   ARG_NONE},
+  {"09",  "http0.9",                 ARG_BOOL},
   {"1",  "tlsv1",                    ARG_NONE},
   {"10",  "tlsv1.0",                 ARG_NONE},
   {"11",  "tlsv1.1",                 ARG_NONE},
@@ -213,6 +214,7 @@ static const struct LongShort aliases[]= {
   {"a",  "append",                   ARG_BOOL},
   {"A",  "user-agent",               ARG_STRING},
   {"b",  "cookie",                   ARG_STRING},
+  {"ba", "alt-svc",                  ARG_STRING},
   {"B",  "use-ascii",                ARG_BOOL},
   {"c",  "cookie-jar",               ARG_STRING},
   {"C",  "continue-at",              ARG_STRING},
@@ -1183,6 +1185,10 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
         /* HTTP version 2.0 over clean TCP*/
         config->httpversion = CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE;
         break;
+      case '9':
+        /* Allow HTTP/0.9 responses! */
+        config->http09_allowed = toggle;
+        break;
       }
       break;
     case '1': /* --tlsv1* options */
@@ -1239,17 +1245,23 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
       /* This specifies the User-Agent name */
       GetStr(&config->useragent, nextarg);
       break;
-    case 'b': /* cookie string coming up: */
-      if(nextarg[0] == '@') {
-        nextarg++;
-      }
-      else if(strchr(nextarg, '=')) {
-        /* A cookie string must have a =-letter */
-        GetStr(&config->cookie, nextarg);
+    case 'b':
+      switch(subletter) {
+      case 'a': /* --alt-svc */
+        GetStr(&config->altsvc, nextarg);
         break;
+      default:  /* --cookie string coming up: */
+        if(nextarg[0] == '@') {
+          nextarg++;
+        }
+        else if(strchr(nextarg, '=')) {
+          /* A cookie string must have a =-letter */
+          GetStr(&config->cookie, nextarg);
+          break;
+        }
+        /* We have a cookie file to read from! */
+        GetStr(&config->cookiefile, nextarg);
       }
-      /* We have a cookie file to read from! */
-      GetStr(&config->cookiefile, nextarg);
       break;
     case 'B':
       /* use ASCII/text when transferring */
@@ -1686,7 +1698,7 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
          to sort this out slowly and carefully */
       if(formparse(config,
                    nextarg,
-                   &config->mimepost,
+                   &config->mimeroot,
                    &config->mimecurrent,
                    (subletter == 's')?TRUE:FALSE)) /* 's' is literal string */
         return PARAM_BAD_USE;

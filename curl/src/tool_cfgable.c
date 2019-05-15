@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2018, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -43,6 +43,7 @@ void config_init(struct OperationConfig* config)
   config->proto_default = NULL;
   config->tcp_nodelay = TRUE; /* enabled by default */
   config->happy_eyeballs_timeout_ms = CURL_HET_DEFAULT;
+  config->http09_allowed = TRUE;
 }
 
 static void free_config_fields(struct OperationConfig *config)
@@ -52,6 +53,7 @@ static void free_config_fields(struct OperationConfig *config)
   Curl_safefree(config->random_file);
   Curl_safefree(config->egd_file);
   Curl_safefree(config->useragent);
+  Curl_safefree(config->altsvc);
   Curl_safefree(config->cookie);
   Curl_safefree(config->cookiejar);
   Curl_safefree(config->cookiefile);
@@ -143,10 +145,10 @@ static void free_config_fields(struct OperationConfig *config)
   curl_slist_free_all(config->headers);
   curl_slist_free_all(config->proxyheaders);
 
-  if(config->mimepost) {
-    curl_mime_free(config->mimepost);
-    config->mimepost = NULL;
-  }
+  curl_mime_free(config->mimepost);
+  config->mimepost = NULL;
+  tool_mime_free(config->mimeroot);
+  config->mimeroot = NULL;
   config->mimecurrent = NULL;
 
   curl_slist_free_all(config->telnet_options);

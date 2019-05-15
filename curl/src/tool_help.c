@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2018, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -48,6 +48,8 @@ struct helptxt {
 static const struct helptxt helptext[] = {
   {"    --abstract-unix-socket <path>",
    "Connect via abstract Unix domain socket"},
+  {"    --alt-svc <file name>",
+   "Enable alt-svc with this cache file"},
   {"    --anyauth",
    "Pick any authentication method"},
   {"-a, --append",
@@ -78,7 +80,7 @@ static const struct helptxt helptext[] = {
    "Connect to host"},
   {"-C, --continue-at <offset>",
    "Resumed transfer offset"},
-  {"-b, --cookie <data>",
+  {"-b, --cookie <data|filename>",
    "Send cookies from string/file"},
   {"-c, --cookie-jar <filename>",
    "Write cookies to <filename> after operation"},
@@ -176,6 +178,8 @@ static const struct helptxt helptext[] = {
    "This help text"},
   {"    --hostpubmd5 <md5>",
    "Acceptable MD5 hash of the host public key"},
+  {"    --http0.9",
+   "Allow HTTP 0.9 responses"},
   {"-0, --http1.0",
    "Use HTTP 1.0"},
   {"    --http1.1",
@@ -411,7 +415,7 @@ static const struct helptxt helptext[] = {
   {"    --ssl-allow-beast",
    "Allow security flaw to improve interop"},
   {"    --ssl-no-revoke",
-   "Disable cert revocation checks (WinSSL)"},
+   "Disable cert revocation checks (Schannel)"},
   {"    --ssl-reqd",
    "Require SSL/TLS"},
   {"-2, --sslv2",
@@ -437,7 +441,7 @@ static const struct helptxt helptext[] = {
   {"-z, --time-cond <time>",
    "Transfer based on a time condition"},
   {"    --tls-max <VERSION>",
-   "Use TLSv1.0 or greater"},
+   "Set maximum allowed TLS version"},
   {"    --tls13-ciphers <list of TLS 1.3 ciphersuites>",
    "TLS 1.3 cipher suites to use"},
   {"    --tlsauthtype <type>",
@@ -523,6 +527,7 @@ static const struct feat feats[] = {
   {"HTTPS-proxy",    CURL_VERSION_HTTPS_PROXY},
   {"MultiSSL",       CURL_VERSION_MULTI_SSL},
   {"PSL",            CURL_VERSION_PSL},
+  {"alt-svc",        CURL_VERSION_ALTSVC},
 };
 
 void tool_help(void)
@@ -536,6 +541,21 @@ void tool_help(void)
       tool_pressanykey();
 #endif
   }
+}
+
+static int
+featcomp(const void *p1, const void *p2)
+{
+  /* The arguments to this function are "pointers to pointers to char", but
+     the comparison arguments are "pointers to char", hence the following cast
+     plus dereference */
+#ifdef HAVE_STRCASECMP
+  return strcasecmp(* (char * const *) p1, * (char * const *) p2);
+#elif defined(HAVE_STRCMPI)
+  return strcmpi(* (char * const *) p1, * (char * const *) p2);
+#else
+  return strcmp(* (char * const *) p1, * (char * const *) p2);
+#endif
 }
 
 void tool_version_info(void)
@@ -557,15 +577,20 @@ void tool_version_info(void)
     puts(""); /* newline */
   }
   if(curlinfo->features) {
+    char *featp[ sizeof(feats) / sizeof(feats[0]) + 1];
+    size_t numfeat = 0;
     unsigned int i;
-    printf("Features: ");
+    printf("Features:");
     for(i = 0; i < sizeof(feats)/sizeof(feats[0]); i++) {
       if(curlinfo->features & feats[i].bitmask)
-        printf("%s ", feats[i].name);
+        featp[numfeat++] = (char *)feats[i].name;
     }
 #ifdef USE_METALINK
-    printf("Metalink ");
+    featp[numfeat++] = (char *)"Metalink";
 #endif
+    qsort(&featp[0], numfeat, sizeof(char *), featcomp);
+    for(i = 0; i< numfeat; i++)
+      printf(" %s", featp[i]);
     puts(""); /* newline */
   }
 }

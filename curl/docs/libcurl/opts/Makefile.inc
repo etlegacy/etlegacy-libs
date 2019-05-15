@@ -83,6 +83,8 @@ man_MANS =                                      \
   CURLOPT_ACCEPTTIMEOUT_MS.3                    \
   CURLOPT_ACCEPT_ENCODING.3                     \
   CURLOPT_ADDRESS_SCOPE.3                       \
+  CURLOPT_ALTSVC.3                              \
+  CURLOPT_ALTSVC_CTRL.3                         \
   CURLOPT_APPEND.3                              \
   CURLOPT_AUTOREFERER.3                         \
   CURLOPT_BUFFERSIZE.3                          \
@@ -154,6 +156,7 @@ man_MANS =                                      \
   CURLOPT_HEADERDATA.3                          \
   CURLOPT_HEADERFUNCTION.3                      \
   CURLOPT_HEADEROPT.3                           \
+  CURLOPT_HTTP09_ALLOWED.3                      \
   CURLOPT_HTTP200ALIASES.3                      \
   CURLOPT_HTTPAUTH.3                            \
   CURLOPT_HTTPGET.3                             \
@@ -164,6 +167,8 @@ man_MANS =                                      \
   CURLOPT_HTTP_TRANSFER_DECODING.3              \
   CURLOPT_HTTP_VERSION.3                        \
   CURLOPT_IGNORE_CONTENT_LENGTH.3               \
+  CURLOPT_TRAILERDATA.3                         \
+  CURLOPT_TRAILERFUNCTION.3                     \
   CURLOPT_INFILESIZE.3                          \
   CURLOPT_INFILESIZE_LARGE.3                    \
   CURLOPT_INTERFACE.3                           \
