@@ -46,9 +46,8 @@
 
 
 
-cmake_minimum_required (VERSION 2.8)
-# required for exports? cmake_minimum_required (VERSION 2.8.6)
-project (jansson C)
+cmake_minimum_required (VERSION 3.1)
+project(jansson C)
 
 # Options
 option(JANSSON_BUILD_SHARED_LIBS "Build shared libraries." OFF)
@@ -61,27 +60,35 @@ if (MSVC)
 	option(JANSSON_STATIC_CRT "Link the static CRT libraries" OFF )
 endif ()
 
+option(JANSSON_EXAMPLES "Compile example applications" ON)
+
+if (UNIX)
+   option(JANSSON_COVERAGE "(GCC Only! Requires gcov/lcov to be installed). Include target for doing coverage analysis for the test suite. Note that -DCMAKE_BUILD_TYPE=Debug must be set" OFF)
+   option(JANSSON_COVERALLS "Generate coverage info for Coveralls" OFF)
+   option(JANSSON_COVERALLS_UPLOAD "Upload coverage info to Coveralls (Only works via Travis)" ON)
+endif ()
+
 # Set some nicer output dirs.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+set(JANSSON_TEMP_DIR ${PROJECT_BINARY_DIR}/tmp)
 
 # Give the debug version a different postfix for windows,
 # so both the debug and release version can be built in the
 # same build-tree on Windows (MSVC).
-if (WIN32)
+if (WIN32 AND NOT CMAKE_DEBUG_POSTFIX)
    set(CMAKE_DEBUG_POSTFIX "_d")
-else (WIN32)
-endif (WIN32)
+endif()
 
 # This is how I thought it should go
 # set (JANSSON_VERSION "2.3.1")
 # set (JANSSON_SOVERSION 2)
 
-set(JANSSON_DISPLAY_VERSION "2.6")
+set(JANSSON_DISPLAY_VERSION "2.12")
 
 # This is what is required to match the same numbers as automake's
-set(JANSSON_VERSION "4.6.0")
+set(JANSSON_VERSION "4.11.1")
 set(JANSSON_SOVERSION 4)
 
 # for CheckFunctionKeywords
@@ -101,11 +108,21 @@ if (MSVC)
       set(CMAKE_C_FLAGS_RELEASE "/MT")
       set(CMAKE_C_FLAGS_DEBUG "/MTd")
    endif()
-
 endif()
 
-if (NOT WIN32 AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX))
-   set(CMAKE_C_FLAGS "-fPIC")
+message("C compiler: ${CMAKE_C_COMPILER_ID}")
+
+# Coverage only works with GCC for a debug build.
+if (JANSSON_COVERALLS)
+   set(JANSSON_COVERAGE ON)
+endif()
+
+if (JANSSON_COVERAGE)
+   include(CodeCoverage)
+   include(Coveralls)
+
+   # This adds coverage arguments to gcc/clang.
+   coveralls_turn_on_coverage()
 endif()
 
 check_include_files (endian.h HAVE_ENDIAN_H)
@@ -115,7 +132,7 @@ check_include_files (unistd.h HAVE_UNISTD_H)
 check_include_files (sys/param.h HAVE_SYS_PARAM_H)
 check_include_files (sys/stat.h HAVE_SYS_STAT_H)
 check_include_files (sys/time.h HAVE_SYS_TIME_H)
-check_include_files (sys/time.h HAVE_SYS_TYPES_H)
+check_include_files (sys/types.h HAVE_SYS_TYPES_H)
 
 check_function_exists (close HAVE_CLOSE)
 check_function_exists (getpid HAVE_GETPID)
@@ -141,9 +158,9 @@ if (HAVE_INT32_T)
    set (JSON_INT32 int32_t)
 elseif (HAVE___INT32)
    set (JSON_INT32 __int32)
-elseif (HAVE_LONG_INT AND (${LONG_INT} EQUAL 4))
+elseif (HAVE_LONG_INT AND (LONG_INT EQUAL 4))
    set (JSON_INT32 long)
-elseif (HAVE_INT AND (${INT} EQUAL 4))
+elseif (HAVE_INT AND (INT EQUAL 4))
    set (JSON_INT32 int)
 else ()
    message (FATAL_ERROR "Could not detect a valid 32-bit integer type")
@@ -159,12 +176,12 @@ if (HAVE_UINT32_T)
    set (JSON_UINT32 uint32_t)
 elseif (HAVE___UINT32)
    set (JSON_UINT32 __uint32)
-elseif (HAVE_UNSIGNED_LONG_INT AND (${UNSIGNED_LONG_INT} EQUAL 4))
+elseif (HAVE_UNSIGNED_LONG_INT AND (UNSIGNED_LONG_INT EQUAL 4))
    set (JSON_UINT32 "unsigned long")
-elseif (HAVE_UNSIGNED_INT AND (${UNSIGNED_INT} EQUAL 4))
+elseif (HAVE_UNSIGNED_INT AND (UNSIGNED_INT EQUAL 4))
    set (JSON_UINT32 "unsigned int")
 else ()
-   message (FATAL_ERROR "Could not detect a valid unsigned 32-bit integer type")
+      message (FATAL_ERROR "Could not detect a valid unsigned 32-bit integer type")
 endif ()
 
 check_type_size (uint16_t UINT16_T)
@@ -173,12 +190,12 @@ if (HAVE_UINT16_T)
    set (JSON_UINT16 uint16_t)
 elseif (HAVE___UINT16)
    set (JSON_UINT16 __uint16)
-elseif (HAVE_UNSIGNED_INT AND (${UNSIGNED_INT} EQUAL 2))
+elseif (HAVE_UNSIGNED_INT AND (UNSIGNED_INT EQUAL 2))
    set (JSON_UINT16 "unsigned int")
-elseif (HAVE_UNSIGNED_SHORT AND (${UNSIGNED_SHORT} EQUAL 2))
+elseif (HAVE_UNSIGNED_SHORT AND (UNSIGNED_SHORT EQUAL 2))
    set (JSON_UINT16 "unsigned short")
 else ()
-   message (FATAL_ERROR "Could not detect a valid unsigned 16-bit integer type")
+      message (FATAL_ERROR "Could not detect a valid unsigned 16-bit integer type")
 endif ()
 
 check_type_size (uint8_t UINT8_T)
@@ -227,7 +244,7 @@ endif ()
 # detect what to use for the 64 bit type.
 # Note: I will prefer long long if I can get it, as that is what the automake system aimed for.
 if (NOT DEFINED JSON_INT_T)
-   if (HAVE_LONG_LONG_INT AND (${LONG_LONG_INT} EQUAL 8))
+   if (HAVE_LONG_LONG_INT AND (LONG_LONG_INT EQUAL 8))
       set (JSON_INT_T "long long")
    elseif (HAVE_INT64_T)
       set (JSON_INT_T int64_t)
@@ -280,31 +297,22 @@ else()
    set (JSON_INLINE)
 endif()
 
-# Find our snprintf
-check_function_exists (snprintf HAVE_SNPRINTF)
-check_function_exists (_snprintf HAVE__SNPRINTF)
+check_c_source_compiles ("int main() { unsigned long val; __sync_bool_compare_and_swap(&val, 0, 1); __sync_add_and_fetch(&val, 1); __sync_sub_and_fetch(&val, 1); return 0; } " HAVE_SYNC_BUILTINS)
+check_c_source_compiles ("int main() { char l; unsigned long v; __atomic_test_and_set(&l, __ATOMIC_RELAXED); __atomic_store_n(&v, 1, __ATOMIC_RELEASE); __atomic_load_n(&v, __ATOMIC_ACQUIRE); __atomic_add_fetch(&v, 1, __ATOMIC_ACQUIRE); __atomic_sub_fetch(&v, 1, __ATOMIC_RELEASE); return 0; }" HAVE_ATOMIC_BUILTINS)
 
-if (HAVE_SNPRINTF)
-   set(JSON_SNPRINTF snprintf)
-elseif (HAVE__SNPRINTF)
-   set(JSON_SNPRINTF _snprintf)
-endif ()
+if (HAVE_SYNC_BUILTINS)
+  set(JSON_HAVE_SYNC_BUILTINS 1)
+else()
+  set(JSON_HAVE_SYNC_BUILTINS 0)
+endif()
 
-check_c_source_compiles ("int main() { unsigned long val; __sync_bool_compare_and_swap(&val, 0, 1); return 0; } " HAVE_SYNC_BUILTINS)
-check_c_source_compiles ("int main() { char l; unsigned long v; __atomic_test_and_set(&l, __ATOMIC_RELAXED); __atomic_store_n(&v, 1, __ATOMIC_RELEASE); __atomic_load_n(&v, __ATOMIC_ACQUIRE); return 0; }" HAVE_ATOMIC_BUILTINS)
+if (HAVE_ATOMIC_BUILTINS)
+  set(JSON_HAVE_ATOMIC_BUILTINS 1)
+else()
+  set(JSON_HAVE_ATOMIC_BUILTINS 0)
+endif()
 
-# Create pkg-conf file.
-# (We use the same files as ./configure does, so we
-#  have to defined the same variables used there).
-if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
-  set(CMAKE_INSTALL_LIBDIR lib)
-endif(NOT DEFINED CMAKE_INSTALL_LIBDIR)
-set(prefix      ${CMAKE_INSTALL_PREFIX})
-set(exec_prefix ${CMAKE_INSTALL_PREFIX})
-set(libdir      ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
-set(VERSION     ${JANSSON_DISPLAY_VERSION})
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/jansson.pc.in
-               ${CMAKE_CURRENT_BINARY_DIR}/jansson.pc @ONLY)
+set (JANSSON_INITIAL_HASHTABLE_ORDER 3 CACHE STRING "Number of buckets new object hashtables contain is 2 raised to this power. The default is 3, so empty hashtables contain 2^3 = 8 buckets.")
 
 # configure the public config file
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/cmake/jansson_config.h.cmake
@@ -355,12 +363,18 @@ if(JANSSON_BUILD_SHARED_LIBS)
       VERSION ${JANSSON_VERSION}
       SOVERSION ${JANSSON_SOVERSION})
 else()
-   add_library(jansson
+   add_library(jansson STATIC
       ${JANSSON_SRC}
       ${JANSSON_HDR_PRIVATE}
       ${JANSSON_HDR_PUBLIC})
+   set_target_properties(jansson PROPERTIES
+      POSITION_INDEPENDENT_CODE true)
 endif()
 
+if (JANSSON_EXAMPLES)
+	add_executable(simple_parse "${CMAKE_CURRENT_SOURCE_DIR}/examples/simple_parse.c")
+	target_link_libraries(simple_parse jansson)
+endif()
 
 # For building Documentation (uses Sphinx)
 option(JANSSON_BUILD_DOCS "Build documentation (uses python-sphinx)." ON)
@@ -481,15 +495,18 @@ if (NOT JANSSON_WITHOUT_TESTS)
    set(api_tests
          test_array
          test_copy
+         test_chaos
          test_dump
          test_dump_callback
          test_equal
          test_load
          test_loadb
+         test_load_callback
          test_number
          test_object
          test_pack
          test_simple
+         test_sprintf
          test_unpack)
 
    # Doing arithmetic on void pointers is not allowed by Microsofts compiler
@@ -507,28 +524,30 @@ if (NOT JANSSON_WITHOUT_TESTS)
 
    # Create executables and tests/valgrind tests for API tests.
    foreach (test ${api_tests})
-      build_testprog(${test} ${PROJECT_SOURCE_DIR}/test/suites/api)
+      build_testprog(${test} ${CMAKE_CURRENT_SOURCE_DIR}/test/suites/api)
 
       if (JANSSON_TEST_WITH_VALGRIND)
          add_test(memcheck__${test}
-                  ${MEMCHECK_COMMAND} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${test})
+             ${MEMCHECK_COMMAND} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${test}
+             WORKING_DIRECTORY ${JANSSON_TEMP_DIR})
       else()
-         add_test(${test} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${test})
+         add_test(${test}
+             ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${test}
+             WORKING_DIRECTORY ${JANSSON_TEMP_DIR})
       endif ()
    endforeach ()
 
    # Test harness for the suites tests.
-   build_testprog(json_process ${PROJECT_SOURCE_DIR}/test/bin)
+   build_testprog(json_process ${CMAKE_CURRENT_SOURCE_DIR}/test/bin)
 
+   set(SUITE_TEST_CMD ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/json_process)
    set(SUITES encoding-flags valid invalid invalid-unicode)
    foreach (SUITE ${SUITES})
-       file(GLOB TESTDIRS ${jansson_SOURCE_DIR}/test/suites/${SUITE}/*)
+       file(GLOB TESTDIRS test/suites/${SUITE}/*)
 
        foreach (TESTDIR ${TESTDIRS})
          if (IS_DIRECTORY ${TESTDIR})
             get_filename_component(TNAME ${TESTDIR} NAME)
-
-            set(SUITE_TEST_CMD ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/json_process)
 
             if (JANSSON_TEST_WITH_VALGRIND)
                add_test(memcheck__${SUITE}__${TNAME}
@@ -551,6 +570,21 @@ if (NOT JANSSON_WITHOUT_TESTS)
        endforeach ()
    endforeach ()
 
+   if (JANSSON_COVERAGE)
+      setup_target_for_coverage(
+            coverage             # Coverage make target "make coverage".
+            coverage             # Name of output directory.
+            make                 # Name of test runner executable.
+            test)                # Arguments to the test runner above (make test).
+
+      if (JANSSON_COVERALLS)
+         set(COVERAGE_SRCS ${JANSSON_SRC})
+         coveralls_setup("${COVERAGE_SRCS}" ${JANSSON_COVERALLS_UPLOAD})
+      endif ()
+   endif ()
+
+   # Enable using "make check" just like the autotools project.
+   # By default cmake creates a target "make test"
    add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
                      DEPENDS json_process ${api_tests})
 endif ()
@@ -572,87 +606,78 @@ endif()
 
 set(JANSSON_INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH "Installation directory for CMake files")
 
-# Make sure the paths are absolute.
-foreach(p LIB BIN INCLUDE CMAKE)
-    set(var JANSSON_INSTALL_${p}_DIR)
-    if(NOT IS_ABSOLUTE "${${var}}")
-        set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
-    endif()
-endforeach()
-
-# Export targets (This is used for other CMake projects to easily find the libraries and include files).
-export(TARGETS jansson
-        FILE "${PROJECT_BINARY_DIR}/JanssonTargets.cmake")
-export(PACKAGE jansson)
-
-# Generate the config file for the build-tree.
-set(JANSSON__INCLUDE_DIRS
-    "${PROJECT_SOURCE_DIR}/include"
-    "${PROJECT_BINARY_DIR}/include")
-set(JANSSON_INCLUDE_DIRS ${JANSSON__INCLUDE_DIRS} CACHE PATH "Jansson include directories")
-configure_file(${PROJECT_SOURCE_DIR}/cmake/JanssonConfig.cmake.in
-                ${PROJECT_BINARY_DIR}/JanssonConfig.cmake
-                @ONLY)
-
-# Generate the config file for the installation tree.
-file(RELATIVE_PATH
-    REL_INCLUDE_DIR
-    "${JANSSON_INSTALL_CMAKE_DIR}"
-    "${JANSSON_INSTALL_INCLUDE_DIR}") # Calculate the relative directory from the Cmake dir.
-
-# Note the EVENT_CMAKE_DIR is defined in JanssonConfig.cmake.in,
-# we escape it here so it's evaluated when it is included instead
-# so that the include dirs are given relative to where the
-# config file is located.
-set(JANSSON__INCLUDE_DIRS
-    "\${JANSSON_CMAKE_DIR}/${REL_INCLUDE_DIR}")
-configure_file(${PROJECT_SOURCE_DIR}/cmake/JanssonConfig.cmake.in
-                ${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/JanssonConfig.cmake
-                @ONLY)
-
-# Generate version info for both build-tree and install-tree.
-configure_file(${PROJECT_SOURCE_DIR}/cmake/JanssonConfigVersion.cmake.in
-                ${PROJECT_BINARY_DIR}/JanssonConfigVersion.cmake
-                @ONLY)
-
-# Define the public headers.
-set_target_properties(jansson PROPERTIES PUBLIC_HEADER "${JANSSON_HDR_PUBLIC}")
-#TODO: fix this.
-
 # Create pkg-conf file.
 # (We use the same files as ./configure does, so we
 #  have to defined the same variables used there).
 set(prefix      ${CMAKE_INSTALL_PREFIX})
-set(exec_prefix ${CMAKE_INSTALL_PREFIX})
-set(libdir      ${CMAKE_INSTALL_PREFIX}/${JANSSON_INSTALL_LIB_DIR})
+set(exec_prefix "\${prefix}")
+set(libdir      "\${exec_prefix}/${JANSSON_INSTALL_LIB_DIR}")
+set(includedir  "\${prefix}/${JANSSON_INSTALL_INCLUDE_DIR}")
 set(VERSION     ${JANSSON_DISPLAY_VERSION})
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/jansson.pc.in
                ${CMAKE_CURRENT_BINARY_DIR}/jansson.pc @ONLY)
 
+# Make sure the paths are relative.
+foreach(p LIB BIN INCLUDE CMAKE)
+    set(var JANSSON_INSTALL_${p}_DIR)
+endforeach()
+
+# Generate the config file for the build-tree.
+set(JANSSON__INCLUDE_DIRS
+    "${PROJECT_BINARY_DIR}/include"
+    "${PROJECT_BINARY_DIR}/include")
+set(JANSSON_INCLUDE_DIRS ${JANSSON__INCLUDE_DIRS} CACHE PATH "Jansson include directories")
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/janssonConfig.cmake.in
+               ${CMAKE_CURRENT_BINARY_DIR}/janssonConfig.cmake
+               @ONLY)
+
+
+# Generate the config file for the installation tree.
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/cmake/janssonConfigVersion.cmake"
+  VERSION ${JANSSON_VERSION}
+  COMPATIBILITY ExactVersion
+)
+
+configure_package_config_file(
+    "cmake/janssonConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake/janssonConfig.cmake"
+    INSTALL_DESTINATION "${JANSSON_INSTALL_CMAKE_DIR}"
+)
+
 #
 # Install targets.
 #
-install(TARGETS jansson
-        EXPORT JanssonTargets
-        LIBRARY DESTINATION "${JANSSON_INSTALL_LIB_DIR}" COMPONENT lib
-        ARCHIVE DESTINATION "${JANSSON_INSTALL_LIB_DIR}" COMPONENT lib
-        RUNTIME DESTINATION "${JANSSON_INSTALL_BIN_DIR}" COMPONENT lib # Windows DLLs
-        PUBLIC_HEADER DESTINATION "${JANSSON_INSTALL_INCLUDE_DIR}" COMPONENT dev)
+option(JANSSON_INSTALL "Generate installation target" ON)
+if (JANSSON_INSTALL)
+  install(TARGETS jansson
+          EXPORT janssonTargets
+          LIBRARY DESTINATION "lib"
+          ARCHIVE DESTINATION "lib"
+          RUNTIME DESTINATION "bin"
+          INCLUDES DESTINATION "include")
 
-# Install the pkg-config.
-install (FILES
-         ${CMAKE_CURRENT_BINARY_DIR}/jansson.pc
-         DESTINATION ${JANSSON_INSTALL_LIB_DIR}/pkgconfig COMPONENT dev)
+  install(FILES ${JANSSON_HDR_PUBLIC}
+          DESTINATION "include")
 
-# Install the configs.
-install(FILES
-    ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/JanssonConfig.cmake
-    ${PROJECT_BINARY_DIR}/JanssonConfigVersion.cmake
-    DESTINATION "${JANSSON_INSTALL_CMAKE_DIR}" COMPONENT dev)
+  # Install the pkg-config.
+  install(FILES
+          ${CMAKE_CURRENT_BINARY_DIR}/jansson.pc
+          DESTINATION lib/pkgconfig)
 
-# Install exports for the install-tree.
-install(EXPORT JanssonTargets
-        DESTINATION "${JANSSON_INSTALL_CMAKE_DIR}" COMPONENT dev)
+  # Install the configs.
+  install(FILES
+      ${PROJECT_BINARY_DIR}/cmake/janssonConfig.cmake
+      ${PROJECT_BINARY_DIR}/cmake/janssonConfigVersion.cmake
+      DESTINATION "${JANSSON_INSTALL_CMAKE_DIR}")
+
+  # Install exports for the install-tree.
+  install(EXPORT janssonTargets
+          NAMESPACE jansson::
+          DESTINATION "${JANSSON_INSTALL_CMAKE_DIR}")
+endif()
 
 # For use when simply using add_library from a parent project to build jansson.
-set(JANSSON_LIBRARIES jansson CACHE STRING "Jansson libraries")
+set(JANSSON_LIBRARIES jansson CACHE STRING "jansson libraries")
