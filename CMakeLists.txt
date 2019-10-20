@@ -143,6 +143,7 @@ if(WIN32)
 		set(OPENSSL_CONFIGURE "${PERL_EXECUTABLE}" Configure "${openssl_plat}" "--prefix=${OPENSSL_PREFIX}" "--openssldir=${OPENSSL_PREFIX}" no-shared no-unit-test -static)
 		set(OPENSSL_BUILD nmake)
 		set(OPENSSL_INSTALL nmake install)
+		set(OPENSSL_BUNDLED_LIBRARY "${OPENSSL_PREFIX}/lib/libcrypto.lib" "${OPENSSL_PREFIX}/lib/libssl.lib")
 		ExternalProject_Add(bundled_openssl
 			# Use github archive instead of the one hosted on openssl.org because of CMake bug #13251
 			#URL_MD5 "9e380f6f9cc497bd2f47c944019239ac"
@@ -154,9 +155,9 @@ if(WIN32)
 			CONFIGURE_COMMAND ${OPENSSL_CONFIGURE}
 			BUILD_COMMAND ${OPENSSL_BUILD}
 			INSTALL_COMMAND ${OPENSSL_INSTALL}
+			BUILD_BYPRODUCTS ${OPENSSL_BUNDLED_LIBRARY}
 		)
 		set(OPENSSL_BUNDLED_INCLUDE_DIR "${OPENSSL_PREFIX}/include")
-		set(OPENSSL_BUNDLED_LIBRARY "${OPENSSL_PREFIX}/lib/libcrypto.lib" "${OPENSSL_PREFIX}/lib/libssl.lib")
 		set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 	else()
 		add_custom_target(bundled_openssl)
@@ -167,11 +168,21 @@ if(WIN32)
 	# Build bundled cURL library
 	#-----------------------------------------------------------------
 	if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER)) # DLL
+		set(binary_dir "${LIBS_BINARYDIR_DIR}/curl")
+		if(VSTUDIO)
+			set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/Release/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		elseif(MINGW OR VS_BUILD)
+			set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		else(VSTUDIO)
+			set(CURL_BUNDLED_LIBRARY "${binary_dir}/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		endif(VSTUDIO)
+		
 		# -DHTTP_ONLY=1
 		ExternalProject_Add(bundled_curl
 			DEPENDS bundled_openssl
 			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/curl
-			BINARY_DIR	${LIBS_BINARYDIR_DIR}/curl
+			BINARY_DIR	${binary_dir}
+			BUILD_BYPRODUCTS ${CURL_BUNDLED_LIBRARY}
 			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
 			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
 			-DBUILD_CURL_EXE=0 -DBUILD_SHARED_LIBS=0 -DENABLE_ARES=0 -DENABLE_THREADED_RESOLVER=1 -DENABLE_DEBUG=0
@@ -184,16 +195,6 @@ if(WIN32)
 			-DENABLE_UNIX_SOCKETS=1 -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/curl
 			INSTALL_COMMAND  ""
 		)
-
-		ExternalProject_Get_Property(bundled_curl binary_dir)
-
-		if(VSTUDIO)
-			set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/Release/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		elseif(MINGW OR NMAKE_BUILD)
-			set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		else(VSTUDIO)
-			set(CURL_BUNDLED_LIBRARY "${binary_dir}/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		endif(VSTUDIO)
 
 		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/curl/include")
 
@@ -364,9 +365,19 @@ if(WIN32)
 	# Build bundled OpenAL library
 	#-----------------------------------------------------------------
 	if(BUNDLED_OPENAL AND BUILD_CLIENT)
+		set(binary_dir "${LIBS_BINARYDIR_DIR}/openal")
+		if(VSTUDIO)
+			set(OPENAL_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		elseif(VS_BUILD)
+			set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		else()
+			set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libOpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		endif()
+
 		ExternalProject_Add(bundled_openal
 			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
-			BINARY_DIR	${LIBS_BINARYDIR_DIR}/openal
+			BINARY_DIR	${binary_dir}
+			BUILD_BYPRODUCTS ${OPENAL_BUNDLED_LIBRARIES}
 			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
 			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
 			-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal
@@ -375,15 +386,6 @@ if(WIN32)
 			INSTALL_COMMAND  ""
 		)
 
-		ExternalProject_Get_Property(bundled_openal binary_dir)
-
-		if(VSTUDIO)
-			set(OPENAL_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		elseif(NMAKE_BUILD)
-			set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		else(VSTUDIO)
-			set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libOpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		endif(VSTUDIO)
 		set(OPENAL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/openal/include")
 		set_target_properties(bundled_openal PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 	endif()
@@ -639,6 +641,11 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 		set(SDL_WITH_GLES "${FEATURE_RENDERER_GLES}")
 	endif()
 
+	if(CMAKE_SYSTEM MATCHES "Darwin" OR WIN32)
+		set(SDL32_BUNDLED_LIBRARIES optimized "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2main${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2maind${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	endif()
+	set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} optimized "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2d${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
 	if(ARM)
 		#check if we're running on Raspberry Pi
 		if(EXISTS "/opt/vc/include/bcm_host.h")
@@ -680,6 +687,7 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 			# DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}/sdl2
 			# URL https://www.libsdl.org/release/SDL2-2.0.9.tar.gz
 			BINARY_DIR	${LIBS_BINARYDIR_DIR}/sdl2
+			BUILD_BYPRODUCTS ${SDL32_BUNDLED_LIBRARIES}
 			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}
 			-DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="10.7"
 			-DVIDEO_OPENGLES=${SDL_WITH_GLES} -DSDL_SHARED=OFF -DSDL_RENDER=OFF -DRENDER_D3D=OFF -DFORCE_STATIC_VCRT=ON
@@ -688,10 +696,6 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 		)
 	endif()
 
-	if(CMAKE_SYSTEM MATCHES "Darwin" OR WIN32)
-		set(SDL32_BUNDLED_LIBRARIES optimized "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2main${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2maind${CMAKE_STATIC_LIBRARY_SUFFIX}")
-	endif()
-	set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} optimized "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARYDIR_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2d${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	set(SDL32_BUNDLED_INCLUDE_DIR "${LIBS_BINARYDIR_DIR}/sdl2/include")
 	set_target_properties(bundled_sdl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
@@ -779,10 +783,19 @@ endif()
 # Build bundled Freetype library
 #-----------------------------------------------------------------
 if(BUNDLED_FREETYPE AND BUILD_CLIENT)
+	set(binary_dir "${LIBS_BINARYDIR_DIR}/freetype")
+	if(VSTUDIO)
+		set(BUNDLED_FREETYPE_LIBRARIES optimized "${binary_dir}/Release/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	elseif(VS_BUILD)
+		set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	else()
+		set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/libfreetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	endif()
 
 	ExternalProject_Add(bundled_freetype
 		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/freetype
-		BINARY_DIR	${LIBS_BINARYDIR_DIR}/freetype
+		BINARY_DIR	${binary_dir}
+		BUILD_BYPRODUCTS ${BUNDLED_FREETYPE_LIBRARIES}
 		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
 		-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
 		-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="10.7"
@@ -791,15 +804,8 @@ if(BUNDLED_FREETYPE AND BUILD_CLIENT)
 		INSTALL_COMMAND  ""
 	)
 
-	ExternalProject_Get_Property(bundled_freetype binary_dir)
+	# ExternalProject_Get_Property(bundled_freetype binary_dir)
 
-	if(VSTUDIO)
-		set(BUNDLED_FREETYPE_LIBRARIES optimized "${binary_dir}/Release/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
-	elseif(NMAKE_BUILD)
-		set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
-	else(VSTUDIO)
-		set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/libfreetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
-	endif(VSTUDIO)
 	set(BUNDLED_FREETYPE_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/freetype/include")
 	set_target_properties(bundled_freetype PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
@@ -849,9 +855,19 @@ endif()
 # Build bundled JANSSON library
 #-----------------------------------------------------------------
 if(BUNDLED_JANSSON AND (BUILD_CLIENT OR BUILD_SERVER))
+	set(binary_dir "${LIBS_BINARYDIR_DIR}/jansson")
+	if(VSTUDIO)
+		set(BUNDLED_JANSSON_LIBRARY optimized "${binary_dir}/lib/Release/jansson${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/jansson_d${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	elseif(VS_BUILD)
+		set(BUNDLED_JANSSON_LIBRARY "${binary_dir}/lib/${jansson_name}")
+	else()
+		set(BUNDLED_JANSSON_LIBRARY "${binary_dir}/lib/lib${jansson_name}")
+	endif()
+
 	ExternalProject_Add(bundled_jansson
 		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/jansson
-		BINARY_DIR	${LIBS_BINARYDIR_DIR}/jansson
+		BINARY_DIR	${binary_dir}
+		BUILD_BYPRODUCTS ${BUNDLED_JANSSON_LIBRARY}
 		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
 		-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
 		-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="10.7"
@@ -868,13 +884,6 @@ if(BUNDLED_JANSSON AND (BUILD_CLIENT OR BUILD_SERVER))
 		set(jansson_name "jansson${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	endif(WIN32 AND DEBUG_BUILD)
 
-	if(VSTUDIO)
-		set(BUNDLED_JANSSON_LIBRARY optimized "${binary_dir}/lib/Release/jansson${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/jansson_d${CMAKE_STATIC_LIBRARY_SUFFIX}")
-	elseif(NMAKE_BUILD)
-		set(BUNDLED_JANSSON_LIBRARY "${binary_dir}/lib/${jansson_name}")
-	else(VSTUDIO)
-		set(BUNDLED_JANSSON_LIBRARY "${binary_dir}/lib/lib${jansson_name}")
-	endif(VSTUDIO)
 	set(BUNDLED_JANSSON_INCLUDE_DIR "${binary_dir}/include")
 	set_target_properties(bundled_jansson PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
