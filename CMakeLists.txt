@@ -11,6 +11,25 @@ set(LIBS_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads)
 
 #CMAKE_DEBUG_POSTFIX
 
+# Force the BUNDLED_<name> to OFF if the FEATURE_<name> is OFF. No more unwanted stuff being built.
+get_cmake_property(_variableNames VARIABLES)
+list (SORT _variableNames)
+foreach (_variableName ${_variableNames})
+	string(REGEX MATCH "^FEATURE_.*" _featureName "${_variableName}")
+	string(LENGTH "${_featureName}" _variableLen)
+	# message(STATUS "${_variableName}=${${_variableName}}")
+	if(${_variableLen})
+		if(NOT (${_variableName}))
+			string(FIND ${_variableName} "_" wsloc)
+			string(SUBSTRING ${_variableName} ${wsloc} -1 _featureName)
+			string(PREPEND _featureName "BUNDLED")
+			if((${_featureName}))
+				set(${_featureName} OFF)
+			endif()
+		endif()
+	endif()
+endforeach()
+
 if(WIN32)
 
 	# moved for now until linux BUNDLED_OPENSSL is done
