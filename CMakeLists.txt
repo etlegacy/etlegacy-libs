@@ -168,7 +168,7 @@ if(WIN32)
 			#URL_MD5 "9e380f6f9cc497bd2f47c944019239ac"
 			#GIT_REPOSITORY "https://github.com/openssl/openssl.git"
 			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}/openssl
-			URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_0j.tar.gz
+			URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1d.tar.gz
 			SOURCE_DIR "${CMAKE_BINARY_DIR}/openssl"
 			BUILD_IN_SOURCE 1
 			CONFIGURE_COMMAND ${OPENSSL_CONFIGURE}
