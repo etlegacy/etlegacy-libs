@@ -223,7 +223,7 @@ $write cvh "/* Location of default ca path */"
 $write cvh "#define curl_ca_path ""gnv$curl_ca_path"""
 $!
 $! NTLM_WB_ENABLED requires fork() but configure does not know this
-$! We have to disble this in th configure command line.
+$! We have to disable this in the configure command line.
 $! config_h.com finds that configure defaults to it being enabled so
 $! reports it.  So we need to turn it off here.
 $!
@@ -328,9 +328,6 @@ $write cvh "#endif"
 $write cvh "#ifdef USE_CYASSL"
 $write cvh "#undef USE_CYASSL"
 $write cvh "#endif"
-$write cvh "#ifdef USE_DARWINSSL"
-$write cvh "#undef USE_DARWINSSL"
-$write cvh "#endif"
 $write cvh "#ifdef USE_GNUTLS"
 $write cvh "#undef USE_GNUTLS"
 $write cvh "#endif"
@@ -355,9 +352,6 @@ $write cvh "#endif"
 $write cvh "#ifdef USE_POLARSSL"
 $write cvh "#undef USE_POLARSSL"
 $write cvh "#endif"
-$write cvh "#ifdef USE_SCHANNEL"
-$write cvh "#undef USE_SCHANNEL"
-$write cvh "#endif"
 $write cvh "#ifdef USE_THREADS_POSIX"
 $write cvh "#undef USE_THREADS_POSIX"
 $write cvh "#endif"
@@ -366,9 +360,6 @@ $write cvh "#undef USE_TLS_SRP"
 $write cvh "#endif"
 $write cvh "#ifdef USE_UNIX_SOCKETS"
 $write cvh "#undef USE_UNIX_SOCKETS"
-$write cvh "#endif"
-$write cvh "#ifdef USE_WINDOWS_SSPI"
-$write cvh "#undef USE_WINDOWS_SSPI"
 $write cvh "#endif"
 $!
 $write cvh "#ifndef HAVE_OLD_GSSMIT"
@@ -406,7 +397,7 @@ $   write cvh "#define USE_OPENSSL 1"
 $   write cvh "#endif"
 $   if arch_name .eqs. "VAX"
 $   then
-$       old_mes = f$enviroment("message")
+$       old_mes = f$environment("message")
 $       set message/notext/nofaci/noseve/noident
 $       search/output=nla0: ssl$include:*.h CONF_MFLAGS_IGNORE_MISSING_FILE
 $       status = $severity

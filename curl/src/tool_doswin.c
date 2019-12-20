@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -599,7 +599,6 @@ SANITIZEcode rename_if_reserved_dos_device_name(char **const sanitized,
       }
       memmove(base + 1, base, blen + 1);
       base[0] = '_';
-      ++blen;
     }
   }
 #endif
@@ -646,9 +645,9 @@ CURLcode FindWin32CACert(struct OperationConfig *config,
 
   /* Search and set cert file only if libcurl supports SSL.
    *
-   * If Schannel (WinSSL) is the selected SSL backend then these locations
-   * are ignored. We allow setting CA location for schannel only when
-   * explicitly specified by the user via CURLOPT_CAINFO / --cacert.
+   * If Schannel is the selected SSL backend then these locations are
+   * ignored. We allow setting CA location for schannel only when explicitly
+   * specified by the user via CURLOPT_CAINFO / --cacert.
    */
   if((curlinfo->features & CURL_VERSION_SSL) &&
      backend != CURLSSLBACKEND_SCHANNEL) {
