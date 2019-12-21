@@ -732,11 +732,13 @@ if(BUNDLED_ZLIB AND (BUILD_CLIENT OR BUILD_SERVER))
 
 	FILE(GLOB ZLIB_LIB_HEADERS
 		${ZLIB_LIB}/crc32.h
+		${ZLIB_LIB}/deflate.h
 		${ZLIB_LIB}/gzguts.h
 		${ZLIB_LIB}/inffast.h
 		${ZLIB_LIB}/inffixed.h
 		${ZLIB_LIB}/inflate.h
 		${ZLIB_LIB}/inftrees.h
+		${ZLIB_LIB}/trees.h
 		${ZLIB_LIB}/zconf.h
 		${ZLIB_LIB}/zlib.h
 		${ZLIB_LIB}/zutil.h
@@ -744,10 +746,13 @@ if(BUNDLED_ZLIB AND (BUILD_CLIENT OR BUILD_SERVER))
 
 	FILE(GLOB ZLIB_LIB_SRC
 		${ZLIB_LIB}/adler32.c
+		${ZLIB_LIB}/compress.c
 		${ZLIB_LIB}/crc32.c
+		${ZLIB_LIB}/deflate.c
 		${ZLIB_LIB}/inffast.c
 		${ZLIB_LIB}/inflate.c
 		${ZLIB_LIB}/inftrees.c
+		${ZLIB_LIB}/trees.c
 		${ZLIB_LIB}/zutil.c
 	)
 
@@ -801,6 +806,39 @@ if(BUNDLED_SQLITE3 AND (BUILD_CLIENT OR BUILD_SERVER OR BUILD_MOD))
 	set(SQLITE3_BUNDLED_LIBRARIES bundled_sqlite3)
 	set(SQLITE3_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sqlite3/src")
 	set_target_properties(bundled_sqlite3 PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+endif()
+
+#-----------------------------------------------------------------
+# Build bundled PNG library
+#-----------------------------------------------------------------
+if(BUNDLED_PNG AND BUILD_CLIENT)
+	set(binary_dir "${LIBS_BINARYDIR_DIR}/libpng")
+	if(VSTUDIO)
+		set(PNG_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	elseif(VS_BUILD_BUILD)
+		set(PNG_BUNDLED_LIBRARIES "${binary_dir}/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	else()
+		set(PNG_BUNDLED_LIBRARIES "${binary_dir}/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	endif()
+
+	if(BUNDLED_ZLIB)
+		set(ZLIB_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/zlib")
+	endif()
+
+	ExternalProject_Add(bundled_png
+		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/libpng
+		BINARY_DIR	${LIBS_BINARYDIR_DIR}/libpng
+		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+		-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+		-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_BUILD_ZLIB=ON -DZLIB_INCLUDE_DIR=${ZLIB_INCLUDE_DIR}
+		-DPNG_TESTS=OFF -DPNG_FRAMEWORK=OFF -DPNG_DEBUG=OFF -DPNG_HARDWARE_OPTIMIZATIONS=ON
+		INSTALL_COMMAND  ""
+	)
+
+	#ExternalProject_Get_Property(bundled_png binary_dir)
+
+	set(PNG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/libpng/include")
+	set_target_properties(bundled_png PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
 #-----------------------------------------------------------------
