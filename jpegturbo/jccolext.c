@@ -29,13 +29,13 @@
 
 INLINE
 LOCAL(void)
-rgb_ycc_convert_internal(j_compress_ptr cinfo, JSAMPARRAY input_buf,
-                         JSAMPIMAGE output_buf, JDIMENSION output_row,
-                         int num_rows)
+rgb_ycc_convert_internal (j_compress_ptr cinfo,
+                          JSAMPARRAY input_buf, JSAMPIMAGE output_buf,
+                          JDIMENSION output_row, int num_rows)
 {
-  my_cconvert_ptr cconvert = (my_cconvert_ptr)cinfo->cconvert;
+  my_cconvert_ptr cconvert = (my_cconvert_ptr) cinfo->cconvert;
   register int r, g, b;
-  register JLONG *ctab = cconvert->rgb_ycc_tab;
+  register JLONG * ctab = cconvert->rgb_ycc_tab;
   register JSAMPROW inptr;
   register JSAMPROW outptr0, outptr1, outptr2;
   register JDIMENSION col;
@@ -58,14 +58,17 @@ rgb_ycc_convert_internal(j_compress_ptr cinfo, JSAMPARRAY input_buf,
        * need the general RIGHT_SHIFT macro.
        */
       /* Y */
-      outptr0[col] = (JSAMPLE)((ctab[r + R_Y_OFF] + ctab[g + G_Y_OFF] +
-                                ctab[b + B_Y_OFF]) >> SCALEBITS);
+      outptr0[col] = (JSAMPLE)
+                ((ctab[r+R_Y_OFF] + ctab[g+G_Y_OFF] + ctab[b+B_Y_OFF])
+                 >> SCALEBITS);
       /* Cb */
-      outptr1[col] = (JSAMPLE)((ctab[r + R_CB_OFF] + ctab[g + G_CB_OFF] +
-                                ctab[b + B_CB_OFF]) >> SCALEBITS);
+      outptr1[col] = (JSAMPLE)
+                ((ctab[r+R_CB_OFF] + ctab[g+G_CB_OFF] + ctab[b+B_CB_OFF])
+                 >> SCALEBITS);
       /* Cr */
-      outptr2[col] = (JSAMPLE)((ctab[r + R_CR_OFF] + ctab[g + G_CR_OFF] +
-                                ctab[b + B_CR_OFF]) >> SCALEBITS);
+      outptr2[col] = (JSAMPLE)
+                ((ctab[r+R_CR_OFF] + ctab[g+G_CR_OFF] + ctab[b+B_CR_OFF])
+                 >> SCALEBITS);
     }
   }
 }
@@ -83,13 +86,13 @@ rgb_ycc_convert_internal(j_compress_ptr cinfo, JSAMPARRAY input_buf,
 
 INLINE
 LOCAL(void)
-rgb_gray_convert_internal(j_compress_ptr cinfo, JSAMPARRAY input_buf,
-                          JSAMPIMAGE output_buf, JDIMENSION output_row,
-                          int num_rows)
+rgb_gray_convert_internal (j_compress_ptr cinfo,
+                           JSAMPARRAY input_buf, JSAMPIMAGE output_buf,
+                           JDIMENSION output_row, int num_rows)
 {
-  my_cconvert_ptr cconvert = (my_cconvert_ptr)cinfo->cconvert;
+  my_cconvert_ptr cconvert = (my_cconvert_ptr) cinfo->cconvert;
   register int r, g, b;
-  register JLONG *ctab = cconvert->rgb_ycc_tab;
+  register JLONG * ctab = cconvert->rgb_ycc_tab;
   register JSAMPROW inptr;
   register JSAMPROW outptr;
   register JDIMENSION col;
@@ -105,8 +108,9 @@ rgb_gray_convert_internal(j_compress_ptr cinfo, JSAMPARRAY input_buf,
       b = GETJSAMPLE(inptr[RGB_BLUE]);
       inptr += RGB_PIXELSIZE;
       /* Y */
-      outptr[col] = (JSAMPLE)((ctab[r + R_Y_OFF] + ctab[g + G_Y_OFF] +
-                               ctab[b + B_Y_OFF]) >> SCALEBITS);
+      outptr[col] = (JSAMPLE)
+                ((ctab[r+R_Y_OFF] + ctab[g+G_Y_OFF] + ctab[b+B_Y_OFF])
+                 >> SCALEBITS);
     }
   }
 }
@@ -119,9 +123,9 @@ rgb_gray_convert_internal(j_compress_ptr cinfo, JSAMPARRAY input_buf,
 
 INLINE
 LOCAL(void)
-rgb_rgb_convert_internal(j_compress_ptr cinfo, JSAMPARRAY input_buf,
-                         JSAMPIMAGE output_buf, JDIMENSION output_row,
-                         int num_rows)
+rgb_rgb_convert_internal (j_compress_ptr cinfo,
+                          JSAMPARRAY input_buf, JSAMPIMAGE output_buf,
+                          JDIMENSION output_row, int num_rows)
 {
   register JSAMPROW inptr;
   register JSAMPROW outptr0, outptr1, outptr2;

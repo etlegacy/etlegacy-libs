@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2011-2015, 2018 D. R. Commander.  All Rights Reserved.
+ * Copyright (C)2011-2015 D. R. Commander.  All Rights Reserved.
  * Copyright (C)2015 Viktor Szathmáry.  All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -82,7 +82,6 @@ public class TJDecompressor implements Closeable {
    * @param yuvImage {@link YUVImage} instance containing a YUV planar
    * image to be decoded.  This image is not modified.
    */
-  @SuppressWarnings("checkstyle:HiddenField")
   public TJDecompressor(YUVImage yuvImage) throws TJException {
     init();
     setSourceImage(yuvImage);
@@ -110,7 +109,6 @@ public class TJDecompressor implements Closeable {
   /**
    * @deprecated Use {@link #setSourceImage(byte[], int)} instead.
    */
-  @SuppressWarnings("checkstyle:JavadocMethod")
   @Deprecated
   public void setJPEGImage(byte[] jpegImage, int imageSize)
                            throws TJException {
@@ -310,10 +308,6 @@ public class TJDecompressor implements Closeable {
    * Decompress the JPEG source image or decode the YUV source image associated
    * with this decompressor instance and output a grayscale, RGB, or CMYK image
    * to the given destination buffer.
-   * <p>
-   * NOTE: The output image is fully recoverable if this method throws a
-   * non-fatal {@link TJException} (unless
-   * {@link TJ#FLAG_STOPONWARNING TJ.FLAG_STOPONWARNING} is specified.)
    *
    * @param dstBuf buffer that will receive the decompressed/decoded image.
    * If the source image is a JPEG image, then this buffer should normally be
@@ -402,7 +396,6 @@ public class TJDecompressor implements Closeable {
    * @deprecated Use
    * {@link #decompress(byte[], int, int, int, int, int, int, int)} instead.
    */
-  @SuppressWarnings("checkstyle:JavadocMethod")
   @Deprecated
   public void decompress(byte[] dstBuf, int desiredWidth, int pitch,
                          int desiredHeight, int pixelFormat, int flags)
@@ -458,10 +451,6 @@ public class TJDecompressor implements Closeable {
    * but leaves out the color conversion step, so a planar YUV image is
    * generated instead of an RGB or grayscale image.  This method cannot be
    * used to decompress JPEG source images with the CMYK or YCCK colorspace.
-   * <p>
-   * NOTE: The YUV planar output image is fully recoverable if this method
-   * throws a non-fatal {@link TJException} (unless
-   * {@link TJ#FLAG_STOPONWARNING TJ.FLAG_STOPONWARNING} is specified.)
    *
    * @param dstImage {@link YUVImage} instance that will receive the YUV planar
    * image.  The level of subsampling specified in this <code>YUVImage</code>
@@ -497,12 +486,11 @@ public class TJDecompressor implements Closeable {
   /**
    * @deprecated Use {@link #decompressToYUV(YUVImage, int)} instead.
    */
-  @SuppressWarnings("checkstyle:JavadocMethod")
   @Deprecated
   public void decompressToYUV(byte[] dstBuf, int flags) throws TJException {
-    YUVImage dstYUVImage = new YUVImage(dstBuf, jpegWidth, 4, jpegHeight,
-                                        jpegSubsamp);
-    decompressToYUV(dstYUVImage, flags);
+    YUVImage dstImage = new YUVImage(dstBuf, jpegWidth, 4, jpegHeight,
+                                     jpegSubsamp);
+    decompressToYUV(dstImage, flags);
   }
 
   /**
@@ -557,10 +545,10 @@ public class TJDecompressor implements Closeable {
 
     int scaledWidth = getScaledWidth(desiredWidth, desiredHeight);
     int scaledHeight = getScaledHeight(desiredWidth, desiredHeight);
-    YUVImage dstYUVImage = new YUVImage(scaledWidth, null, scaledHeight,
-                                        jpegSubsamp);
-    decompressToYUV(dstYUVImage, flags);
-    return dstYUVImage;
+    YUVImage yuvImage = new YUVImage(scaledWidth, null, scaledHeight,
+                                     jpegSubsamp);
+    decompressToYUV(yuvImage, flags);
+    return yuvImage;
   }
 
   /**
@@ -610,31 +598,26 @@ public class TJDecompressor implements Closeable {
 
     int scaledWidth = getScaledWidth(desiredWidth, desiredHeight);
     int scaledHeight = getScaledHeight(desiredWidth, desiredHeight);
-    YUVImage dstYUVImage = new YUVImage(scaledWidth, pad, scaledHeight,
-                                        jpegSubsamp);
-    decompressToYUV(dstYUVImage, flags);
-    return dstYUVImage;
+    YUVImage yuvImage = new YUVImage(scaledWidth, pad, scaledHeight,
+                                     jpegSubsamp);
+    decompressToYUV(yuvImage, flags);
+    return yuvImage;
   }
 
   /**
    * @deprecated Use {@link #decompressToYUV(int, int, int, int)} instead.
    */
-  @SuppressWarnings("checkstyle:JavadocMethod")
   @Deprecated
   public byte[] decompressToYUV(int flags) throws TJException {
-    YUVImage dstYUVImage = new YUVImage(jpegWidth, 4, jpegHeight, jpegSubsamp);
-    decompressToYUV(dstYUVImage, flags);
-    return dstYUVImage.getBuf();
+    YUVImage dstImage = new YUVImage(jpegWidth, 4, jpegHeight, jpegSubsamp);
+    decompressToYUV(dstImage, flags);
+    return dstImage.getBuf();
   }
 
   /**
    * Decompress the JPEG source image or decode the YUV source image associated
    * with this decompressor instance and output a grayscale, RGB, or CMYK image
    * to the given destination buffer.
-   * <p>
-   * NOTE: The output image is fully recoverable if this method throws a
-   * non-fatal {@link TJException} (unless
-   * {@link TJ#FLAG_STOPONWARNING TJ.FLAG_STOPONWARNING} is specified.)
    *
    * @param dstBuf buffer that will receive the decompressed/decoded image.
    * If the source image is a JPEG image, then this buffer should normally be
@@ -716,10 +699,6 @@ public class TJDecompressor implements Closeable {
    * Decompress the JPEG source image or decode the YUV source image associated
    * with this decompressor instance and output a decompressed/decoded image to
    * the given <code>BufferedImage</code> instance.
-   * <p>
-   * NOTE: The output image is fully recoverable if this method throws a
-   * non-fatal {@link TJException} (unless
-   * {@link TJ#FLAG_STOPONWARNING TJ.FLAG_STOPONWARNING} is specified.)
    *
    * @param dstImage a <code>BufferedImage</code> instance that will receive
    * the decompressed/decoded image.  If the source image is a JPEG image, then
@@ -755,35 +734,35 @@ public class TJDecompressor implements Closeable {
     int pixelFormat;  boolean intPixels = false;
     if (byteOrder == null)
       byteOrder = ByteOrder.nativeOrder();
-    switch (dstImage.getType()) {
-    case BufferedImage.TYPE_3BYTE_BGR:
-      pixelFormat = TJ.PF_BGR;  break;
-    case BufferedImage.TYPE_4BYTE_ABGR:
-    case BufferedImage.TYPE_4BYTE_ABGR_PRE:
-      pixelFormat = TJ.PF_XBGR;  break;
-    case BufferedImage.TYPE_BYTE_GRAY:
-      pixelFormat = TJ.PF_GRAY;  break;
-    case BufferedImage.TYPE_INT_BGR:
-      if (byteOrder == ByteOrder.BIG_ENDIAN)
-        pixelFormat = TJ.PF_XBGR;
-      else
-        pixelFormat = TJ.PF_RGBX;
-      intPixels = true;  break;
-    case BufferedImage.TYPE_INT_RGB:
-      if (byteOrder == ByteOrder.BIG_ENDIAN)
-        pixelFormat = TJ.PF_XRGB;
-      else
-        pixelFormat = TJ.PF_BGRX;
-      intPixels = true;  break;
-    case BufferedImage.TYPE_INT_ARGB:
-    case BufferedImage.TYPE_INT_ARGB_PRE:
-      if (byteOrder == ByteOrder.BIG_ENDIAN)
-        pixelFormat = TJ.PF_ARGB;
-      else
-        pixelFormat = TJ.PF_BGRA;
-      intPixels = true;  break;
-    default:
-      throw new IllegalArgumentException("Unsupported BufferedImage format");
+    switch(dstImage.getType()) {
+      case BufferedImage.TYPE_3BYTE_BGR:
+        pixelFormat = TJ.PF_BGR;  break;
+      case BufferedImage.TYPE_4BYTE_ABGR:
+      case BufferedImage.TYPE_4BYTE_ABGR_PRE:
+        pixelFormat = TJ.PF_XBGR;  break;
+      case BufferedImage.TYPE_BYTE_GRAY:
+        pixelFormat = TJ.PF_GRAY;  break;
+      case BufferedImage.TYPE_INT_BGR:
+        if (byteOrder == ByteOrder.BIG_ENDIAN)
+          pixelFormat = TJ.PF_XBGR;
+        else
+          pixelFormat = TJ.PF_RGBX;
+        intPixels = true;  break;
+      case BufferedImage.TYPE_INT_RGB:
+        if (byteOrder == ByteOrder.BIG_ENDIAN)
+          pixelFormat = TJ.PF_XRGB;
+        else
+          pixelFormat = TJ.PF_BGRX;
+        intPixels = true;  break;
+      case BufferedImage.TYPE_INT_ARGB:
+      case BufferedImage.TYPE_INT_ARGB_PRE:
+        if (byteOrder == ByteOrder.BIG_ENDIAN)
+          pixelFormat = TJ.PF_ARGB;
+        else
+          pixelFormat = TJ.PF_BGRA;
+        intPixels = true;  break;
+      default:
+        throw new IllegalArgumentException("Unsupported BufferedImage format");
     }
     WritableRaster wr = dstImage.getRaster();
     if (intPixels) {
@@ -863,12 +842,11 @@ public class TJDecompressor implements Closeable {
       destroy();
   }
 
-  @SuppressWarnings("checkstyle:DesignForExtension")
   @Override
   protected void finalize() throws Throwable {
     try {
       close();
-    } catch (TJException e) {
+    } catch(TJException e) {
     } finally {
       super.finalize();
     }
