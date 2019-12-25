@@ -14,7 +14,7 @@
 #define VERSION  "2.0.3"
 
 /* The size of `size_t', as computed by sizeof. */
-#define SIZEOF_SIZE_T  32
+#cmakedefine SIZEOF_SIZE_T  @SIZEOF_SIZE_T@
 
 /* Define if your compiler has __builtin_ctzl() and sizeof(unsigned long) == sizeof(size_t). */
 #cmakedefine HAVE_BUILTIN_CTZL

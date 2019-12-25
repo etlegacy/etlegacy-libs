@@ -56,44 +56,6 @@ if(WIN32)
 		endif()
 	endif()
 
-	#-----------------------------------------------------------------
-	# Build bundled JPEG library
-	#-----------------------------------------------------------------
-	if(BUNDLED_JPEG AND BUILD_CLIENT) # static
-		check_include_file(stddef.h HAVE_STDDEF_H)
-		check_include_file(stdlib.h HAVE_STDLIB_H)
-
-		set(JPEG_LIB "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
-
-		set(binary_dir "${LIBS_BINARYDIR_DIR}/jpegturbo")
-		if(VSTUDIO)
-			set(JPEG_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/libturbojpeg${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/libturbojpeg${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		elseif(VS_BUILD_BUILD)
-			set(JPEG_BUNDLED_LIBRARIES "${binary_dir}/libturbojpeg${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		else()
-			set(JPEG_BUNDLED_LIBRARIES "${binary_dir}/libturbojpeg${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		endif()
-
-		configure_file (${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
-		configure_file (${JPEG_LIB}/jconfigint.h.cmake ${JPEG_LIB}/jconfigint.h)
-
-		ExternalProject_Add(bundled_jpeg
-			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/jpegturbo
-			BINARY_DIR	${LIBS_BINARYDIR_DIR}/jpegturbo
-			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-			-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DENABLE_SHARED=OFF -DENABLE_STATIC=ON -DREQUIRE_SIMD=OFF -DWITH_12BIT=OFF
-			-DWITH_ARITH_DEC=ON -DWITH_ARITH_ENC=ON -DWITH_JAVA=OFF -DWITH_JPEG7=OFF -DWITH_JPEG8=ON
-			-DWITH_MEM_SRCDST=ON -DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON
-			INSTALL_COMMAND  ""
-		)
-
-		#ExternalProject_Get_Property(bundled_jpeg binary_dir)
-
-		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
-		set_target_properties(bundled_jpeg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-	endif()
-
 	if(BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 		set(OPENSSL_PREFIX "${CMAKE_BINARY_DIR}/openssl/build")
 		set(OPENSSL_CONFIGURE "${PERL_EXECUTABLE}" Configure "${openssl_plat}" "--prefix=${OPENSSL_PREFIX}" "--openssldir=${OPENSSL_PREFIX}" no-shared no-unit-test -static)
@@ -444,38 +406,6 @@ elseif(UNIX)
 	endif()
 
 	#-----------------------------------------------------------------
-	# Build bundled JPEG library
-	#-----------------------------------------------------------------
-	if(BUNDLED_JPEG AND BUILD_CLIENT)
-		if(CROSS_COMPILE32)
-			if(APPLE)
-				SET(JPEG_TURBO_BUILD ./configure --with-jpeg8 --build i686-apple-darwin ${CROSS_COMPILE32_FLAGS})
-			else()
-				SET(JPEG_TURBO_BUILD ./configure --with-jpeg8 --build i686-pc-linux-gnu ${CROSS_COMPILE32_FLAGS})
-			endif()
-		else(CROSS_COMPILE32)
-			if(APPLE)
-				SET(JPEG_TURBO_BUILD ./configure --with-jpeg8 --build x86_64-apple-darwin ${CROSS_COMPILE32_FLAGS})
-			else()
-				SET(JPEG_TURBO_BUILD ./configure --with-jpeg8 ${CROSS_COMPILE32_FLAGS})
-			endif()
-		endif()
-
-		ExternalProject_Add(
-			bundled_jpeg
-			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/jpegturbo
-			PATCH_COMMAND autoreconf -fiv
-			CONFIGURE_COMMAND ${JPEG_TURBO_BUILD} --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/jpegturbo
-			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/jpegturbo
-			BUILD_COMMAND make
-			INSTALL_COMMAND make install
-			BUILD_IN_SOURCE 1
-		)
-		set(JPEG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/jpegturbo/lib/libturbojpeg.a")
-		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/jpegturbo/include")
-	endif()
-
-	#-----------------------------------------------------------------
 	# Build bundled Lua library
 	#-----------------------------------------------------------------
 	# NOTE: the posix32bit target was added into the Lua Makefiles
@@ -744,6 +674,54 @@ if(BUNDLED_SQLITE3 AND (BUILD_CLIENT OR BUILD_SERVER OR BUILD_MOD))
 	set(SQLITE3_BUNDLED_LIBRARIES bundled_sqlite3)
 	set(SQLITE3_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sqlite3/src")
 	set_target_properties(bundled_sqlite3 PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+endif()
+
+#-----------------------------------------------------------------
+# Build bundled JPEG library
+#-----------------------------------------------------------------
+if(BUNDLED_JPEG AND BUILD_CLIENT)
+	check_include_file(stddef.h HAVE_STDDEF_H)
+	check_include_file(stdlib.h HAVE_STDLIB_H)
+
+	set(binary_dir "${LIBS_BINARYDIR_DIR}/jpegturbo")
+	if(VSTUDIO)
+		set(JPEG_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/turbojpeg-static${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/turbojpeg-static${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	elseif(VS_BUILD_BUILD)
+		set(JPEG_BUNDLED_LIBRARIES "${binary_dir}/turbojpeg-static${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	else()
+		set(JPEG_BUNDLED_LIBRARIES "${binary_dir}/libturbojpeg${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	endif()
+
+	# Set SIZEOF_SIZE_T  @SIZE_T@ for 64 or 32 bit
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT CROSS_COMPILE32)
+		set(SIZEOF_SIZE_T 8)
+	else()
+		set(SIZEOF_SIZE_T 4)
+	endif()
+
+	set(JPEG_LIB "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
+
+	configure_file(${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
+	configure_file(${JPEG_LIB}/jconfigint.h.cmake ${JPEG_LIB}/jconfigint.h)
+
+	ExternalProject_Add(bundled_jpeg
+		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/jpegturbo
+		BINARY_DIR	${LIBS_BINARYDIR_DIR}/jpegturbo
+		BUILD_BYPRODUCTS ${JPEG_BUNDLED_LIBRARIES}
+		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+		-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+		-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DENABLE_SHARED=OFF -DENABLE_STATIC=ON -DREQUIRE_SIMD=OFF -DWITH_12BIT=OFF
+		-DWITH_ARITH_DEC=ON -DWITH_ARITH_ENC=ON -DWITH_JAVA=OFF -DWITH_JPEG7=OFF -DWITH_JPEG8=ON
+		-DWITH_MEM_SRCDST=ON -DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON
+		INSTALL_COMMAND  ""
+	)
+
+	if(WIN32)
+		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
+	else()
+		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/jpegturbo/include")
+	endif()
+	set_target_properties(bundled_jpeg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
 #-----------------------------------------------------------------
