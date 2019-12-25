@@ -85,7 +85,7 @@ if(WIN32)
 	#-----------------------------------------------------------------
 	# Build bundled cURL library
 	#-----------------------------------------------------------------
-	if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER)) # DLL
+	if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
 		set(binary_dir "${LIBS_BINARYDIR_DIR}/curl")
 		if(VSTUDIO)
 			set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/Release/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
@@ -304,6 +304,8 @@ if(WIN32)
 			-DALSOFT_CONFIG=0 -DALSOFT_HRTF_DEFS=0 -DALSOFT_AMBDEC_PRESETS=0
 			INSTALL_COMMAND  ""
 		)
+
+		#ExternalProject_Get_Property(bundled_openal binary_dir)
 
 		set(OPENAL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/openal/include")
 		set_target_properties(bundled_openal PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
@@ -549,7 +551,7 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 				ExternalProject_Add(bundled_sdl
 					SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
 					# DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}/sdl2
-					# URL https://www.libsdl.org/release/SDL2-2.0.9.tar.gz
+					# URL https://www.libsdl.org/release/SDL2-2.0.10.tar.gz
 					BINARY_DIR	${LIBS_BINARYDIR_DIR}/sdl2
 					CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}
 					-DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
@@ -562,7 +564,7 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 				ExternalProject_Add(bundled_sdl
 					SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
 					# DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}/sdl2
-					# URL https://www.libsdl.org/release/SDL2-2.0.9.tar.gz
+					# URL https://www.libsdl.org/release/SDL2-2.0.10.tar.gz
 					BINARY_DIR	${LIBS_BINARYDIR_DIR}/sdl2
 					CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}
 					-DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
@@ -577,7 +579,7 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 		ExternalProject_Add(bundled_sdl
 			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
 			# DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}/sdl2
-			# URL https://www.libsdl.org/release/SDL2-2.0.9.tar.gz
+			# URL https://www.libsdl.org/release/SDL2-2.0.10.tar.gz
 			BINARY_DIR	${LIBS_BINARYDIR_DIR}/sdl2
 			BUILD_BYPRODUCTS ${SDL32_BUNDLED_LIBRARIES}
 			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}
@@ -587,6 +589,8 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 			PREFIX ${LIBS_BINARYDIR_DIR}/sdl2
 		)
 	endif()
+
+	#ExternalProject_Get_Property(bundled_sdl binary_dir)
 
 	set(SDL32_BUNDLED_INCLUDE_DIR "${LIBS_BINARYDIR_DIR}/sdl2/include")
 	set_target_properties(bundled_sdl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
@@ -716,6 +720,8 @@ if(BUNDLED_JPEG AND BUILD_CLIENT)
 		INSTALL_COMMAND  ""
 	)
 
+	#ExternalProject_Get_Property(bundled_jpeg binary_dir)
+
 	if(WIN32)
 		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
 	else()
@@ -744,6 +750,7 @@ if(BUNDLED_PNG AND BUILD_CLIENT)
 	ExternalProject_Add(bundled_png
 		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/libpng
 		BINARY_DIR	${LIBS_BINARYDIR_DIR}/libpng
+		BUILD_BYPRODUCTS ${PNG_BUNDLED_LIBRARIES}
 		CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
 		-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
 		-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_BUILD_ZLIB=ON -DZLIB_INCLUDE_DIR=${ZLIB_INCLUDE_DIR}
@@ -819,10 +826,6 @@ if(BUNDLED_THEORA AND BUILD_CLIENT)
 
 	include_directories("${CMAKE_CURRENT_LIST_DIR}/theora/include")
 	add_library(bundled_theora STATIC ${THEORA_SRC})
-	#target_include_directories(bundled_theora PUBLIC "${CMAKE_CURRENT_LIST_DIR}/theora/include")
-	#if(UNIX AND NOT APPLE)
-	#	target_include_directories(bundled_theora PUBLIC "${CMAKE_CURRENT_LIST_DIR}/ogg/include")
-	#endif()
 
 	set(THEORA_BUNDLED_LIBRARIES bundled_theora)
 	set(THEORA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/theora/include")
