@@ -49,10 +49,10 @@
 #cmakedefine NEED_BSD_STRINGS 1
 
 /* Define to 1 if the system has the type `unsigned char'. */
-#cmakedefine HAVE_UNSIGNED_CHAR 1
+#define HAVE_UNSIGNED_CHAR 1
 
 /* Define to 1 if the system has the type `unsigned short'. */
-#cmakedefine HAVE_UNSIGNED_SHORT 1
+#define HAVE_UNSIGNED_SHORT 1
 
 /* Compiler does not support pointers to undefined structures. */
 #cmakedefine INCOMPLETE_TYPES_BROKEN 1
