@@ -723,7 +723,7 @@ if(BUNDLED_JPEG AND BUILD_CLIENT)
 
 	#ExternalProject_Get_Property(bundled_jpeg binary_dir)
 
-	if(WIN32)
+	if(WIN32 OR APPLE)
 		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
 	else()
 		set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/jpegturbo/include")
