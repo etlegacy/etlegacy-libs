@@ -20,7 +20,6 @@ list(APPEND HHEADERS
 
 if(MSVC)
   list(APPEND CSOURCES libcurl.rc)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4127")
 endif()
 
 # SET(CSOURCES
@@ -86,25 +85,6 @@ if(WIN32)
   add_definitions(-D_USRDLL)
 endif()
 
-if(MSVC)
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /EHsc /O2")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /EHa /W3")
-
-  set(CompilerFlags
-          CMAKE_CXX_FLAGS
-          CMAKE_CXX_FLAGS_DEBUG
-          CMAKE_CXX_FLAGS_RELEASE
-          CMAKE_C_FLAGS
-          CMAKE_C_FLAGS_DEBUG
-          CMAKE_C_FLAGS_RELEASE
-          )
-
-  foreach(CompilerFlag ${CompilerFlags})
-    string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
-  endforeach()
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:MSVCRT.lib")
-endif()
-
 set_target_properties(${LIB_NAME} PROPERTIES COMPILE_DEFINITIONS BUILDING_LIBCURL)
 
 if(HIDES_CURL_PRIVATE_SYMBOLS)
@@ -115,6 +95,12 @@ endif()
 # Remove the "lib" prefix since the library is already named "libcurl".
 set_target_properties(${LIB_NAME} PROPERTIES PREFIX "")
 set_target_properties(${LIB_NAME} PROPERTIES IMPORT_PREFIX "")
+
+if(CURL_HAS_LTO)
+  set_target_properties(${LIB_NAME} PROPERTIES
+    INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
+    INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)
+endif()
 
 if(WIN32)
   if(BUILD_SHARED_LIBS)

@@ -1493,6 +1493,9 @@
 				RelativePath="..\..\..\..\lib\rand.c">
 			</File>
 			<File
+				RelativePath="..\..\..\..\lib\rename.c">
+			</File>
+			<File
 				RelativePath="..\..\..\..\lib\rtsp.c">
 			</File>
 			<File
@@ -1833,6 +1836,9 @@
 				RelativePath="..\..\..\..\lib\rand.h">
 			</File>
 			<File
+				RelativePath="..\..\..\..\lib\rename.h">
+			</File>
+			<File
 				RelativePath="..\..\..\..\lib\rtsp.h">
 			</File>
 			<File
@@ -1876,9 +1882,6 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\lib\splay.h">
-			</File>
-			<File
-				RelativePath="..\..\..\..\lib\ssh.h">
 			</File>
 			<File
 				RelativePath="..\..\..\..\lib\strcase.h">
@@ -1994,11 +1997,62 @@
 			</Filter>
 		</Filter>
 		<Filter
+			Name="vquic"
+			Filter="">
+			<Filter
+				Name="Source Files"
+				Filter="">
+				<File
+					RelativePath="..\..\..\..\lib\vquic\ngtcp2.c">
+				</File>
+				<File
+					RelativePath="..\..\..\..\lib\vquic\quiche.c">
+				</File>
+			</Filter>
+			<Filter
+				Name="Header Files"
+				Filter="">
+				<File
+					RelativePath="..\..\..\..\lib\vquic\ngtcp2.h">
+				</File>
+				<File
+					RelativePath="..\..\..\..\lib\vquic\quiche.h">
+				</File>
+			</Filter>
+		</Filter>
+		<Filter
+			Name="vssh"
+			Filter="">
+			<Filter
+				Name="Source Files"
+				Filter="">
+				<File
+					RelativePath="..\..\..\..\lib\vssh\libssh2.c">
+				</File>
+				<File
+					RelativePath="..\..\..\..\lib\vssh\libssh.c">
+				</File>
+				<File
+					RelativePath="..\..\..\..\lib\vssh\wolfssh.c">
+				</File>
+			</Filter>
+			<Filter
+				Name="Header Files"
+				Filter="">
+				<File
+					RelativePath="..\..\..\..\lib\vssh\ssh.h">
+				</File>
+			</Filter>
+		</Filter>
+		<Filter
 			Name="vtls"
 			Filter="">
 			<Filter
 				Name="Source Files"
 				Filter="">
+				<File
+					RelativePath="..\..\..\..\lib\vtls\bearssl.c">
+				</File>
 				<File
 					RelativePath="..\..\..\..\lib\vtls\gskit.c">
 				</File>
@@ -2009,6 +2063,9 @@
 					RelativePath="..\..\..\..\lib\vtls\mbedtls.c">
 				</File>
 				<File
+					RelativePath="..\..\..\..\lib\vtls\mbedtls_threadlock.c">
+				</File>
+				<File
 					RelativePath="..\..\..\..\lib\vtls\mesalink.c">
 				</File>
 				<File
@@ -2016,12 +2073,6 @@
 				</File>
 				<File
 					RelativePath="..\..\..\..\lib\vtls\openssl.c">
-				</File>
-				<File
-					RelativePath="..\..\..\..\lib\vtls\polarssl.c">
-				</File>
-				<File
-					RelativePath="..\..\..\..\lib\vtls\polarssl_threadlock.c">
 				</File>
 				<File
 					RelativePath="..\..\..\..\lib\vtls\schannel.c">
@@ -2043,6 +2094,9 @@
 				Name="Header Files"
 				Filter="">
 				<File
+					RelativePath="..\..\..\..\lib\vtls\bearssl.h">
+				</File>
+				<File
 					RelativePath="..\..\..\..\lib\vtls\gskit.h">
 				</File>
 				<File
@@ -2052,6 +2106,9 @@
 					RelativePath="..\..\..\..\lib\vtls\mbedtls.h">
 				</File>
 				<File
+					RelativePath="..\..\..\..\lib\vtls\mbedtls_threadlock.h">
+				</File>
+				<File
 					RelativePath="..\..\..\..\lib\vtls\mesalink.h">
 				</File>
 				<File
@@ -2059,12 +2116,6 @@
 				</File>
 				<File
 					RelativePath="..\..\..\..\lib\vtls\openssl.h">
-				</File>
-				<File
-					RelativePath="..\..\..\..\lib\vtls\polarssl.h">
-				</File>
-				<File
-					RelativePath="..\..\..\..\lib\vtls\polarssl_threadlock.h">
 				</File>
 				<File
 					RelativePath="..\..\..\..\lib\vtls\schannel.h">

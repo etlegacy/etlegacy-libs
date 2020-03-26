@@ -5,7 +5,7 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
@@ -31,7 +31,7 @@ XC_OVR_ZZ60
 CURL_OVERRIDE_AUTOCONF
 
 dnl configure script copyright
-AC_COPYRIGHT([Copyright (c) 1998 - 2019 Daniel Stenberg, <daniel@haxx.se>
+AC_COPYRIGHT([Copyright (c) 1998 - 2020 Daniel Stenberg, <daniel@haxx.se>
 This configure script may be copied, distributed and modified under the
 terms of the curl license; see COPYING for more details])
 
@@ -156,8 +156,8 @@ AC_SUBST(PKGADD_VENDOR)
 
 dnl
 dnl initialize all the info variables
-    curl_ssl_msg="no      (--with-{ssl,gnutls,nss,mbedtls,wolfssl,schannel,secure-transport,mesalink,amissl} )"
-    curl_ssh_msg="no      (--with-libssh2)"
+    curl_ssl_msg="no      (--with-{ssl,gnutls,nss,mbedtls,wolfssl,schannel,secure-transport,mesalink,amissl,bearssl} )"
+    curl_ssh_msg="no      (--with-{libssh,libssh2})"
    curl_zlib_msg="no      (--with-zlib)"
  curl_brotli_msg="no      (--with-brotli)"
     curl_gss_msg="no      (--with-gssapi)"
@@ -1203,16 +1203,23 @@ AC_HELP_STRING([--disable-ipv6],[Disable IPv6 support]),
        ;;
   esac ],
 
-  AC_TRY_RUN([ /* is AF_INET6 available? */
+  AC_TRY_RUN([ /* are AF_INET6 and sockaddr_in6 available? */
 #include <sys/types.h>
 #ifdef HAVE_WINSOCK2_H
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #else
 #include <sys/socket.h>
+#include <netinet/in.h>
+#if defined (__TANDEM)
+# include <netinet/in6.h>
+#endif
 #endif
 #include <stdlib.h> /* for exit() */
 main()
 {
+ struct sockaddr_in6 s;
+ (void)s;
  if (socket(AF_INET6, SOCK_STREAM, 0) < 0)
    exit(1);
  else
@@ -1227,8 +1234,12 @@ main()
   ipv6=yes
 ))
 
-# Check if struct sockaddr_in6 have sin6_scope_id member
 if test "$ipv6" = yes; then
+  curl_ipv6_msg="enabled"
+  AC_DEFINE(ENABLE_IPV6, 1, [Define if you want to enable IPv6 support])
+  IPV6_ENABLED=1
+  AC_SUBST(IPV6_ENABLED)
+
   AC_MSG_CHECKING([if struct sockaddr_in6 has sin6_scope_id member])
   AC_TRY_COMPILE([
 #include <sys/types.h>
@@ -2400,6 +2411,98 @@ if test -z "$ssl_backends" -o "x$OPT_MESALINK" != xno; then
 fi
 
 dnl ----------------------------------------------------
+dnl check for BearSSL
+dnl ----------------------------------------------------
+
+OPT_BEARSSL=no
+
+_cppflags=$CPPFLAGS
+_ldflags=$LDFLAGS
+AC_ARG_WITH(bearssl,dnl
+AC_HELP_STRING([--with-bearssl=PATH],[where to look for BearSSL, PATH points to the installation root])
+AC_HELP_STRING([--without-bearssl], [disable BearSSL detection]),
+  OPT_BEARSSL=$withval)
+
+if test -z "$ssl_backends" -o "x$OPT_BEARSSL" != xno; then
+  ssl_msg=
+
+  if test X"$OPT_BEARSSL" != Xno; then
+
+    if test "$OPT_BEARSSL" = "yes"; then
+      OPT_BEARSSL=""
+    fi
+
+    if test -z "$OPT_BEARSSL" ; then
+      dnl check for lib first without setting any new path
+
+      AC_CHECK_LIB(bearssl, br_ssl_client_init_full,
+      dnl libbearssl found, set the variable
+       [
+         AC_DEFINE(USE_BEARSSL, 1, [if BearSSL is enabled])
+         AC_SUBST(USE_BEARSSL, [1])
+         BEARSSL_ENABLED=1
+         USE_BEARSSL="yes"
+         ssl_msg="BearSSL"
+	 test bearssl != "$DEFAULT_SSL_BACKEND" || VALID_DEFAULT_SSL_BACKEND=yes
+        ], [], -lbearssl)
+    fi
+
+    addld=""
+    addlib=""
+    addcflags=""
+    bearssllib=""
+
+    if test "x$USE_BEARSSL" != "xyes"; then
+      dnl add the path and test again
+      addld=-L$OPT_BEARSSL/lib$libsuff
+      addcflags=-I$OPT_BEARSSL/include
+      bearssllib=$OPT_BEARSSL/lib$libsuff
+
+      LDFLAGS="$LDFLAGS $addld"
+      if test "$addcflags" != "-I/usr/include"; then
+         CPPFLAGS="$CPPFLAGS $addcflags"
+      fi
+
+      AC_CHECK_LIB(bearssl, br_ssl_client_init_full,
+       [
+       AC_DEFINE(USE_BEARSSL, 1, [if BearSSL is enabled])
+       AC_SUBST(USE_BEARSSL, [1])
+       BEARSSL_ENABLED=1
+       USE_BEARSSL="yes"
+       ssl_msg="BearSSL"
+       test bearssl != "$DEFAULT_SSL_BACKEND" || VALID_DEFAULT_SSL_BACKEND=yes
+       ],
+       [
+         CPPFLAGS=$_cppflags
+         LDFLAGS=$_ldflags
+       ], -lbearssl)
+    fi
+
+    if test "x$USE_BEARSSL" = "xyes"; then
+      AC_MSG_NOTICE([detected BearSSL])
+      check_for_ca_bundle=1
+
+      LIBS="-lbearssl $LIBS"
+
+      if test -n "$bearssllib"; then
+        dnl when shared libs were found in a path that the run-time
+        dnl linker doesn't search through, we need to add it to
+        dnl CURL_LIBRARY_PATH to prevent further configure tests to fail
+        dnl due to this
+        if test "x$cross_compiling" != "xyes"; then
+          CURL_LIBRARY_PATH="$CURL_LIBRARY_PATH:$bearssllib"
+          export CURL_LIBRARY_PATH
+          AC_MSG_NOTICE([Added $bearssllib to CURL_LIBRARY_PATH])
+        fi
+      fi
+    fi
+
+  fi dnl BearSSL not disabled
+
+  test -z "$ssl_msg" || ssl_backends="${ssl_backends:+$ssl_backends, }$ssl_msg"
+fi
+
+dnl ----------------------------------------------------
 dnl NSS. Only check if GnuTLS and OpenSSL are not enabled
 dnl ----------------------------------------------------
 
@@ -2529,10 +2632,10 @@ if test -z "$ssl_backends" -o "x$OPT_NSS" != xno; then
   test -z "$ssl_msg" || ssl_backends="${ssl_backends:+$ssl_backends, }$ssl_msg"
 fi
 
-case "x$OPENSSL_ENABLED$GNUTLS_ENABLED$NSS_ENABLED$MBEDTLS_ENABLED$WOLFSSL_ENABLED$WINSSL_ENABLED$SECURETRANSPORT_ENABLED$MESALINK_ENABLED$AMISSL_ENABLED" in
+case "x$OPENSSL_ENABLED$GNUTLS_ENABLED$NSS_ENABLED$MBEDTLS_ENABLED$WOLFSSL_ENABLED$WINSSL_ENABLED$SECURETRANSPORT_ENABLED$MESALINK_ENABLED$BEARSSL_ENABLED$AMISSL_ENABLED" in
 x)
   AC_MSG_WARN([SSL disabled, you will not be able to use HTTPS, FTPS, NTLM and more.])
-  AC_MSG_WARN([Use --with-ssl, --with-gnutls, --with-wolfssl, --with-mbedtls, --with-nss, --with-schannel, --with-secure-transport, --with-mesalink or --with-amissl to address this.])
+  AC_MSG_WARN([Use --with-ssl, --with-gnutls, --with-wolfssl, --with-mbedtls, --with-nss, --with-schannel, --with-secure-transport, --with-mesalink, --with-amissl or --with-bearssl to address this.])
   ;;
 x1)
   # one SSL backend is enabled
@@ -2667,6 +2770,12 @@ if test X"$OPT_LIBMETALINK" != Xno; then
       AC_MSG_NOTICE([libmetalink library defective or too old])
       want_metalink="no"
     ])
+    if test "x$OPENSSL_ENABLED" != "x1" -a "x$USE_WINDOWS_SSPI" != "x1" \
+        -a "x$GNUTLS_ENABLED" != "x1" -a "x$NSS_ENABLED" != "x1" \
+        -a "x$SECURETRANSPORT_ENABLED" != "x1"; then
+      AC_MSG_WARN([metalink support requires a compatible SSL/TLS backend])
+      want_metalink="no"
+    fi
     CPPFLAGS="$clean_CPPFLAGS"
     LDFLAGS="$clean_LDFLAGS"
     LIBS="$clean_LIBS"
@@ -2692,16 +2801,22 @@ dnl **********************************************************************
 dnl Default to compiler & linker defaults for LIBSSH2 files & libraries.
 OPT_LIBSSH2=off
 AC_ARG_WITH(libssh2,dnl
-AC_HELP_STRING([--with-libssh2=PATH],[Where to look for libssh2, PATH points to the LIBSSH2 installation; when possible, set the PKG_CONFIG_PATH environment variable instead of using this option])
-AC_HELP_STRING([--with-libssh2], [enable LIBSSH2]),
+AC_HELP_STRING([--with-libssh2=PATH],[Where to look for libssh2, PATH points to the libssh2 installation; when possible, set the PKG_CONFIG_PATH environment variable instead of using this option])
+AC_HELP_STRING([--with-libssh2], [enable libssh2]),
   OPT_LIBSSH2=$withval, OPT_LIBSSH2=no)
 
 
 OPT_LIBSSH=off
 AC_ARG_WITH(libssh,dnl
-AC_HELP_STRING([--with-libssh=PATH],[Where to look for libssh, PATH points to the LIBSSH installation; when possible, set the PKG_CONFIG_PATH environment variable instead of using this option])
-AC_HELP_STRING([--with-libssh], [enable LIBSSH]),
+AC_HELP_STRING([--with-libssh=PATH],[Where to look for libssh, PATH points to the libssh installation; when possible, set the PKG_CONFIG_PATH environment variable instead of using this option])
+AC_HELP_STRING([--with-libssh], [enable libssh]),
   OPT_LIBSSH=$withval, OPT_LIBSSH=no)
+
+OPT_WOLFSSH=off
+AC_ARG_WITH(wolfssh,dnl
+AC_HELP_STRING([--with-wolfssh=PATH],[Where to look for wolfssh, PATH points to the wolfSSH installation; when possible, set the PKG_CONFIG_PATH environment variable instead of using this option])
+AC_HELP_STRING([--with-wolfssh], [enable wolfssh]),
+  OPT_WOLFSSH=$withval, OPT_WOLFSSH=no)
 
 if test X"$OPT_LIBSSH2" != Xno; then
   dnl backup the pre-libssh2 variables
@@ -2849,6 +2964,28 @@ elif test X"$OPT_LIBSSH" != Xno; then
     CPPFLAGS=$CLEANCPPFLAGS
     LIBS=$CLEANLIBS
   fi
+elif test X"$OPT_WOLFSSH" != Xno; then
+  dnl backup the pre-wolfssh variables
+  CLEANLDFLAGS="$LDFLAGS"
+  CLEANCPPFLAGS="$CPPFLAGS"
+  CLEANLIBS="$LIBS"
+
+
+  if test "$OPT_WOLFSSH" != yes; then
+     WOLFCONFIG="$OPT_WOLFSSH/bin/wolfssh-config"
+     LDFLAGS="$LDFLAGS `$WOLFCONFIG --libs`"
+     CPPFLAGS="$CPPFLAGS `$WOLFCONFIG --cflags`"
+  fi
+
+  AC_CHECK_LIB(wolfssh, wolfSSH_Init)
+
+  AC_CHECK_HEADERS(wolfssh/ssh.h,
+    curl_ssh_msg="enabled (wolfSSH)"
+    WOLFSSH_ENABLED=1
+    AC_DEFINE(USE_WOLFSSH, 1, [if wolfSSH is in use])
+    AC_SUBST(USE_WOLFSSH, [1])
+  )
+
 fi
 
 dnl **********************************************************************
@@ -3248,9 +3385,9 @@ if test X"$want_h2" != Xno; then
     CPPFLAGS="$CPPFLAGS $CPP_H2"
     LIBS="$LIB_H2 $LIBS"
 
-    # use nghttp2_option_set_no_recv_client_magic to require nghttp2
-    # >= 1.0.0
-    AC_CHECK_LIB(nghttp2, nghttp2_option_set_no_recv_client_magic,
+    # use nghttp2_session_set_local_window_size to require nghttp2
+    # >= 1.12.0
+    AC_CHECK_LIB(nghttp2, nghttp2_session_set_local_window_size,
       [
        AC_CHECK_HEADERS(nghttp2/nghttp2.h,
           curl_h2_msg="enabled (nghttp2)"
@@ -3592,9 +3729,9 @@ if test X"$want_quiche" != Xno; then
         LIBS=$CLEANLIBS
     )
   else
-    dnl no nghttp3 pkg-config found, deal with it
+    dnl no quiche pkg-config found, deal with it
     if test X"$want_quiche" != Xdefault; then
-      dnl To avoid link errors, we do not allow --with-nghttp3 without
+      dnl To avoid link errors, we do not allow --with-quiche without
       dnl a pkgconfig file
       AC_MSG_ERROR([--with-quiche was specified but could not find quiche pkg-config file.])
     fi
@@ -3959,15 +4096,6 @@ AC_CHECK_FUNCS([fnmatch \
     ])
   fi
 ])
-
-if test "$ipv6" = "yes"; then
-  if test "$curl_cv_func_getaddrinfo" = "yes"; then
-    AC_DEFINE(ENABLE_IPV6, 1, [Define if you want to enable IPv6 support])
-    IPV6_ENABLED=1
-    AC_SUBST(IPV6_ENABLED)
-    curl_ipv6_msg="enabled"
-  fi
-fi
 
 CURL_CHECK_NONBLOCKING_SOCKET
 
@@ -4400,7 +4528,7 @@ dnl
 AC_MSG_CHECKING([whether to support DNS shuffling])
 AC_ARG_ENABLE(dnsshuffle,
 AC_HELP_STRING([--enable-dnsshuffle],[Enable DNS shuffling])
-AC_HELP_STRING([--disable-dnsshuffle],[Disable DNS shufflinf]),
+AC_HELP_STRING([--disable-dnsshuffle],[Disable DNS shuffling]),
 [ case "$enableval" in
   no)
        AC_MSG_RESULT(no)
@@ -4449,7 +4577,7 @@ if test "x$want_esni" != "xno"; then
 
   dnl OpenSSL with a chosen ESNI function should be enough
   dnl so more exhaustive checking seems unnecessary for now
-  if test "x$OPENSSL_ENABLED" == "x1"; then
+  if test "x$OPENSSL_ENABLED" = "x1"; then
     AC_CHECK_FUNCS(SSL_get_esni_status,
       ESNI_SUPPORT="ESNI support available (OpenSSL with SSL_get_esni_status)"
       ESNI_ENABLED=1)
@@ -4458,7 +4586,7 @@ if test "x$want_esni" != "xno"; then
   fi
 
   dnl now deal with whatever we found
-  if test "x$ESNI_ENABLED" == "x1"; then
+  if test "x$ESNI_ENABLED" = "x1"; then
     AC_DEFINE(USE_ESNI, 1, [if ESNI support is available])
     AC_MSG_RESULT($ESNI_SUPPORT)
     experimental="$experimental ESNI"
@@ -4664,6 +4792,10 @@ if test "x$USE_LIBSSH2" = "x1"; then
   SUPPORT_PROTOCOLS="$SUPPORT_PROTOCOLS SFTP"
 fi
 if test "x$USE_LIBSSH" = "x1"; then
+  SUPPORT_PROTOCOLS="$SUPPORT_PROTOCOLS SCP"
+  SUPPORT_PROTOCOLS="$SUPPORT_PROTOCOLS SFTP"
+fi
+if test "x$USE_WOLFSSH" = "x1"; then
   SUPPORT_PROTOCOLS="$SUPPORT_PROTOCOLS SCP"
   SUPPORT_PROTOCOLS="$SUPPORT_PROTOCOLS SFTP"
 fi

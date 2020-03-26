@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -58,7 +58,7 @@
     if(!(*(str)))          \
       return PARAM_NO_MEM; \
   } \
-} WHILE_FALSE
+} while(0)
 
 struct LongShort {
   const char *letter; /* short name option */
@@ -268,9 +268,12 @@ static const struct LongShort aliases[]= {
   {"E9", "proxy-tlsv1",              ARG_NONE},
   {"EA", "socks5-basic",             ARG_BOOL},
   {"EB", "socks5-gssapi",            ARG_BOOL},
+  {"EC", "etag-save",                ARG_FILENAME},
+  {"ED", "etag-compare",             ARG_FILENAME},
   {"f",  "fail",                     ARG_BOOL},
   {"fa", "fail-early",               ARG_BOOL},
   {"fb", "styled-output",            ARG_BOOL},
+  {"fc", "mail-rcpt-allowfails",     ARG_BOOL},
   {"F",  "form",                     ARG_STRING},
   {"Fs", "form-string",              ARG_STRING},
   {"g",  "globoff",                  ARG_BOOL},
@@ -321,6 +324,7 @@ static const struct LongShort aliases[]= {
   {"z",  "time-cond",                ARG_STRING},
   {"Z",  "parallel",                 ARG_BOOL},
   {"Zb", "parallel-max",             ARG_STRING},
+  {"Zc", "parallel-immediate",       ARG_BOOL},
   {"#",  "progress-bar",             ARG_BOOL},
   {"#m", "progress-meter",           ARG_BOOL},
   {":",  "next",                     ARG_NONE},
@@ -418,7 +422,7 @@ void parse_cert_parameter(const char *cert_parameter,
       /* escaped colons and Windows drive letter colons were handled
        * above; if we're still here, this is a separating colon */
       param_place++;
-      if(strlen(param_place) > 0) {
+      if(*param_place) {
         *passphrase = strdup(param_place);
       }
       goto done;
@@ -1206,7 +1210,10 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
         break;
       case '4': /* --http3 */
         /* HTTP version 3 go over QUIC - at once */
-        config->httpversion = CURL_HTTP_VERSION_3;
+        if(curlinfo->features & CURL_VERSION_HTTP3)
+          config->httpversion = CURL_HTTP_VERSION_3;
+        else
+          return PARAM_LIBCURL_DOESNT_SUPPORT;
         break;
       case '9':
         /* Allow HTTP/0.9 responses! */
@@ -1271,7 +1278,10 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
     case 'b':
       switch(subletter) {
       case 'a': /* --alt-svc */
-        GetStr(&config->altsvc, nextarg);
+        if(curlinfo->features & CURL_VERSION_ALTSVC)
+          GetStr(&config->altsvc, nextarg);
+        else
+          return PARAM_LIBCURL_DOESNT_SUPPORT;
         break;
       default:  /* --cookie string coming up: */
         if(nextarg[0] == '@') {
@@ -1696,6 +1706,14 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
           config->socks5_auth &= ~CURLAUTH_GSSAPI;
         break;
 
+      case 'C':
+        GetStr(&config->etag_save_file, nextarg);
+        break;
+
+      case 'D':
+        GetStr(&config->etag_compare_file, nextarg);
+        break;
+
       default: /* unknown flag */
         return PARAM_OPTION_UNKNOWN;
       }
@@ -1707,6 +1725,9 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
         break;
       case 'b': /* --styled-output */
         global->styled_output = toggle;
+        break;
+      case 'c': /* --mail-rcpt-allowfails */
+        config->mail_rcpt_allowfails = toggle;
         break;
       default: /* --fail (hard on errors)  */
         config->failonerror = toggle;
@@ -1974,8 +1995,7 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
       }
       {
         /* byte range requested */
-        char *tmp_range;
-        tmp_range = nextarg;
+        const char *tmp_range = nextarg;
         while(*tmp_range != '\0') {
           if(!ISDIGIT(*tmp_range) && *tmp_range != '-' && *tmp_range != ',') {
             warnf(global, "Invalid character is found in given range. "
@@ -2153,6 +2173,9 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
         if((global->parallel_max > MAX_PARALLEL) ||
            (global->parallel_max < 1))
           global->parallel_max = PARALLEL_DEFAULT;
+        break;
+      case 'c':   /* --parallel-connect */
+        global->parallel_connect = toggle;
         break;
       }
       break;

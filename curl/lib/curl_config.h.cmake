@@ -73,6 +73,9 @@
 #define CURL_EXTERN_SYMBOL
 #endif
 
+/* Allow SMB to work on Windows */
+#cmakedefine USE_WIN32_CRYPTO
+
 /* Use Windows LDAP implementation */
 #cmakedefine USE_WIN32_LDAP 1
 
@@ -147,9 +150,6 @@
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #cmakedefine HAVE_DLFCN_H 1
-
-/* Define to 1 if you have the `ENGINE_load_builtin_engines' function. */
-#cmakedefine HAVE_ENGINE_LOAD_BUILTIN_ENGINES 1
 
 /* Define to 1 if you have the <errno.h> header file. */
 #cmakedefine HAVE_ERRNO_H 1
@@ -454,9 +454,6 @@
 
 /* Define to 1 if you have the <openssl/crypto.h> header file. */
 #cmakedefine HAVE_OPENSSL_CRYPTO_H 1
-
-/* Define to 1 if you have the <openssl/engine.h> header file. */
-#cmakedefine HAVE_OPENSSL_ENGINE_H 1
 
 /* Define to 1 if you have the <openssl/err.h> header file. */
 #cmakedefine HAVE_OPENSSL_ERR_H 1
@@ -939,14 +936,14 @@ ${SIZEOF_TIME_T_CODE}
 /* if GnuTLS is enabled */
 #cmakedefine USE_GNUTLS 1
 
-/* if PolarSSL is enabled */
-#cmakedefine USE_POLARSSL 1
-
 /* if Secure Transport is enabled */
 #cmakedefine USE_SECTRANSP 1
 
 /* if mbedTLS is enabled */
 #cmakedefine USE_MBEDTLS 1
+
+/* if BearSSL is enabled */
+#cmakedefine USE_BEARSSL 1
 
 /* if libSSH2 is in use */
 #cmakedefine USE_LIBSSH2 1
@@ -956,6 +953,9 @@ ${SIZEOF_TIME_T_CODE}
 
 /* if NSS is enabled */
 #cmakedefine USE_NSS 1
+
+/* if you have the PK11_CreateManagedGenericObject function */
+#cmakedefine HAVE_PK11_CREATEMANAGEDGENERICOBJECT 1
 
 /* if you want to use OpenLDAP code instead of legacy ldap implementation */
 #cmakedefine USE_OPENLDAP 1

@@ -11,7 +11,7 @@
 # This configure script is free software; the Free Software Foundation
 # gives unlimited permission to copy, distribute and modify it.
 #
-# Copyright (c) 1998 - 2019 Daniel Stenberg, <daniel@haxx.se>
+# Copyright (c) 1998 - 2020 Daniel Stenberg, <daniel@haxx.se>
 # This configure script may be copied, distributed and modified under the
 # terms of the curl license; see COPYING for more details
 
@@ -902,7 +902,6 @@ USE_MANUAL_TRUE
 MANOPT
 NROFF
 PERL
-IPV6_ENABLED
 FISH_FUNCTIONS_DIR
 ZSH_FUNCTIONS_DIR
 USE_QUICHE
@@ -915,6 +914,7 @@ CURL_LT_SHLIB_USE_VERSIONED_SYMBOLS_FALSE
 CURL_LT_SHLIB_USE_VERSIONED_SYMBOLS_TRUE
 CURL_LT_SHLIB_VERSIONED_FLAVOUR
 USE_LIBRTMP
+USE_WOLFSSH
 USE_LIBSSH
 USE_LIBSSH2
 LIBMETALINK_CPPFLAGS
@@ -927,6 +927,7 @@ CURL_WITH_MULTI_SSL
 SSL_ENABLED
 NSS_LIBS
 USE_NSS
+USE_BEARSSL
 USE_MESALINK
 USE_WOLFSSL
 USE_MBEDTLS
@@ -942,6 +943,7 @@ USE_SCHANNEL
 DEFAULT_SSL_BACKEND
 BUILD_STUB_GSS_FALSE
 BUILD_STUB_GSS_TRUE
+IPV6_ENABLED
 USE_OPENLDAP
 HAVE_BROTLI
 ZLIB_LIBS
@@ -1179,6 +1181,7 @@ with_gnutls
 with_mbedtls
 with_wolfssl
 with_mesalink
+with_bearssl
 with_nss
 with_ca_bundle
 with_ca_path
@@ -1187,6 +1190,7 @@ with_libpsl
 with_libmetalink
 with_libssh2
 with_libssh
+with_wolfssh
 with_librtmp
 enable_versioned_symbols
 with_winidn
@@ -1973,7 +1977,7 @@ Optional Features:
   --disable-progress-meter
                           Disable progress-meter
   --enable-dnsshuffle     Enable DNS shuffling
-  --disable-dnsshuffle    Disable DNS shufflinf
+  --disable-dnsshuffle    Disable DNS shuffling
   --enable-alt-svc        Enable alt-svc support
   --disable-alt-svc       Disable alt-svc support
 
@@ -2034,6 +2038,9 @@ Optional Packages:
   --with-mesalink=PATH    where to look for MesaLink, PATH points to the
                           installation root
   --without-mesalink      disable MesaLink detection
+  --with-bearssl=PATH     where to look for BearSSL, PATH points to the
+                          installation root
+  --without-bearssl       disable BearSSL detection
   --with-nss=PATH         where to look for NSS, PATH points to the
                           installation root
   --without-nss           disable NSS detection
@@ -2043,9 +2050,9 @@ Optional Packages:
   --with-ca-path=DIRECTORY
                           Path to a directory containing CA certificates
                           stored individually, with their filenames in a hash
-                          format. This option can be used with OpenSSL, GnuTLS
-                          and PolarSSL backends. Refer to OpenSSL c_rehash for
-                          details. (example: /etc/certificates)
+                          format. This option can be used with the OpenSSL,
+                          GnuTLS and mbedTLS backends. Refer to OpenSSL
+                          c_rehash for details. (example: /etc/certificates)
   --without-ca-path       Don't use a default CA path
   --with-ca-fallback      Use the built in CA store of the SSL library
   --without-ca-fallback   Don't use the built in CA store of the SSL library
@@ -2054,14 +2061,19 @@ Optional Packages:
                           installation root
   --without-libmetalink   disable libmetalink detection
   --with-libssh2=PATH     Where to look for libssh2, PATH points to the
-                          LIBSSH2 installation; when possible, set the
+                          libssh2 installation; when possible, set the
                           PKG_CONFIG_PATH environment variable instead of
                           using this option
-  --with-libssh2          enable LIBSSH2
-  --with-libssh=PATH      Where to look for libssh, PATH points to the LIBSSH
+  --with-libssh2          enable libssh2
+  --with-libssh=PATH      Where to look for libssh, PATH points to the libssh
                           installation; when possible, set the PKG_CONFIG_PATH
                           environment variable instead of using this option
-  --with-libssh           enable LIBSSH
+  --with-libssh           enable libssh
+  --with-wolfssh=PATH     Where to look for wolfssh, PATH points to the
+                          wolfSSH installation; when possible, set the
+                          PKG_CONFIG_PATH environment variable instead of
+                          using this option
+  --with-wolfssh          enable wolfssh
   --with-librtmp=PATH     Where to look for librtmp, PATH points to the
                           LIBRTMP installation; when possible, set the
                           PKG_CONFIG_PATH environment variable instead of
@@ -2173,7 +2185,7 @@ Copyright (C) 2012 Free Software Foundation, Inc.
 This configure script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it.
 
-Copyright (c) 1998 - 2019 Daniel Stenberg, <daniel@haxx.se>
+Copyright (c) 1998 - 2020 Daniel Stenberg, <daniel@haxx.se>
 This configure script may be copied, distributed and modified under the
 terms of the curl license; see COPYING for more details
 _ACEOF
@@ -5857,8 +5869,8 @@ PKGADD_VENDOR="curl.haxx.se"
 
 
 
-    curl_ssl_msg="no      (--with-{ssl,gnutls,nss,mbedtls,wolfssl,schannel,secure-transport,mesalink,amissl} )"
-    curl_ssh_msg="no      (--with-libssh2)"
+    curl_ssl_msg="no      (--with-{ssl,gnutls,nss,mbedtls,wolfssl,schannel,secure-transport,mesalink,amissl,bearssl} )"
+    curl_ssh_msg="no      (--with-{libssh,libssh2})"
    curl_zlib_msg="no      (--with-zlib)"
  curl_brotli_msg="no      (--with-brotli)"
     curl_gss_msg="no      (--with-gssapi)"
@@ -8764,7 +8776,7 @@ esac
 fi
 
 : ${AR=ar}
-: ${AR_FLAGS=cru}
+: ${AR_FLAGS=cr}
 
 
 
@@ -10482,8 +10494,8 @@ int forced_loaded() { return 2;}
 _LT_EOF
       echo "$LTCC $LTCFLAGS -c -o conftest.o conftest.c" >&5
       $LTCC $LTCFLAGS -c -o conftest.o conftest.c 2>&5
-      echo "$AR cru libconftest.a conftest.o" >&5
-      $AR cru libconftest.a conftest.o 2>&5
+      echo "$AR cr libconftest.a conftest.o" >&5
+      $AR cr libconftest.a conftest.o 2>&5
       echo "$RANLIB libconftest.a" >&5
       $RANLIB libconftest.a 2>&5
       cat > conftest.c << _LT_EOF
@@ -21812,16 +21824,23 @@ $as_echo "yes" >&6; }
 else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
- /* is AF_INET6 available? */
+ /* are AF_INET6 and sockaddr_in6 available? */
 #include <sys/types.h>
 #ifdef HAVE_WINSOCK2_H
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #else
 #include <sys/socket.h>
+#include <netinet/in.h>
+#if defined (__TANDEM)
+# include <netinet/in6.h>
+#endif
 #endif
 #include <stdlib.h> /* for exit() */
 main()
 {
+ struct sockaddr_in6 s;
+ (void)s;
  if (socket(AF_INET6, SOCK_STREAM, 0) < 0)
    exit(1);
  else
@@ -21845,8 +21864,14 @@ fi
 fi
 
 
-# Check if struct sockaddr_in6 have sin6_scope_id member
 if test "$ipv6" = yes; then
+  curl_ipv6_msg="enabled"
+
+$as_echo "#define ENABLE_IPV6 1" >>confdefs.h
+
+  IPV6_ENABLED=1
+
+
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if struct sockaddr_in6 has sin6_scope_id member" >&5
 $as_echo_n "checking if struct sockaddr_in6 has sin6_scope_id member... " >&6; }
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -24801,6 +24826,168 @@ $as_echo "$as_me: Added $mesalinklib to LD_LIBRARY_PATH" >&6;}
 fi
 
 
+OPT_BEARSSL=no
+
+_cppflags=$CPPFLAGS
+_ldflags=$LDFLAGS
+
+# Check whether --with-bearssl was given.
+if test "${with_bearssl+set}" = set; then :
+  withval=$with_bearssl; OPT_BEARSSL=$withval
+fi
+
+
+if test -z "$ssl_backends" -o "x$OPT_BEARSSL" != xno; then
+  ssl_msg=
+
+  if test X"$OPT_BEARSSL" != Xno; then
+
+    if test "$OPT_BEARSSL" = "yes"; then
+      OPT_BEARSSL=""
+    fi
+
+    if test -z "$OPT_BEARSSL" ; then
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for br_ssl_client_init_full in -lbearssl" >&5
+$as_echo_n "checking for br_ssl_client_init_full in -lbearssl... " >&6; }
+if ${ac_cv_lib_bearssl_br_ssl_client_init_full+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lbearssl -lbearssl $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef __cplusplus
+extern "C"
+#endif
+char br_ssl_client_init_full ();
+int main (void)
+{
+return br_ssl_client_init_full ();
+ ;
+ return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_bearssl_br_ssl_client_init_full=yes
+else
+  ac_cv_lib_bearssl_br_ssl_client_init_full=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_bearssl_br_ssl_client_init_full" >&5
+$as_echo "$ac_cv_lib_bearssl_br_ssl_client_init_full" >&6; }
+if test "x$ac_cv_lib_bearssl_br_ssl_client_init_full" = xyes; then :
+
+
+$as_echo "#define USE_BEARSSL 1" >>confdefs.h
+
+         USE_BEARSSL=1
+
+         BEARSSL_ENABLED=1
+         USE_BEARSSL="yes"
+         ssl_msg="BearSSL"
+	 test bearssl != "$DEFAULT_SSL_BACKEND" || VALID_DEFAULT_SSL_BACKEND=yes
+
+fi
+
+    fi
+
+    addld=""
+    addlib=""
+    addcflags=""
+    bearssllib=""
+
+    if test "x$USE_BEARSSL" != "xyes"; then
+            addld=-L$OPT_BEARSSL/lib$libsuff
+      addcflags=-I$OPT_BEARSSL/include
+      bearssllib=$OPT_BEARSSL/lib$libsuff
+
+      LDFLAGS="$LDFLAGS $addld"
+      if test "$addcflags" != "-I/usr/include"; then
+         CPPFLAGS="$CPPFLAGS $addcflags"
+      fi
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for br_ssl_client_init_full in -lbearssl" >&5
+$as_echo_n "checking for br_ssl_client_init_full in -lbearssl... " >&6; }
+if ${ac_cv_lib_bearssl_br_ssl_client_init_full+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lbearssl -lbearssl $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef __cplusplus
+extern "C"
+#endif
+char br_ssl_client_init_full ();
+int main (void)
+{
+return br_ssl_client_init_full ();
+ ;
+ return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_bearssl_br_ssl_client_init_full=yes
+else
+  ac_cv_lib_bearssl_br_ssl_client_init_full=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_bearssl_br_ssl_client_init_full" >&5
+$as_echo "$ac_cv_lib_bearssl_br_ssl_client_init_full" >&6; }
+if test "x$ac_cv_lib_bearssl_br_ssl_client_init_full" = xyes; then :
+
+
+$as_echo "#define USE_BEARSSL 1" >>confdefs.h
+
+       USE_BEARSSL=1
+
+       BEARSSL_ENABLED=1
+       USE_BEARSSL="yes"
+       ssl_msg="BearSSL"
+       test bearssl != "$DEFAULT_SSL_BACKEND" || VALID_DEFAULT_SSL_BACKEND=yes
+
+else
+
+         CPPFLAGS=$_cppflags
+         LDFLAGS=$_ldflags
+
+fi
+
+    fi
+
+    if test "x$USE_BEARSSL" = "xyes"; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: detected BearSSL" >&5
+$as_echo "$as_me: detected BearSSL" >&6;}
+      check_for_ca_bundle=1
+
+      LIBS="-lbearssl $LIBS"
+
+      if test -n "$bearssllib"; then
+                                        if test "x$cross_compiling" != "xyes"; then
+          CURL_LIBRARY_PATH="$CURL_LIBRARY_PATH:$bearssllib"
+          export CURL_LIBRARY_PATH
+          { $as_echo "$as_me:${as_lineno-$LINENO}: Added $bearssllib to CURL_LIBRARY_PATH" >&5
+$as_echo "$as_me: Added $bearssllib to CURL_LIBRARY_PATH" >&6;}
+        fi
+      fi
+    fi
+
+  fi
+  test -z "$ssl_msg" || ssl_backends="${ssl_backends:+$ssl_backends, }$ssl_msg"
+fi
+
+
 OPT_NSS=no
 
 
@@ -25237,12 +25424,12 @@ $as_echo "$as_me: Added $nssprefix/lib$libsuff to CURL_LIBRARY_PATH" >&6;}
   test -z "$ssl_msg" || ssl_backends="${ssl_backends:+$ssl_backends, }$ssl_msg"
 fi
 
-case "x$OPENSSL_ENABLED$GNUTLS_ENABLED$NSS_ENABLED$MBEDTLS_ENABLED$WOLFSSL_ENABLED$WINSSL_ENABLED$SECURETRANSPORT_ENABLED$MESALINK_ENABLED$AMISSL_ENABLED" in
+case "x$OPENSSL_ENABLED$GNUTLS_ENABLED$NSS_ENABLED$MBEDTLS_ENABLED$WOLFSSL_ENABLED$WINSSL_ENABLED$SECURETRANSPORT_ENABLED$MESALINK_ENABLED$BEARSSL_ENABLED$AMISSL_ENABLED" in
 x)
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: SSL disabled, you will not be able to use HTTPS, FTPS, NTLM and more." >&5
 $as_echo "$as_me: WARNING: SSL disabled, you will not be able to use HTTPS, FTPS, NTLM and more." >&2;}
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Use --with-ssl, --with-gnutls, --with-wolfssl, --with-mbedtls, --with-nss, --with-schannel, --with-secure-transport, --with-mesalink or --with-amissl to address this." >&5
-$as_echo "$as_me: WARNING: Use --with-ssl, --with-gnutls, --with-wolfssl, --with-mbedtls, --with-nss, --with-schannel, --with-secure-transport, --with-mesalink or --with-amissl to address this." >&2;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Use --with-ssl, --with-gnutls, --with-wolfssl, --with-mbedtls, --with-nss, --with-schannel, --with-secure-transport, --with-mesalink, --with-amissl or --with-bearssl to address this." >&5
+$as_echo "$as_me: WARNING: Use --with-ssl, --with-gnutls, --with-wolfssl, --with-mbedtls, --with-nss, --with-schannel, --with-secure-transport, --with-mesalink, --with-amissl or --with-bearssl to address this." >&2;}
   ;;
 x1)
   # one SSL backend is enabled
@@ -25332,8 +25519,8 @@ fi
         ca="$want_ca"
     capath="no"
   elif test "x$want_capath" != "xno" -a "x$want_capath" != "xunset"; then
-        if test "x$OPENSSL_ENABLED" != "x1" -a "x$GNUTLS_ENABLED" != "x1" -a "x$POLARSSL_ENABLED" != "x1"; then
-      as_fn_error $? "--with-ca-path only works with OpenSSL, GnuTLS or PolarSSL" "$LINENO" 5
+        if test "x$OPENSSL_ENABLED" != "x1" -a "x$GNUTLS_ENABLED" != "x1" -a "x$MBEDTLS_ENABLED" != "x1"; then
+      as_fn_error $? "--with-ca-path only works with OpenSSL, GnuTLS or mbedTLS" "$LINENO" 5
     fi
     capath="$want_capath"
     ca="no"
@@ -25886,6 +26073,13 @@ $as_echo "$as_me: libmetalink library defective or too old" >&6;}
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
+    if test "x$OPENSSL_ENABLED" != "x1" -a "x$USE_WINDOWS_SSPI" != "x1" \
+        -a "x$GNUTLS_ENABLED" != "x1" -a "x$NSS_ENABLED" != "x1" \
+        -a "x$SECURETRANSPORT_ENABLED" != "x1"; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: metalink support requires a compatible SSL/TLS backend" >&5
+$as_echo "$as_me: WARNING: metalink support requires a compatible SSL/TLS backend" >&2;}
+      want_metalink="no"
+    fi
     CPPFLAGS="$clean_CPPFLAGS"
     LDFLAGS="$clean_LDFLAGS"
     LIBS="$clean_LIBS"
@@ -25924,6 +26118,16 @@ if test "${with_libssh+set}" = set; then :
   withval=$with_libssh; OPT_LIBSSH=$withval
 else
   OPT_LIBSSH=no
+fi
+
+
+OPT_WOLFSSH=off
+
+# Check whether --with-wolfssh was given.
+if test "${with_wolfssh+set}" = set; then :
+  withval=$with_wolfssh; OPT_WOLFSSH=$withval
+else
+  OPT_WOLFSSH=no
 fi
 
 
@@ -26415,6 +26619,81 @@ $as_echo "$as_me: Added $DIR_SSH to CURL_LIBRARY_PATH" >&6;}
     CPPFLAGS=$CLEANCPPFLAGS
     LIBS=$CLEANLIBS
   fi
+elif test X"$OPT_WOLFSSH" != Xno; then
+    CLEANLDFLAGS="$LDFLAGS"
+  CLEANCPPFLAGS="$CPPFLAGS"
+  CLEANLIBS="$LIBS"
+
+
+  if test "$OPT_WOLFSSH" != yes; then
+     WOLFCONFIG="$OPT_WOLFSSH/bin/wolfssh-config"
+     LDFLAGS="$LDFLAGS `$WOLFCONFIG --libs`"
+     CPPFLAGS="$CPPFLAGS `$WOLFCONFIG --cflags`"
+  fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for wolfSSH_Init in -lwolfssh" >&5
+$as_echo_n "checking for wolfSSH_Init in -lwolfssh... " >&6; }
+if ${ac_cv_lib_wolfssh_wolfSSH_Init+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lwolfssh  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+#ifdef __cplusplus
+extern "C"
+#endif
+char wolfSSH_Init ();
+int main (void)
+{
+return wolfSSH_Init ();
+ ;
+ return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_wolfssh_wolfSSH_Init=yes
+else
+  ac_cv_lib_wolfssh_wolfSSH_Init=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_wolfssh_wolfSSH_Init" >&5
+$as_echo "$ac_cv_lib_wolfssh_wolfSSH_Init" >&6; }
+if test "x$ac_cv_lib_wolfssh_wolfSSH_Init" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBWOLFSSH 1
+_ACEOF
+
+  LIBS="-lwolfssh $LIBS"
+
+fi
+
+
+  for ac_header in wolfssh/ssh.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "wolfssh/ssh.h" "ac_cv_header_wolfssh_ssh_h" "$ac_includes_default"
+if test "x$ac_cv_header_wolfssh_ssh_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_WOLFSSH_SSH_H 1
+_ACEOF
+ curl_ssh_msg="enabled (wolfSSH)"
+    WOLFSSH_ENABLED=1
+
+$as_echo "#define USE_WOLFSSH 1" >>confdefs.h
+
+    USE_WOLFSSH=1
+
+
+fi
+
+done
+
+
 fi
 
 
@@ -27463,11 +27742,11 @@ $as_echo "$as_me: -L is $LD_H2" >&6;}
     CPPFLAGS="$CPPFLAGS $CPP_H2"
     LIBS="$LIB_H2 $LIBS"
 
-    # use nghttp2_option_set_no_recv_client_magic to require nghttp2
-    # >= 1.0.0
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for nghttp2_option_set_no_recv_client_magic in -lnghttp2" >&5
-$as_echo_n "checking for nghttp2_option_set_no_recv_client_magic in -lnghttp2... " >&6; }
-if ${ac_cv_lib_nghttp2_nghttp2_option_set_no_recv_client_magic+:} false; then :
+    # use nghttp2_session_set_local_window_size to require nghttp2
+    # >= 1.12.0
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for nghttp2_session_set_local_window_size in -lnghttp2" >&5
+$as_echo_n "checking for nghttp2_session_set_local_window_size in -lnghttp2... " >&6; }
+if ${ac_cv_lib_nghttp2_nghttp2_session_set_local_window_size+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -27479,26 +27758,26 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char nghttp2_option_set_no_recv_client_magic ();
+char nghttp2_session_set_local_window_size ();
 int main (void)
 {
-return nghttp2_option_set_no_recv_client_magic ();
+return nghttp2_session_set_local_window_size ();
  ;
  return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_nghttp2_nghttp2_option_set_no_recv_client_magic=yes
+  ac_cv_lib_nghttp2_nghttp2_session_set_local_window_size=yes
 else
-  ac_cv_lib_nghttp2_nghttp2_option_set_no_recv_client_magic=no
+  ac_cv_lib_nghttp2_nghttp2_session_set_local_window_size=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_nghttp2_nghttp2_option_set_no_recv_client_magic" >&5
-$as_echo "$ac_cv_lib_nghttp2_nghttp2_option_set_no_recv_client_magic" >&6; }
-if test "x$ac_cv_lib_nghttp2_nghttp2_option_set_no_recv_client_magic" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_nghttp2_nghttp2_session_set_local_window_size" >&5
+$as_echo "$ac_cv_lib_nghttp2_nghttp2_session_set_local_window_size" >&6; }
+if test "x$ac_cv_lib_nghttp2_nghttp2_session_set_local_window_size" = xyes; then :
 
        for ac_header in nghttp2/nghttp2.h
 do :
@@ -41337,17 +41616,6 @@ fi
 done
 
 
-if test "$ipv6" = "yes"; then
-  if test "$curl_cv_func_getaddrinfo" = "yes"; then
-
-$as_echo "#define ENABLE_IPV6 1" >>confdefs.h
-
-    IPV6_ENABLED=1
-
-    curl_ipv6_msg="enabled"
-  fi
-fi
-
 
             #
   tst_method="unknown"
@@ -42524,7 +42792,7 @@ $as_echo_n "checking whether ESNI support is available... " >&6; }
     ESNI_ENABLED=0
   ESNI_SUPPORT=''
 
-      if test "x$OPENSSL_ENABLED" == "x1"; then
+      if test "x$OPENSSL_ENABLED" = "x1"; then
     for ac_func in SSL_get_esni_status
 do :
   ac_fn_c_check_func "$LINENO" "SSL_get_esni_status" "ac_cv_func_SSL_get_esni_status"
@@ -42540,7 +42808,7 @@ done
 
     fi
 
-    if test "x$ESNI_ENABLED" == "x1"; then
+    if test "x$ESNI_ENABLED" = "x1"; then
 
 $as_echo "#define USE_ESNI 1" >>confdefs.h
 
@@ -42769,6 +43037,10 @@ if test "x$USE_LIBSSH2" = "x1"; then
   SUPPORT_PROTOCOLS="$SUPPORT_PROTOCOLS SFTP"
 fi
 if test "x$USE_LIBSSH" = "x1"; then
+  SUPPORT_PROTOCOLS="$SUPPORT_PROTOCOLS SCP"
+  SUPPORT_PROTOCOLS="$SUPPORT_PROTOCOLS SFTP"
+fi
+if test "x$USE_WOLFSSH" = "x1"; then
   SUPPORT_PROTOCOLS="$SUPPORT_PROTOCOLS SCP"
   SUPPORT_PROTOCOLS="$SUPPORT_PROTOCOLS SFTP"
 fi

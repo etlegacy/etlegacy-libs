@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -108,6 +108,7 @@ struct OperationConfig {
   char *mail_from;
   struct curl_slist *mail_rcpt;
   char *mail_auth;
+  bool mail_rcpt_allowfails; /* --mail-rcpt-allowfails */
   char *sasl_authzid;       /* Authorisation identity (identity to use) */
   bool sasl_ir;             /* Enable/disable SASL initial response */
   bool proxytunnel;
@@ -156,6 +157,8 @@ struct OperationConfig {
   char *pubkey;
   char *hostpubmd5;
   char *engine;
+  char *etag_save_file;
+  char *etag_compare_file;
   bool crlf;
   char *customrequest;
   char *krblevel;
@@ -300,6 +303,7 @@ struct GlobalConfig {
 #endif
   bool parallel;
   long parallel_max;
+  bool parallel_connect;
   struct OperationConfig *first;
   struct OperationConfig *current;
   struct OperationConfig *last;   /* Always last in the struct */
