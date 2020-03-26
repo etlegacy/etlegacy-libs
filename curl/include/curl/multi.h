@@ -72,8 +72,7 @@ typedef enum {
                             attempted to get added - again */
   CURLM_RECURSIVE_API_CALL, /* an api function was called from inside a
                                callback */
-  CURLM_WAKEUP_FAILURE,  /* wakeup is unavailable or failed */
-  CURLM_BAD_FUNCTION_ARGUMENT,  /* function called with a bad parameter */
+  CURLM_WAKEUP_FAILURE, /* wakeup is unavailable or failed */
   CURLM_LAST
 } CURLMcode;
 
@@ -344,58 +343,71 @@ CURL_EXTERN CURLMcode curl_multi_socket_all(CURLM *multi_handle,
 CURL_EXTERN CURLMcode curl_multi_timeout(CURLM *multi_handle,
                                          long *milliseconds);
 
+#undef CINIT /* re-using the same name as in curl.h */
+
+#ifdef CURL_ISOCPP
+#define CINIT(name,type,num) CURLMOPT_ ## name = CURLOPTTYPE_ ## type + num
+#else
+/* The macro "##" is ISO C, we assume pre-ISO C doesn't support it. */
+#define LONG          CURLOPTTYPE_LONG
+#define OBJECTPOINT   CURLOPTTYPE_OBJECTPOINT
+#define FUNCTIONPOINT CURLOPTTYPE_FUNCTIONPOINT
+#define OFF_T         CURLOPTTYPE_OFF_T
+#define CINIT(name,type,number) CURLMOPT_/**/name = type + number
+#endif
+
 typedef enum {
   /* This is the socket callback function pointer */
-  CURLOPT(CURLMOPT_SOCKETFUNCTION, CURLOPTTYPE_FUNCTIONPOINT, 1),
+  CINIT(SOCKETFUNCTION, FUNCTIONPOINT, 1),
 
   /* This is the argument passed to the socket callback */
-  CURLOPT(CURLMOPT_SOCKETDATA, CURLOPTTYPE_OBJECTPOINT, 2),
+  CINIT(SOCKETDATA, OBJECTPOINT, 2),
 
     /* set to 1 to enable pipelining for this multi handle */
-  CURLOPT(CURLMOPT_PIPELINING, CURLOPTTYPE_LONG, 3),
+  CINIT(PIPELINING, LONG, 3),
 
    /* This is the timer callback function pointer */
-  CURLOPT(CURLMOPT_TIMERFUNCTION, CURLOPTTYPE_FUNCTIONPOINT, 4),
+  CINIT(TIMERFUNCTION, FUNCTIONPOINT, 4),
 
   /* This is the argument passed to the timer callback */
-  CURLOPT(CURLMOPT_TIMERDATA, CURLOPTTYPE_OBJECTPOINT, 5),
+  CINIT(TIMERDATA, OBJECTPOINT, 5),
 
   /* maximum number of entries in the connection cache */
-  CURLOPT(CURLMOPT_MAXCONNECTS, CURLOPTTYPE_LONG, 6),
+  CINIT(MAXCONNECTS, LONG, 6),
 
   /* maximum number of (pipelining) connections to one host */
-  CURLOPT(CURLMOPT_MAX_HOST_CONNECTIONS, CURLOPTTYPE_LONG, 7),
+  CINIT(MAX_HOST_CONNECTIONS, LONG, 7),
 
   /* maximum number of requests in a pipeline */
-  CURLOPT(CURLMOPT_MAX_PIPELINE_LENGTH, CURLOPTTYPE_LONG, 8),
+  CINIT(MAX_PIPELINE_LENGTH, LONG, 8),
 
   /* a connection with a content-length longer than this
      will not be considered for pipelining */
-  CURLOPT(CURLMOPT_CONTENT_LENGTH_PENALTY_SIZE, CURLOPTTYPE_OFF_T, 9),
+  CINIT(CONTENT_LENGTH_PENALTY_SIZE, OFF_T, 9),
 
   /* a connection with a chunk length longer than this
      will not be considered for pipelining */
-  CURLOPT(CURLMOPT_CHUNK_LENGTH_PENALTY_SIZE, CURLOPTTYPE_OFF_T, 10),
+  CINIT(CHUNK_LENGTH_PENALTY_SIZE, OFF_T, 10),
 
   /* a list of site names(+port) that are blacklisted from
      pipelining */
-  CURLOPT(CURLMOPT_PIPELINING_SITE_BL, CURLOPTTYPE_OBJECTPOINT, 11),
+  CINIT(PIPELINING_SITE_BL, OBJECTPOINT, 11),
 
   /* a list of server types that are blacklisted from
      pipelining */
-  CURLOPT(CURLMOPT_PIPELINING_SERVER_BL, CURLOPTTYPE_OBJECTPOINT, 12),
+  CINIT(PIPELINING_SERVER_BL, OBJECTPOINT, 12),
 
   /* maximum number of open connections in total */
-  CURLOPT(CURLMOPT_MAX_TOTAL_CONNECTIONS, CURLOPTTYPE_LONG, 13),
+  CINIT(MAX_TOTAL_CONNECTIONS, LONG, 13),
 
    /* This is the server push callback function pointer */
-  CURLOPT(CURLMOPT_PUSHFUNCTION, CURLOPTTYPE_FUNCTIONPOINT, 14),
+  CINIT(PUSHFUNCTION, FUNCTIONPOINT, 14),
 
   /* This is the argument passed to the server push callback */
-  CURLOPT(CURLMOPT_PUSHDATA, CURLOPTTYPE_OBJECTPOINT, 15),
+  CINIT(PUSHDATA, OBJECTPOINT, 15),
 
   /* maximum number of concurrent streams to support on a connection */
-  CURLOPT(CURLMOPT_MAX_CONCURRENT_STREAMS, CURLOPTTYPE_LONG, 16),
+  CINIT(MAX_CONCURRENT_STREAMS, LONG, 16),
 
   CURLMOPT_LASTENTRY /* the last unused */
 } CURLMoption;

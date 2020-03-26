@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -55,6 +55,7 @@
 #include "transfer.h"
 #include "escape.h"
 #include "http.h" /* for HTTP proxy tunnel stuff */
+#include "socks.h"
 #include "ftp.h"
 #include "fileinfo.h"
 #include "ftplistparser.h"
@@ -77,7 +78,6 @@
 #include "warnless.h"
 #include "http_proxy.h"
 #include "non-ascii.h"
-#include "socks.h"
 /* The last 3 #include files should be in this order */
 #include "curl_printf.h"
 #include "curl_memory.h"
@@ -253,6 +253,18 @@ static void freedirs(struct ftp_conn *ftpc)
   Curl_safefree(ftpc->newhost);
 }
 
+/* Returns non-zero if the given string contains CR (\r) or LF (\n),
+   which are not allowed within RFC 959 <string>.
+   Note: The input string is in the client's encoding which might
+   not be ASCII, so escape sequences \r & \n must be used instead
+   of hex values 0x0d & 0x0a.
+*/
+static bool isBadFtpString(const char *string)
+{
+  return ((NULL != strchr(string, '\r')) ||
+          (NULL != strchr(string, '\n'))) ? TRUE : FALSE;
+}
+
 /***********************************************************************
  *
  * AcceptServerConnect()
@@ -291,7 +303,7 @@ static CURLcode AcceptServerConnect(struct connectdata *conn)
 
   conn->sock[SECONDARYSOCKET] = s;
   (void)curlx_nonblock(s, TRUE); /* enable non-blocking */
-  conn->sock_accepted = TRUE;
+  conn->sock_accepted[SECONDARYSOCKET] = TRUE;
 
   if(data->set.fsockopt) {
     int error = 0;
@@ -773,8 +785,9 @@ static void _state(struct connectdata *conn,
 static CURLcode ftp_state_user(struct connectdata *conn)
 {
   CURLcode result;
+  struct FTP *ftp = conn->data->req.protop;
   /* send USER */
-  PPSENDF(&conn->proto.ftpc.pp, "USER %s", conn->user?conn->user:"");
+  PPSENDF(&conn->proto.ftpc.pp, "USER %s", ftp->user?ftp->user:"");
 
   state(conn, FTP_USER);
   conn->data->state.ftp_trying_alternative = FALSE;
@@ -809,9 +822,6 @@ static int ftp_domore_getsock(struct connectdata *conn, curl_socket_t *socks)
    * remote site, or we could wait for that site to connect to us. Or just
    * handle ordinary commands.
    */
-
-  if(SOCKS_STATE(conn->cnnct.state))
-    return Curl_SOCKS_getsock(conn, socks, SECONDARYSOCKET);
 
   if(FTP_STOP == ftpc->state) {
     int bits = GETSOCK_READSOCK(0);
@@ -910,7 +920,7 @@ static CURLcode ftp_state_use_port(struct connectdata *conn,
   struct ftp_conn *ftpc = &conn->proto.ftpc;
   struct Curl_easy *data = conn->data;
   curl_socket_t portsock = CURL_SOCKET_BAD;
-  char myhost[MAX_IPADR_LEN + 1] = "";
+  char myhost[256] = "";
 
   struct Curl_sockaddr_storage ss;
   Curl_addrinfo *res, *ai;
@@ -921,8 +931,9 @@ static CURLcode ftp_state_use_port(struct connectdata *conn,
 #ifdef ENABLE_IPV6
   struct sockaddr_in6 * const sa6 = (void *)sa;
 #endif
+  char tmp[1024];
   static const char mode[][5] = { "EPRT", "PORT" };
-  enum resolve_t rc;
+  int rc;
   int error;
   char *host = NULL;
   char *string_ftpport = data->set.str[STRING_FTPPORT];
@@ -1235,10 +1246,8 @@ static CURLcode ftp_state_use_port(struct connectdata *conn,
       break;
     }
     if(PORT == fcmd) {
-      /* large enough for [IP address],[num],[num] */
-      char target[sizeof(myhost) + 20];
       char *source = myhost;
-      char *dest = target;
+      char *dest = tmp;
 
       /* translate x.x.x.x to x,x,x,x */
       while(source && *source) {
@@ -1252,7 +1261,7 @@ static CURLcode ftp_state_use_port(struct connectdata *conn,
       *dest = 0;
       msnprintf(dest, 20, ",%d,%d", (int)(port>>8), (int)(port&0xff));
 
-      result = Curl_pp_sendf(&ftpc->pp, "%s %s", mode[fcmd], target);
+      result = Curl_pp_sendf(&ftpc->pp, "%s %s", mode[fcmd], tmp);
       if(result) {
         failf(data, "Failure sending PORT command: %s",
               curl_easy_strerror(result));
@@ -1797,7 +1806,7 @@ static CURLcode ftp_state_pasv_resp(struct connectdata *conn,
   CURLcode result;
   struct Curl_easy *data = conn->data;
   struct Curl_dns_entry *addr = NULL;
-  enum resolve_t rc;
+  int rc;
   unsigned short connectport; /* the local port connect() should use! */
   char *str = &data->state.buffer[4];  /* start on the first letter */
 
@@ -2519,6 +2528,7 @@ static CURLcode ftp_state_user_resp(struct connectdata *conn,
 {
   CURLcode result = CURLE_OK;
   struct Curl_easy *data = conn->data;
+  struct FTP *ftp = data->req.protop;
   struct ftp_conn *ftpc = &conn->proto.ftpc;
   (void)instate; /* no use for this yet */
 
@@ -2526,7 +2536,7 @@ static CURLcode ftp_state_user_resp(struct connectdata *conn,
   if((ftpcode == 331) && (ftpc->state == FTP_USER)) {
     /* 331 Password required for ...
        (the server requires to send the user's password too) */
-    PPSENDF(&ftpc->pp, "PASS %s", conn->passwd?conn->passwd:"");
+    PPSENDF(&ftpc->pp, "PASS %s", ftp->passwd?ftp->passwd:"");
     state(conn, FTP_PASS);
   }
   else if(ftpcode/100 == 2) {
@@ -4359,6 +4369,18 @@ static CURLcode ftp_setup_connection(struct connectdata *conn)
   /* get some initial data into the ftp struct */
   ftp->transfer = FTPTRANSFER_BODY;
   ftp->downloadsize = 0;
+
+  /* No need to duplicate user+password, the connectdata struct won't change
+     during a session, but we re-init them here since on subsequent inits
+     since the conn struct may have changed or been replaced.
+  */
+  ftp->user = conn->user;
+  ftp->passwd = conn->passwd;
+  if(isBadFtpString(ftp->user))
+    return CURLE_URL_MALFORMAT;
+  if(isBadFtpString(ftp->passwd))
+    return CURLE_URL_MALFORMAT;
+
   conn->proto.ftpc.known_filesize = -1; /* unknown size for now */
 
   return CURLE_OK;

@@ -28,9 +28,6 @@ use strict;
 use warnings;
 use Cwd;
 use Cwd 'abs_path';
-use Digest::MD5;
-use Digest::MD5 'md5_hex';
-use MIME::Base64;
 
 #***************************************************************************
 # Variables and subs imported from sshhelp module
@@ -51,7 +48,6 @@ use sshhelp qw(
     $sftpcmds
     $hstprvkeyf
     $hstpubkeyf
-    $hstpubmd5f
     $cliprvkeyf
     $clipubkeyf
     display_sshdconfig
@@ -361,11 +357,10 @@ if((($sshid =~ /OpenSSH/) && ($sshvernum < 299)) ||
 #
 if((! -e $hstprvkeyf) || (! -s $hstprvkeyf) ||
    (! -e $hstpubkeyf) || (! -s $hstpubkeyf) ||
-   (! -e $hstpubmd5f) || (! -s $hstpubmd5f) ||
    (! -e $cliprvkeyf) || (! -s $cliprvkeyf) ||
    (! -e $clipubkeyf) || (! -s $clipubkeyf)) {
     # Make sure all files are gone so ssh-keygen doesn't complain
-    unlink($hstprvkeyf, $hstpubkeyf, $hstpubmd5f, $cliprvkeyf, $clipubkeyf);
+    unlink($hstprvkeyf, $hstpubkeyf, $cliprvkeyf, $clipubkeyf);
     logmsg 'generating host keys...' if($verbose);
     if(system "\"$sshkeygen\" -q -t rsa -f $hstprvkeyf -C 'curl test server' -N ''") {
         logmsg 'Could not generate host key';
@@ -379,21 +374,6 @@ if((! -e $hstprvkeyf) || (! -s $hstprvkeyf) ||
     # Make sure that permissions are restricted so openssh doesn't complain
     system "chmod 600 $hstprvkeyf";
     system "chmod 600 $cliprvkeyf";
-    # Save md5 hash of public host key
-    open(RSAKEYFILE, "<$hstpubkeyf");
-    my @rsahostkey = do { local $/ = ' '; <RSAKEYFILE> };
-    close(RSAKEYFILE);
-    if(!$rsahostkey[1]) {
-        logmsg 'Failed parsing base64 encoded RSA host key';
-        exit 1;
-    }
-    open(PUBMD5FILE, ">$hstpubmd5f");
-    print PUBMD5FILE md5_hex(decode_base64($rsahostkey[1]));
-    close(PUBMD5FILE);
-    if((! -e $hstpubmd5f) || (! -s $hstpubmd5f)) {
-        logmsg 'Failed writing md5 hash of RSA host key';
-        exit 1;
-    }
 }
 
 
@@ -1119,8 +1099,8 @@ elsif($verbose && ($rc >> 8)) {
 #***************************************************************************
 # Clean up once the server has stopped
 #
-unlink($hstprvkeyf, $hstpubkeyf, $hstpubmd5f,
-       $cliprvkeyf, $clipubkeyf, $knownhosts,
-       $sshdconfig, $sshconfig, $sftpconfig);
+unlink($hstprvkeyf, $hstpubkeyf, $cliprvkeyf, $clipubkeyf, $knownhosts);
+unlink($sshdconfig, $sshconfig, $sftpconfig);
+
 
 exit 0;

@@ -18,5 +18,9 @@ unittest
  <name>
 x509 parsing
  </name>
+<tool>
+unit1651
+</tool>
 </client>
+
 </testcase>

@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -43,7 +43,6 @@
 #include "strerror.h"
 #include "select.h"
 #include "strdup.h"
-#include "http2.h"
 
 /* The last 3 #include files should be in this order */
 #include "curl_printf.h"
@@ -502,9 +501,6 @@ static CURLcode pausewrite(struct Curl_easy *data,
   unsigned int i;
   bool newtype = TRUE;
 
-  /* If this transfers over HTTP/2, pause the stream! */
-  Curl_http2_stream_pause(data, TRUE);
-
   if(s->tempcount) {
     for(i = 0; i< s->tempcount; i++) {
       if(s->tempwrite[i].type == type) {
@@ -533,8 +529,6 @@ static CURLcode pausewrite(struct Curl_easy *data,
     /* update the pointer and the size */
     s->tempwrite[i].buf = newptr;
     s->tempwrite[i].len = newlen;
-
-    len = newlen; /* for the debug output below */
   }
   else {
     dupl = Curl_memdup(ptr, len);
@@ -698,20 +692,19 @@ CURLcode Curl_read_plain(curl_socket_t sockfd,
   ssize_t nread = sread(sockfd, buf, bytesfromsocket);
 
   if(-1 == nread) {
-    const int err = SOCKERRNO;
-    const bool return_error =
+    int err = SOCKERRNO;
+    int return_error;
 #ifdef USE_WINSOCK
-      WSAEWOULDBLOCK == err
+    return_error = WSAEWOULDBLOCK == err;
 #else
-      EWOULDBLOCK == err || EAGAIN == err || EINTR == err
+    return_error = EWOULDBLOCK == err || EAGAIN == err || EINTR == err;
 #endif
-      ;
-    *n = 0; /* no data returned */
     if(return_error)
       return CURLE_AGAIN;
     return CURLE_RECV_ERROR;
   }
 
+  /* we only return number of bytes read when we return OK */
   *n = nread;
   return CURLE_OK;
 }

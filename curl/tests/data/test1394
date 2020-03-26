@@ -17,10 +17,14 @@ unittest
  <name>
 unit test for parse_cert_parameter()
  </name>
+<tool>
+unit1394
+</tool>
 </client>
 
 <verify>
 <stdout mode="text">
 </stdout>
 </verify>
+
 </testcase>

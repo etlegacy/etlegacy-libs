@@ -119,6 +119,11 @@ struct Curl_multi {
      same actual socket) */
   struct curl_hash sockhash;
 
+  /* multiplexing wanted */
+  bool multiplexing;
+
+  bool recheckstate; /* see Curl_multi_connchanged */
+
   /* Shared connection cache (bundles)*/
   struct conncache conn_cache;
 
@@ -136,17 +141,13 @@ struct Curl_multi {
   void *timer_userp;
   struct curltime timer_lastcall; /* the fixed time for the timeout for the
                                     previous callback */
-  unsigned int max_concurrent_streams;
+  bool in_callback;            /* true while executing a callback */
+  long max_concurrent_streams; /* max concurrent streams client to support */
 
 #ifdef ENABLE_WAKEUP
   curl_socket_t wakeup_pair[2]; /* socketpair() used for wakeup
                                    0 is used for read, 1 is used for write */
 #endif
-  /* multiplexing wanted */
-  bool multiplexing;
-  bool recheckstate; /* see Curl_multi_connchanged */
-  bool in_callback;            /* true while executing a callback */
-  bool ipv6_works;
 };
 
 #endif /* HEADER_CURL_MULTIHANDLE_H */

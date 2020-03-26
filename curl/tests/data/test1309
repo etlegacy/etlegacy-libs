@@ -18,6 +18,9 @@ unittest
  <name>
 splay unit tests
  </name>
+<tool>
+unit1309
+</tool>
 </client>
 
 <verify>
@@ -1561,4 +1564,5 @@ removed payload 1013[1]
 removed payload 1013[2]
 </stdout>
 </verify>
+
 </testcase>

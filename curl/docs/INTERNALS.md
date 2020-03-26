@@ -95,8 +95,9 @@ Dependencies
  - MIT Kerberos 1.2.4
  - GSKit        V5R3M0
  - NSS          3.14.x
+ - PolarSSL     1.3.0
  - Heimdal      ?
- - nghttp2      1.12.0
+ - nghttp2      1.0.0
 
 Operating Systems
 -----------------

@@ -273,7 +273,6 @@ static const struct LongShort aliases[]= {
   {"f",  "fail",                     ARG_BOOL},
   {"fa", "fail-early",               ARG_BOOL},
   {"fb", "styled-output",            ARG_BOOL},
-  {"fc", "mail-rcpt-allowfails",     ARG_BOOL},
   {"F",  "form",                     ARG_STRING},
   {"Fs", "form-string",              ARG_STRING},
   {"g",  "globoff",                  ARG_BOOL},
@@ -422,7 +421,7 @@ void parse_cert_parameter(const char *cert_parameter,
       /* escaped colons and Windows drive letter colons were handled
        * above; if we're still here, this is a separating colon */
       param_place++;
-      if(*param_place) {
+      if(strlen(param_place) > 0) {
         *passphrase = strdup(param_place);
       }
       goto done;
@@ -1278,10 +1277,7 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
     case 'b':
       switch(subletter) {
       case 'a': /* --alt-svc */
-        if(curlinfo->features & CURL_VERSION_ALTSVC)
-          GetStr(&config->altsvc, nextarg);
-        else
-          return PARAM_LIBCURL_DOESNT_SUPPORT;
+        GetStr(&config->altsvc, nextarg);
         break;
       default:  /* --cookie string coming up: */
         if(nextarg[0] == '@') {
@@ -1725,9 +1721,6 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
         break;
       case 'b': /* --styled-output */
         global->styled_output = toggle;
-        break;
-      case 'c': /* --mail-rcpt-allowfails */
-        config->mail_rcpt_allowfails = toggle;
         break;
       default: /* --fail (hard on errors)  */
         config->failonerror = toggle;

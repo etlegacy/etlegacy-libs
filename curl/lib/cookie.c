@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -97,8 +97,6 @@ Example set of cookies:
 #include "curl_memrchr.h"
 #include "inet_pton.h"
 #include "parsedate.h"
-#include "rand.h"
-#include "rename.h"
 
 /* The last 3 #include files should be in this order */
 #include "curl_printf.h"
@@ -245,17 +243,18 @@ pathmatched:
  */
 static const char *get_top_domain(const char * const domain, size_t *outlen)
 {
-  size_t len = 0;
+  size_t len;
   const char *first = NULL, *last;
 
-  if(domain) {
-    len = strlen(domain);
-    last = memrchr(domain, '.', len);
-    if(last) {
-      first = memrchr(domain, '.', (last - domain));
-      if(first)
-        len -= (++first - domain);
-    }
+  if(!domain)
+    return NULL;
+
+  len = strlen(domain);
+  last = memrchr(domain, '.', len);
+  if(last) {
+    first = memrchr(domain, '.', (last - domain));
+    if(first)
+      len -= (++first - domain);
   }
 
   if(outlen)
@@ -538,9 +537,9 @@ Curl_cookie_add(struct Curl_easy *data,
          * only test for names where that can possibly be true.
          */
         if(nlen > 3 && name[0] == '_' && name[1] == '_') {
-          if(!strncmp("__Secure-", name, 9))
+          if(strncasecompare("__Secure-", name, 9))
             co->prefix |= COOKIE_PREFIX__SECURE;
-          else if(!strncmp("__Host-", name, 7))
+          else if(strncasecompare("__Host-", name, 7))
             co->prefix |= COOKIE_PREFIX__HOST;
         }
 
@@ -1047,7 +1046,7 @@ Curl_cookie_add(struct Curl_easy *data,
 
         *clist = *co;  /* then store all the new data */
 
-        free(co);   /* free the newly allocated memory */
+        free(co);   /* free the newly alloced memory */
         co = clist; /* point to the previous struct instead */
 
         /* We have replaced a cookie, now skip the rest of the list but
@@ -1502,14 +1501,11 @@ static char *get_netscape_format(const struct Cookie *co)
  *
  * The function returns non-zero on write failure.
  */
-static int cookie_output(struct Curl_easy *data,
-                         struct CookieInfo *c, const char *filename)
+static int cookie_output(struct CookieInfo *c, const char *dumphere)
 {
   struct Cookie *co;
-  FILE *out = NULL;
+  FILE *out;
   bool use_stdout = FALSE;
-  char *tempstore = NULL;
-  bool error = false;
 
   if(!c)
     /* no cookie engine alive */
@@ -1518,24 +1514,16 @@ static int cookie_output(struct Curl_easy *data,
   /* at first, remove expired cookies */
   remove_expired(c);
 
-  if(!strcmp("-", filename)) {
+  if(!strcmp("-", dumphere)) {
     /* use stdout */
     out = stdout;
     use_stdout = TRUE;
   }
   else {
-    unsigned char randsuffix[9];
-
-    if(Curl_rand_hex(data, randsuffix, sizeof(randsuffix)))
-      return 2;
-
-    tempstore = aprintf("%s.%s.tmp", filename, randsuffix);
-    if(!tempstore)
-      return 1;
-
-    out = fopen(tempstore, FOPEN_WRITETEXT);
-    if(!out)
-      goto error;
+    out = fopen(dumphere, FOPEN_WRITETEXT);
+    if(!out) {
+      return 1; /* failure */
+    }
   }
 
   fputs("# Netscape HTTP Cookie File\n"
@@ -1550,7 +1538,9 @@ static int cookie_output(struct Curl_easy *data,
 
     array = calloc(1, sizeof(struct Cookie *) * c->numcookies);
     if(!array) {
-      goto error;
+      if(!use_stdout)
+        fclose(out);
+      return 1;
     }
 
     /* only sort the cookies with a domain property */
@@ -1569,7 +1559,9 @@ static int cookie_output(struct Curl_easy *data,
       if(format_ptr == NULL) {
         fprintf(out, "#\n# Fatal libcurl error\n");
         free(array);
-        goto error;
+        if(!use_stdout)
+          fclose(out);
+        return 1;
       }
       fprintf(out, "%s\n", format_ptr);
       free(format_ptr);
@@ -1577,24 +1569,10 @@ static int cookie_output(struct Curl_easy *data,
 
     free(array);
   }
-
-  if(!use_stdout) {
+  if(!use_stdout)
     fclose(out);
-    out = NULL;
-    if(Curl_rename(tempstore, filename)) {
-      unlink(tempstore);
-      goto error;
-    }
-  }
 
-  goto cleanup;
-error:
-  error = true;
-cleanup:
-  if(out && !use_stdout)
-    fclose(out);
-  free(tempstore);
-  return error ? 1 : 0;
+  return 0;
 }
 
 static struct curl_slist *cookie_list(struct Curl_easy *data)
@@ -1653,7 +1631,7 @@ void Curl_flush_cookies(struct Curl_easy *data, bool cleanup)
     Curl_share_lock(data, CURL_LOCK_DATA_COOKIE, CURL_LOCK_ACCESS_SINGLE);
 
     /* if we have a destination file for all the cookies to get dumped to */
-    if(cookie_output(data, data->cookies, data->set.str[STRING_COOKIEJAR]))
+    if(cookie_output(data->cookies, data->set.str[STRING_COOKIEJAR]))
       infof(data, "WARNING: failed to save cookies in %s\n",
             data->set.str[STRING_COOKIEJAR]);
   }

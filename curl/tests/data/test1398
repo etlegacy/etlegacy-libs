@@ -18,6 +18,9 @@ unittest
  <name>
 curl_msnprintf unit tests
  </name>
+<tool>
+unit1398
+</tool>
 </client>
 
 </testcase>

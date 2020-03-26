@@ -19,5 +19,9 @@ DoH
  <name>
 DOH
  </name>
+<tool>
+unit1650
+</tool>
 </client>
+
 </testcase>
