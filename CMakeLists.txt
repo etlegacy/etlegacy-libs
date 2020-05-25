@@ -64,10 +64,10 @@ if(WIN32)
 		set(OPENSSL_BUNDLED_LIBRARY "${OPENSSL_PREFIX}/lib/libcrypto.lib" "${OPENSSL_PREFIX}/lib/libssl.lib")
 		ExternalProject_Add(bundled_openssl
 			# Use github archive instead of the one hosted on openssl.org because of CMake bug #13251
-			#URL_MD5 "9e380f6f9cc497bd2f47c944019239ac"
+			#URL_MD5 "76766e98997660138cdaf13a187bd234"
 			#GIT_REPOSITORY "https://github.com/openssl/openssl.git"
 			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}/openssl
-			URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1e.tar.gz
+			URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1g.tar.gz
 			SOURCE_DIR "${CMAKE_BINARY_DIR}/openssl"
 			BUILD_IN_SOURCE 1
 			CONFIGURE_COMMAND ${OPENSSL_CONFIGURE}
