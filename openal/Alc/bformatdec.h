@@ -24,9 +24,9 @@
 /* NOTE: These are scale factors as applied to Ambisonics content. Decoder
  * coefficients should be divided by these values to get proper N3D scalings.
  */
-const ALfloat N3D2N3DScale[MAX_AMBI_COEFFS];
-const ALfloat SN3D2N3DScale[MAX_AMBI_COEFFS];
-const ALfloat FuMa2N3DScale[MAX_AMBI_COEFFS];
+extern const ALfloat N3D2N3DScale[MAX_AMBI_COEFFS];
+extern const ALfloat SN3D2N3DScale[MAX_AMBI_COEFFS];
+extern const ALfloat FuMa2N3DScale[MAX_AMBI_COEFFS];
 
 
 struct AmbDecConf;
