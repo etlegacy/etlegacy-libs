@@ -1,3 +1,6 @@
+#
+# Download sqlite3 amalgamation sources from https://www.sqlite.org/download.html
+#
 cmake_minimum_required(VERSION 2.8)
 
 #project(sqlite3)
