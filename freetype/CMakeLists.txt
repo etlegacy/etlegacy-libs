@@ -395,7 +395,7 @@ if(MSVC)
   foreach(CompilerFlag ${CompilerFlags})
     string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
   endforeach()
-endif(MSVC)
+endif()
 
 if (BUILD_FRAMEWORK)
   list(APPEND BASE_SRCS builds/mac/freetype-Info.plist)
@@ -446,7 +446,7 @@ target_include_directories(
     PRIVATE
       ${CMAKE_CURRENT_BINARY_DIR}/include
       ${CMAKE_CURRENT_SOURCE_DIR}/include
-      
+
       # Make <ftconfig.h> available for builds/unix/ftsystem.c.
       ${CMAKE_CURRENT_BINARY_DIR}/include/freetype/config
 )
