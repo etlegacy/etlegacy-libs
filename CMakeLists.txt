@@ -64,13 +64,14 @@ if(FEATURE_SSL AND BUNDLED_WOLFSSL)
 			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
 			-DCMAKE_C_FLAGS=${WOLFSSL_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
 			-DWOLFSSL_EXAMPLES=OFF -DWOLFSSL_CRYPT_TESTS=OFF
-			-DWOLFSSL_OCSP=ON -DWOLFSSL_OPENSSLEXTRA=ON
+			-DWOLFSSL_OCSP=ON -DWOLFSSL_OPENSSLEXTRA=ON -DWOLFSSL_FAST_MATH=OFF
 			-DWOLFSSL_OPENSSLALL=ON -DWOLFSSL_OPENSSL_EXTRA=ON
 			-DBUILD_PWDBASED=ON -WOLFSSL_PWDBASED=ON -DBUILD_CRL=ON
 			-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/wolfssl
 			)
 	set(WOLFSSL_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/wolfssl/include" "${LIBS_BINARY_DIR}/wolfssl/include/wolfssl")
 	set_target_properties(bundled_wolfssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	add_definitions(-DETL_WOLFSSL)
 else()
 	add_custom_target(bundled_wolfssl)
 	set_target_properties(bundled_wolfssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
@@ -406,7 +407,7 @@ elseif(UNIX)
 		endif()
 	endif(CROSS_COMPILE32)
 
-	if (BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
+	if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 		# FIXME: check flags
 		if(CROSS_COMPILE32)
 			if(APPLE)
@@ -441,7 +442,9 @@ elseif(UNIX)
 		# also generates libcrypto.a
 		set(OPENSSL_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/openssl/lib/libssl.a")
 		set(OPENSSL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/openssl/include")
-
+	else()
+		add_custom_target(bundled_openssl)
+		set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 	endif()
 
 	#-----------------------------------------------------------------
@@ -452,10 +455,7 @@ elseif(UNIX)
 		# FIXME: add openssl lib to project
 		# set --with-ssl / remove --without-ssl
 
-		ExternalProject_Add(
-			bundled_curl
-			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/curl
-			CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/curl
+		set(CURL_CONFIGURE ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/curl
 			--enable-shared=no --enable-static=yes
 			--enable-http --enable-ftp --disable-file
 			--disable-ldap --disable-ldaps --disable-rtsp
@@ -470,7 +470,25 @@ elseif(UNIX)
 			--disable-sspi --enable-libgcc
 			--without-libmetalink --without-libpsl
 			--without-librtmp ${CROSS_COMPILE32_FLAGS}
-			--without-ssl
+		)
+
+		if(FEATURE_SSL)
+			if(BUNDLED_WOLFSSL)
+				list(APPEND CURL_CONFIGURE --without-ssl --with-wolfssl=${LIBS_BINARY_DIR}/wolfssl)
+			elseif(BUNDLED_OPENSSL)
+				list(APPEND CURL_CONFIGURE --with-ssl=${LIBS_BINARY_DIR}/openssl)
+			else()
+				list(APPEND CURL_CONFIGURE --with-ssl)
+			endif()
+		else()
+			list(APPEND CURL_CONFIGURE --without-ssl)
+		endif()
+
+		ExternalProject_Add(
+			bundled_curl
+			DEPENDS bundled_wolfssl bundled_openssl
+			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/curl
+			CONFIGURE_COMMAND ${CURL_CONFIGURE}
 			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/curl
 			BUILD_COMMAND make
 			INSTALL_COMMAND make install
