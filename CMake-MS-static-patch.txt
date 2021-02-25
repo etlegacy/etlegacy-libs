@@ -1,5 +1,6 @@
 #MSVC patch
-if(MSVC)
+option(LEGACY_MSVC_STATIC "Build with static MSVC runtime" ON)
+if(MSVC AND LEGACY_MSVC_STATIC)
   message(STATUS "Patching MSVC build for static linking")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /EHsc /O2")
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /EHa /W3")

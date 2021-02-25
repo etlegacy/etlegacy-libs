@@ -31,6 +31,10 @@ foreach (_variableName ${_variableNames})
 	endif()
 endforeach()
 
+find_package(Patch REQUIRED)
+if(Patch_FOUND)
+	message("Patch found: ${Patch_EXECUTABLE}")
+endif()
 
 if(FEATURE_SSL AND BUNDLED_WOLFSSL)
 	message(STATUS "Configuring wolfSSL")
@@ -43,18 +47,18 @@ if(FEATURE_SSL AND BUNDLED_WOLFSSL)
 		set(WOLFSSL_BUNDLED_LIBRARY "${LIBS_BINARY_DIR}/wolfssl/lib/libwolfssl${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	endif()
 
+	set(WOLFSSL_PATCH_COMMAND "${Patch_EXECUTABLE}" "${LIBS_DOWNLOAD_SRC_DIR}/wolfssl/CMakeLists.txt" "${CMAKE_CURRENT_LIST_DIR}/patches/WolfSSL.patch")
+
 	if(MSVC)
-		set(WOLFSSL_PATCH_COMMAND "${CMAKE_CURRENT_LIST_DIR}/patcher.bat" "${LIBS_DOWNLOAD_SRC_DIR}/wolfssl/CMakeLists.txt")
 		set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} /DOPENSSL_ALL=1 /DOPENSSL_EXTRA=1 /DHAVE_OCSP=1 /DHAVE_CRL=1")
 	else()
-		set(WOLFSSL_PATCH_COMMAND "")
 		set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} -DOPENSSL_ALL=1 -DOPENSSL_EXTRA=1 -DHAVE_OCSP=1 -DHAVE_CRL=1")
 	endif()
 
 	ExternalProject_Add(bundled_wolfssl
 			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-			URL https://github.com/wolfSSL/wolfssl/archive/v4.6.0-stable.tar.gz
-			URL_HASH MD5=99f09fce6739a6dcb7554d2c2588e4c1
+			URL https://github.com/wolfSSL/wolfssl/archive/v4.7.0-stable.tar.gz
+			URL_HASH MD5=57f0b0d6963dc7fd40b6161ccab068f5
 			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/wolfssl"
 			PATCH_COMMAND ${WOLFSSL_PATCH_COMMAND}
 			BINARY_DIR ${LIBS_BINARY_DIR}/wolfssl
@@ -115,7 +119,8 @@ if(WIN32)
 			#URL_MD5 "76766e98997660138cdaf13a187bd234"
 			#GIT_REPOSITORY "https://github.com/openssl/openssl.git"
 			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-			URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1g.tar.gz
+			URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1j.tar.gz
+			URL_HASH MD5=2913df113ecd2a396a171d9234556ea1
 			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/openssl"
 			BUILD_IN_SOURCE 1
 			CONFIGURE_COMMAND ${OPENSSL_CONFIGURE}
@@ -183,11 +188,11 @@ if(WIN32)
 		ExternalProject_Add(bundled_curl
 			DEPENDS bundled_wolfssl bundled_openssl
 			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-			URL https://github.com/curl/curl/archive/curl-7_74_0.tar.gz
-			URL_HASH MD5=f9eb1ef3867584da7c8dc5f57ed4d95f
-			# SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/curl
+			URL https://github.com/curl/curl/archive/curl-7_75_0.tar.gz
+			URL_HASH MD5=0afe197dc28d2dbb5cc812776445e280
 			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
-			BINARY_DIR	${binary_dir}
+			# SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/curl
+			BINARY_DIR ${binary_dir}
 			BUILD_BYPRODUCTS ${CURL_BUNDLED_LIBRARY}
 			CMAKE_ARGS ${CURL_CMAKE_ARGS}
 			INSTALL_COMMAND  ""
@@ -398,7 +403,7 @@ elseif(UNIX)
 		else()
 			set(CROSS_COMPILE32_FLAGS CFLAGS=-m32 LDFLAGS=-m32)
 		endif()
-	else(CROSS_COMPILE32)
+	else()
 		# when we don't cross compile we have to enable position independant code '-fPIC' for all bundled libs
 		# see http://stackoverflow.com/questions/7216244/why-is-fpic-absolutely-necessary-on-64-and-not-on-32bit-platforms
 		# let's misuse CROSS_COMPILE32_FLAGS var (for 64bit) to set our flag. FIXME: rename to CROSS_COMPILE_OPTIONAL_FLAGS?
@@ -409,7 +414,7 @@ elseif(UNIX)
 		else()
 			set(CROSS_COMPILE32_FLAGS "CFLAGS=-fPIC")
 		endif()
-	endif(CROSS_COMPILE32)
+	endif()
 
 	if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 		# FIXME: check flags
@@ -419,32 +424,37 @@ elseif(UNIX)
 			else()
 				SET(OPENSSL_BUILD ./Configure linux-x86 ${CROSS_COMPILE32_FLAGS})
 			endif()
-		else(CROSS_COMPILE32)
+		else()
 			if(APPLE)
 				SET(OPENSSL_BUILD ./Configure darwin64-x86_64-cc ${CROSS_COMPILE32_FLAGS})
 			else()
 				#SET(OPENSSL_BUILD ./Configure linux-x86_64 ${CROSS_COMPILE32_FLAGS})
 				# better use ./config here?! (..and not the CROSS_COMPILE32_FLAGS?!)
-				SET(OPENSSL_BUILD ./Configure ${CROSS_COMPILE32_FLAGS})
+				SET(OPENSSL_BUILD ./Configure linux-x86_64)
 			endif()
 		endif()
+
+		set(OPENSSL_BUNDLED_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/libs/openssl/lib/libcrypto.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/openssl/lib/libssl.a")
 
 		# FIXME:
 		# check all the locations of the files (runtime files?!)
 		# and enable ssl in CURL
 		ExternalProject_Add(
 			bundled_openssl
-			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/openssl
+			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+			URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1j.tar.gz
+			URL_HASH MD5=2913df113ecd2a396a171d9234556ea1
+			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/openssl"
 			CONFIGURE_COMMAND ${OPENSSL_BUILD} --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/openssl
 			--openssldir=${CMAKE_CURRENT_BINARY_DIR}/libs/openssl
 			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/openssl
-			BUILD_COMMAND make
+			BUILD_COMMAND make ${CROSS_COMPILE32_FLAGS}
 			INSTALL_COMMAND make install
 			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${OPENSSL_BUNDLED_LIBRARY}
 		)
 
 		# also generates libcrypto.a
-		set(OPENSSL_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/openssl/lib/libssl.a")
 		set(OPENSSL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/openssl/include")
 	else()
 		add_custom_target(bundled_openssl)
@@ -459,7 +469,17 @@ elseif(UNIX)
 		# FIXME: add openssl lib to project
 		# set --with-ssl / remove --without-ssl
 
-		set(CURL_CONFIGURE ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/curl
+		if(APPLE)
+			if(CROSS_COMPILE32)
+				set(CURL_BUILD_APPEND CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -m32\ -DLUA_USE_MACOSX LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -m32)
+			else()
+				set(CURL_BUILD_APPEND CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -arch=x86_64\ -pipe\ -Os\ -gdwarf-2\ -fembed-bitcode)
+			endif()
+		else()
+			set(CURL_BUILD_APPEND "")
+		endif()
+
+		set(CURL_CONFIGURE autoreconf -iv && ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/curl
 			--enable-shared=no --enable-static=yes
 			--enable-http --enable-ftp --disable-file
 			--disable-ldap --disable-ldaps --disable-rtsp
@@ -468,13 +488,17 @@ elseif(UNIX)
 			--disable-smb --disable-smtp --disable-gopher
 			--without-libssh2 --without-nghttp2
 			--without-gssapi --with-zlib --without-brotli
-			--disable-ares --enable-threaded-resolver
-			--enable-ipv6 --enable-unix-sockets
-			--without-libidn2 --disable-manual
-			--disable-sspi --enable-libgcc
+			--enable-threaded-resolver --disable-sspi
+			--enable-ipv6 --without-libidn2
 			--without-libmetalink --without-libpsl
-			--without-librtmp ${CROSS_COMPILE32_FLAGS}
+			--without-librtmp --disable-manual
 		)
+
+		if(APPLE)
+			list(APPEND CURL_CONFIGURE --host=x86_64-apple-darwin ${CURL_BUILD_APPEND})
+		else()
+			list(APPEND CURL_CONFIGURE --enable-unix-sockets --enable-libgcc)
+		endif()
 
 		if(FEATURE_SSL)
 			if(BUNDLED_WOLFSSL)
@@ -491,10 +515,13 @@ elseif(UNIX)
 		ExternalProject_Add(
 			bundled_curl
 			DEPENDS bundled_wolfssl bundled_openssl
-			SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/curl
+			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+			URL https://github.com/curl/curl/archive/curl-7_75_0.tar.gz
+			URL_HASH MD5=0afe197dc28d2dbb5cc812776445e280
+			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
 			CONFIGURE_COMMAND ${CURL_CONFIGURE}
 			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/curl
-			BUILD_COMMAND make
+			BUILD_COMMAND make ${CURL_BUILD_APPEND}
 			INSTALL_COMMAND make install
 			BUILD_IN_SOURCE 1
 		)
@@ -650,9 +677,10 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 	endif()
 
 	ExternalProject_Add(bundled_sdl
-		SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
-		# DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-		# URL https://www.libsdl.org/release/SDL2-2.0.12.tar.gz
+		# SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
+		DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+		URL https://github.com/libsdl-org/SDL/archive/release-2.0.14.tar.gz
+		URL_HASH MD5=147b87f087cd8aa1c8a1b473280c40b7
 		BINARY_DIR	${LIBS_BINARY_DIR}/sdl2
 		BUILD_BYPRODUCTS ${SDL32_BUNDLED_LIBRARIES}
 		CMAKE_ARGS ${SDL_CMAKE_ARGS}
