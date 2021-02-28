@@ -434,7 +434,7 @@ elseif(UNIX)
 			endif()
 		endif()
 
-		set(OPENSSL_BUNDLED_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/libs/openssl/lib/libcrypto.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/openssl/lib/libssl.a")
+		set(OPENSSL_BUNDLED_LIBRARY "${LIBS_BINARY_DIR}/openssl/lib/libssl.a" "${LIBS_BINARY_DIR}/openssl/lib/libcrypto.a")
 
 		# FIXME:
 		# check all the locations of the files (runtime files?!)
@@ -446,8 +446,8 @@ elseif(UNIX)
 			URL_HASH MD5=2913df113ecd2a396a171d9234556ea1
 			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/openssl"
 			CONFIGURE_COMMAND ${OPENSSL_BUILD} --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/openssl
-			--openssldir=${CMAKE_CURRENT_BINARY_DIR}/libs/openssl
-			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/openssl
+			--openssldir=${LIBS_BINARY_DIR}/openssl
+			PREFIX ${LIBS_BINARY_DIR}/openssl
 			BUILD_COMMAND make ${CROSS_COMPILE32_FLAGS}
 			INSTALL_COMMAND make install
 			BUILD_IN_SOURCE 1
@@ -455,7 +455,7 @@ elseif(UNIX)
 		)
 
 		# also generates libcrypto.a
-		set(OPENSSL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/openssl/include")
+		set(OPENSSL_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/openssl/include")
 	else()
 		add_custom_target(bundled_openssl)
 		set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
@@ -479,7 +479,7 @@ elseif(UNIX)
 			set(CURL_BUILD_APPEND "")
 		endif()
 
-		set(CURL_CONFIGURE autoreconf -iv && ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/curl
+		set(CURL_CONFIGURE autoreconf -iv && ./configure --prefix=${LIBS_BINARY_DIR}/curl
 			--enable-shared=no --enable-static=yes
 			--enable-http --enable-ftp --disable-file
 			--disable-ldap --disable-ldaps --disable-rtsp
