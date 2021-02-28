@@ -31,12 +31,12 @@ foreach (_variableName ${_variableNames})
 	endif()
 endforeach()
 
-find_package(Patch REQUIRED)
-if(Patch_FOUND)
-	message("Patch found: ${Patch_EXECUTABLE}")
-endif()
-
 if(FEATURE_SSL AND BUNDLED_WOLFSSL)
+	find_package(Patch REQUIRED)
+	if(Patch_FOUND)
+		message("Patch found: ${Patch_EXECUTABLE}")
+	endif()
+
 	message(STATUS "Configuring wolfSSL")
 
 	if(VSTUDIO)
@@ -92,7 +92,7 @@ if(WIN32)
 		endif()
 
 		# FIXME: there is no findPerl cmake script in project?! (at least for *NIX)
-		FIND_PACKAGE(perl REQUIRED)
+		FIND_PACKAGE(Perl REQUIRED)
 		if(NOT PERL_FOUND)
 			message(FATAL_ERROR "Perl not found")
 		endif()
@@ -157,7 +157,7 @@ if(WIN32)
 				-DCURL_DISABLE_LDAP=1 -DCURL_DISABLE_LDAPS=1 -DCURL_DISABLE_TELNET=1 -DCURL_DISABLE_DICT=1
 				-DCURL_DISABLE_FILE=1 -DCURL_DISABLE_TFTP=1 -DCURL_DISABLE_RTSP=1 -DCURL_DISABLE_POP3=1
 				-DCURL_DISABLE_IMAP=1 -DCURL_DISABLE_SMTP=1 -DCURL_DISABLE_GOPHER=1 -DENABLE_UNIX_SOCKETS=1
-				-DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/curl)
+				-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/curl)
 
 		if(MSVC)
 			list(APPEND CURL_CMAKE_ARGS -DCURL_STATIC_CRT=1)
@@ -192,13 +192,13 @@ if(WIN32)
 			URL_HASH MD5=0afe197dc28d2dbb5cc812776445e280
 			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
 			# SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/curl
+			PREFIX ${LIBS_BINARY_DIR}/curl
 			BINARY_DIR ${binary_dir}
 			BUILD_BYPRODUCTS ${CURL_BUNDLED_LIBRARY}
 			CMAKE_ARGS ${CURL_CMAKE_ARGS}
-			INSTALL_COMMAND  ""
 		)
 
-		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/curl/include")
+		set(CURL_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/curl/include")
 
 		set_target_properties(bundled_curl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 	endif()
