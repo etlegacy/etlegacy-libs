@@ -112,7 +112,7 @@ if(WIN32)
 		set(OPENSSL_PREFIX "${LIBS_DOWNLOAD_SRC_DIR}/openssl/build")
 		set(OPENSSL_CONFIGURE "${PERL_EXECUTABLE}" Configure "${openssl_plat}" "--prefix=${OPENSSL_PREFIX}" "--openssldir=${OPENSSL_PREFIX}" no-shared no-unit-test -static)
 		set(OPENSSL_BUILD nmake)
-		set(OPENSSL_INSTALL nmake install)
+		set(OPENSSL_INSTALL nmake install_sw)
 		set(OPENSSL_BUNDLED_LIBRARY "${OPENSSL_PREFIX}/lib/libcrypto.lib" "${OPENSSL_PREFIX}/lib/libssl.lib")
 		ExternalProject_Add(bundled_openssl
 			# Use github archive instead of the one hosted on openssl.org because of CMake bug #13251
@@ -449,7 +449,7 @@ elseif(UNIX)
 			--openssldir=${LIBS_BINARY_DIR}/openssl
 			PREFIX ${LIBS_BINARY_DIR}/openssl
 			BUILD_COMMAND make ${CROSS_COMPILE32_FLAGS}
-			INSTALL_COMMAND make install
+			INSTALL_COMMAND make install_sw
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${OPENSSL_BUNDLED_LIBRARY}
 		)
