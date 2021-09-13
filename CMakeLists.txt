@@ -490,7 +490,7 @@ elseif(UNIX)
 			--enable-proxy --disable-dict --disable-telnet
 			--disable-tftp --disable-pop3 --disable-imap
 			--disable-smb --disable-smtp --disable-gopher
-			--without-libssh2 --without-nghttp2
+			--without-libssh2 --without-nghttp2 --without-zstd
 			--without-gssapi --with-zlib --without-brotli
 			--enable-threaded-resolver --disable-sspi
 			--enable-ipv6 --without-libidn2
