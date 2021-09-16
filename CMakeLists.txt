@@ -480,7 +480,11 @@ elseif(UNIX)
 				set(CURL_BUILD_APPEND CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -arch=x86_64\ -pipe\ -Os\ -gdwarf-2\ -fembed-bitcode)
 			endif()
 		else()
-			set(CURL_BUILD_APPEND "")
+			if(CROSS_COMPILE32)
+				set(CURL_BUILD_APPEND ${CROSS_COMPILE32_FLAGS})
+			else()
+				set(CURL_BUILD_APPEND "")
+			endif()
 		endif()
 
 		set(CURL_CONFIGURE autoreconf -iv && ./configure --prefix=${LIBS_BINARY_DIR}/curl
