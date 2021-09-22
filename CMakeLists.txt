@@ -524,8 +524,8 @@ elseif(UNIX)
 			bundled_curl
 			DEPENDS bundled_wolfssl bundled_openssl
 			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-			URL https://github.com/curl/curl/archive/curl-7_75_0.tar.gz
-			URL_HASH MD5=0afe197dc28d2dbb5cc812776445e280
+			URL https://github.com/curl/curl/archive/curl-7_79_1.tar.gz
+			URL_HASH MD5=7a6ac0611e8fc77aa8b49d6b4bbdbbdc
 			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
 			CONFIGURE_COMMAND ${CURL_CONFIGURE}
 			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/curl
