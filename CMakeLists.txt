@@ -188,8 +188,8 @@ if(WIN32)
 		ExternalProject_Add(bundled_curl
 			DEPENDS bundled_wolfssl bundled_openssl
 			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-			URL https://github.com/curl/curl/archive/curl-7_75_0.tar.gz
-			URL_HASH MD5=0afe197dc28d2dbb5cc812776445e280
+			URL https://github.com/curl/curl/archive/curl-7_79_1.tar.gz
+			URL_HASH MD5=7a6ac0611e8fc77aa8b49d6b4bbdbbdc
 			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
 			# SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/curl
 			PREFIX ${LIBS_BINARY_DIR}/curl
@@ -446,8 +446,8 @@ elseif(UNIX)
 		ExternalProject_Add(
 			bundled_openssl
 			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-			URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1j.tar.gz
-			URL_HASH MD5=2913df113ecd2a396a171d9234556ea1
+			URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1l.tar.gz
+			URL_HASH MD5=2ff02cd10f96671162df3efd60470cfe
 			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/openssl"
 			CONFIGURE_COMMAND ${OPENSSL_BUILD} --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/openssl
 			--openssldir=${LIBS_BINARY_DIR}/openssl
