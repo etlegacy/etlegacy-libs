@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libogg],[1.3.4],[ogg-dev@xiph.org])
+AC_INIT([libogg],[1.3.5],[ogg-dev@xiph.org])
 
 LT_INIT
 AC_CONFIG_MACRO_DIR([m4])
@@ -12,7 +12,7 @@ AM_MAINTAINER_MODE([enable])
 dnl Library versioning
 
 LIB_CURRENT=8
-LIB_REVISION=4
+LIB_REVISION=5
 LIB_AGE=8
 AC_SUBST(LIB_CURRENT)
 AC_SUBST(LIB_REVISION)
@@ -25,9 +25,9 @@ dnl Set some options based on environment
 
 cflags_save="$CFLAGS"
 if test -z "$GCC"; then
-        case $host in 
+        case $host in
         *-*-irix*)
-                DEBUG="-g -signed" 
+                DEBUG="-g -signed"
                 CFLAGS="-O2 -w -signed"
                 PROFILE="-p -g3 -O2 -signed"
 		;;
@@ -39,20 +39,20 @@ if test -z "$GCC"; then
         *)
                 DEBUG="-g"
                 CFLAGS="-O"
-                PROFILE="-g -p" 
+                PROFILE="-g -p"
 		;;
         esac
 else
-        case $host in 
+        case $host in
         *-*-linux*)
                 DEBUG="-g -Wall -fsigned-char"
-                CFLAGS="-O20 -Wall -ffast-math -fsigned-char"
-                PROFILE="-Wall -W -pg -g -O20 -ffast-math -fsigned-char"
+                CFLAGS="-O2 -Wall -ffast-math -fsigned-char"
+                PROFILE="-Wall -W -pg -g -O2 -ffast-math -fsigned-char"
 		;;
         sparc-sun-*)
                 DEBUG="-g -Wall -fsigned-char"
-                CFLAGS="-O20 -ffast-math -fsigned-char"
-                PROFILE="-pg -g -O20 -fsigned-char" 
+                CFLAGS="-O2 -ffast-math -fsigned-char"
+                PROFILE="-pg -g -O2 -fsigned-char"
 		;;
 	*-*-darwin*)
 		DEBUG="-fno-common -g -Wall -fsigned-char"
@@ -61,8 +61,8 @@ else
 		;;
         *)
                 DEBUG="-g -Wall -fsigned-char"
-                CFLAGS="-O20 -fsigned-char"
-                PROFILE="-O20 -g -pg -fsigned-char" 
+                CFLAGS="-O2 -fsigned-char"
+                PROFILE="-O2 -g -pg -fsigned-char"
 		;;
         esac
 fi

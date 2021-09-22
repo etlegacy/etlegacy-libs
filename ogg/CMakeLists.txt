@@ -16,7 +16,7 @@ endif()
 # Install options
 option(INSTALL_DOCS "Install documentation" ON)
 option(INSTALL_PKG_CONFIG_MODULE "Install ogg.pc file" ON)
-option(INSTALL_CMAKE_PACKAGE_MODULE "Install CMake package configiguration module" ON)
+option(INSTALL_CMAKE_PACKAGE_MODULE "Install CMake package configuration module" ON)
 
 # Extract project version from configure.ac
 file(READ configure.ac CONFIGURE_AC_CONTENTS)
@@ -91,6 +91,7 @@ if(BUILD_FRAMEWORK)
 endif()
 
 add_library(ogg ${OGG_HEADERS} ${OGG_SOURCES})
+add_library(Ogg::ogg ALIAS ogg)
 target_include_directories(ogg PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
@@ -126,6 +127,8 @@ install(TARGETS ogg
     FRAMEWORK DESTINATION ${CMAKE_INSTALL_PREFIX}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ogg
 )
+
+export(EXPORT OggTargets NAMESPACE Ogg:: FILE OggTargets.cmake)
 
 if(INSTALL_CMAKE_PACKAGE_MODULE)
     set(CMAKE_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/Ogg)
