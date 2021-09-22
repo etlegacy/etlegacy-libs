@@ -562,19 +562,11 @@ elseif(UNIX)
 		# MacOS X requires a different flag order to succeed,
 		# but io.popen support requires the initial order
 		if(NOT CMAKE_SYSTEM MATCHES "Darwin")
-			if(CROSS_COMPILE32)
-				add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
-					COMMAND make clean || true
-					COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
-					WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
-				)
-			else()
-				add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
-					COMMAND make clean || true
-					COMMAND make ${LUA_MAKE_TARGET}
-					WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
-				)
-			endif()
+			add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
+				COMMAND make clean || true
+				COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
+				WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
+			)
 		else()
 			if(CROSS_COMPILE32)
 				set(LUA_BUILD CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -m32\ -DLUA_USE_MACOSX LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -m32)
