@@ -57,8 +57,8 @@ if(FEATURE_SSL AND BUNDLED_WOLFSSL)
 
 	ExternalProject_Add(bundled_wolfssl
 			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-			URL https://github.com/wolfSSL/wolfssl/archive/v4.7.0-stable.tar.gz
-			URL_HASH MD5=57f0b0d6963dc7fd40b6161ccab068f5
+			URL https://github.com/wolfSSL/wolfssl/archive/v4.8.1-stable.tar.gz
+			URL_HASH MD5=f3b2b4fdfe2ad53fd38bcd2ba6c821d2
 			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/wolfssl"
 			PATCH_COMMAND ${WOLFSSL_PATCH_COMMAND}
 			BINARY_DIR ${LIBS_BINARY_DIR}/wolfssl
@@ -119,8 +119,8 @@ if(WIN32)
 			#URL_MD5 "76766e98997660138cdaf13a187bd234"
 			#GIT_REPOSITORY "https://github.com/openssl/openssl.git"
 			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-			URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1j.tar.gz
-			URL_HASH MD5=2913df113ecd2a396a171d9234556ea1
+			URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1l.tar.gz
+			URL_HASH MD5=2ff02cd10f96671162df3efd60470cfe
 			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/openssl"
 			BUILD_IN_SOURCE 1
 			CONFIGURE_COMMAND ${OPENSSL_CONFIGURE}
