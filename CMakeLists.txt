@@ -494,8 +494,8 @@ elseif(UNIX)
 			--without-gssapi --with-zlib --without-brotli
 			--enable-threaded-resolver --disable-sspi
 			--enable-ipv6 --without-libidn2
-			--without-libmetalink --without-libpsl
-			--without-librtmp --disable-manual
+			--without-libpsl --without-librtmp
+			--disable-manual
 		)
 
 		if(APPLE)
