@@ -689,17 +689,33 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 		set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DVIDEO_OPENGLES=${FEATURE_RENDERER_GLES} -DFORCE_STATIC_VCRT=ON)
 	endif()
 
-	ExternalProject_Add(bundled_sdl
-		# SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
-		DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-		SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/sdl2"
-		URL https://github.com/libsdl-org/SDL/archive/release-2.0.16.tar.gz
-		URL_HASH MD5=b52877e5e92d80a20a4be4c868aa1f18
-		BINARY_DIR	${LIBS_BINARY_DIR}/sdl2
-		BUILD_BYPRODUCTS ${SDL32_BUNDLED_LIBRARIES}
-		CMAKE_ARGS ${SDL_CMAKE_ARGS}
-		PREFIX ${LIBS_BINARY_DIR}/sdl2
-	)
+	# ship old version on windows due to focus bug
+	# see https://github.com/etlegacy/etlegacy/issues/1762
+	if(WIN32)
+		ExternalProject_Add(bundled_sdl
+			# SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
+			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/sdl2"
+			URL https://github.com/libsdl-org/SDL/archive/release-2.0.14.tar.gz
+			URL_HASH MD5=147b87f087cd8aa1c8a1b473280c40b7
+			BINARY_DIR	${LIBS_BINARY_DIR}/sdl2
+			BUILD_BYPRODUCTS ${SDL32_BUNDLED_LIBRARIES}
+			CMAKE_ARGS ${SDL_CMAKE_ARGS}
+			PREFIX ${LIBS_BINARY_DIR}/sdl2
+		)
+	else()
+		ExternalProject_Add(bundled_sdl
+			# SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
+			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/sdl2"
+			URL https://github.com/libsdl-org/SDL/archive/release-2.0.16.tar.gz
+			URL_HASH MD5=b52877e5e92d80a20a4be4c868aa1f18
+			BINARY_DIR	${LIBS_BINARY_DIR}/sdl2
+			BUILD_BYPRODUCTS ${SDL32_BUNDLED_LIBRARIES}
+			CMAKE_ARGS ${SDL_CMAKE_ARGS}
+			PREFIX ${LIBS_BINARY_DIR}/sdl2
+		)
+	endif()
 
 	#ExternalProject_Get_Property(bundled_sdl binary_dir)
 
