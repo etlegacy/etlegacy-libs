@@ -47,13 +47,13 @@ if(FEATURE_SSL AND BUNDLED_WOLFSSL)
         set(WOLFSSL_BUNDLED_LIBRARY "${LIBS_BINARY_DIR}/wolfssl/lib/libwolfssl${CMAKE_STATIC_LIBRARY_SUFFIX}")
     endif()
 
-    if(MSVC)
-        set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} /DOPENSSL_ALL=ON /DWOLFSSL_DES_ECB=ON /DHAVE_OCSP=ON /DHAVE_CRL=ON")
-    else()
-        set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} -DOPENSSL_ALL=ON -DWOLFSSL_DES_ECB=ON -DHAVE_OCSP=ON -DHAVE_CRL=ON")
-    endif()
-
     set(WOLFSSL_PATCH_COMMAND "${Patch_EXECUTABLE}" "${LIBS_DOWNLOAD_SRC_DIR}/wolfssl/CMakeLists.txt" "${CMAKE_CURRENT_LIST_DIR}/patches/WolfSSL.patch")
+
+    if(MSVC)
+        set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} /DOPENSSL_ALL=1 /DWOLFSSL_DES_ECB=1 /DHAVE_OCSP=1 /DHAVE_CRL=1")
+    else()
+        set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} -DOPENSSL_ALL=1 -DWOLFSSL_DES_ECB=1 -DHAVE_OCSP=1 -DHAVE_CRL=1")
+    endif()
 
     # FIXME: change lowercase 'yes/no' variables to 'ON/OFF' for uniformization once a new WolfSSL is released
     # see https://github.com/wolfSSL/wolfssl/issues/4426
@@ -530,7 +530,7 @@ elseif(UNIX)
                 URL https://github.com/curl/curl/archive/curl-7_80_0.tar.gz
                 URL_HASH MD5=d96c3324dd060474508312449105d835
                 SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
-                PATCH_COMMAND sed -i "s/LIBS=\"$addlib $LIBS\"/LIBS=\"$addlib -lm $LIBS\"/g" ${LIBS_DOWNLOAD_SRC_DIR}/curl/m4/curl-wolfssl.m4
+                PATCH_COMMAND sed -i -e "s/LIBS=\"$addlib $LIBS\"/LIBS=\"$addlib -lm $LIBS\"/g" ${LIBS_DOWNLOAD_SRC_DIR}/curl/m4/curl-wolfssl.m4
                 CONFIGURE_COMMAND ${CURL_CONFIGURE}
                 PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/curl
                 BUILD_COMMAND make ${CURL_BUILD_APPEND}
