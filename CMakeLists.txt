@@ -55,8 +55,6 @@ if(FEATURE_SSL AND BUNDLED_WOLFSSL)
         set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} -DOPENSSL_ALL=1 -DWOLFSSL_DES_ECB=1 -DHAVE_OCSP=1 -DHAVE_CRL=1")
     endif()
 
-    # FIXME: change lowercase 'yes/no' variables to 'ON/OFF' for uniformization once a new WolfSSL is released
-    # see https://github.com/wolfSSL/wolfssl/issues/4426
     ExternalProject_Add(bundled_wolfssl
             DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
             URL https://github.com/wolfSSL/wolfssl/archive/v5.0.0-stable.tar.gz
@@ -69,12 +67,12 @@ if(FEATURE_SSL AND BUNDLED_WOLFSSL)
             CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
             -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
             -DCMAKE_C_FLAGS=${WOLFSSL_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
-            -DWOLFSSL_EXAMPLES=no -DWOLFSSL_CRYPT_TESTS=no
-            -DWOLFSSL_OCSP=yes -DWOLFSSL_OPENSSLEXTRA=yes
-            -DWOLFSSL_FAST_MATH=no -DWOLFSSL_HARDEN=yes
-            -DWOLFSSL_OPENSSL_EXTRA=yes -DBUILD_PWDBASED=yes
-            -DWOLFSSL_PWDBASED=yes -DBUILD_CRL=yes
-            -DWOLFSSL_DES3=yes -DWOLFSSL_TLSX=yes
+            -DWOLFSSL_EXAMPLES=OFF -DWOLFSSL_CRYPT_TESTS=OFF
+            -DWOLFSSL_OCSP=ON -DWOLFSSL_OPENSSLEXTRA=ON
+            -DWOLFSSL_FAST_MATH=OFF -DWOLFSSL_HARDEN=ON
+            -DWOLFSSL_OPENSSL_EXTRA=ON -DBUILD_PWDBASED=ON
+            -DWOLFSSL_PWDBASED=ON -DBUILD_CRL=ON
+            -DWOLFSSL_DES3=ON -DWOLFSSL_TLSX=ON
             -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/wolfssl
             )
     set(WOLFSSL_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/wolfssl/include" "${LIBS_BINARY_DIR}/wolfssl/include/wolfssl")
