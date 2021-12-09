@@ -955,7 +955,9 @@ if(BUNDLED_THEORA AND BUILD_CLIENT)
     # This makes the MSVC build a happier camper
     LIST(REMOVE_ITEM THEORA_SRC ${CMAKE_CURRENT_LIST_DIR}/theora/lib/encoder_disabled.c)
 
-    if(ETL_X86 AND (ETL_32BITS OR ETL_64BITS))
+    # if we are building an universal package, this would need a lot more fiddling about to make it work correctly
+    if(ETL_X86 AND (ETL_32BITS OR ETL_64BITS) AND (ETL_ARCH_COUNT EQUAL 1))
+        set(USE_THEORA_ASM 1)
         message(STATUS "Enabling theora ASM")
         if(MSVC)
             set(THEORA_SRC_ASM_DIR ${THEORA_SRC_DIR}/x86_vc)
@@ -973,12 +975,13 @@ if(BUNDLED_THEORA AND BUILD_CLIENT)
         LIST(APPEND THEORA_SRC ${THEORA_ASM_SRC})
     else()
         message(STATUS "Disabling theora ASM")
+        set(USE_THEORA_ASM 0)
     endif()
 
     include_directories("${CMAKE_CURRENT_LIST_DIR}/theora/include")
     add_library(bundled_theora STATIC ${THEORA_SRC})
 
-    if (ETL_X86)
+    if (USE_THEORA_ASM)
         if (ETL_32BITS OR ETL_64BITS)
             target_compile_definitions(bundled_theora PUBLIC OC_X86_ASM)
         endif()
