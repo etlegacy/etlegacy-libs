@@ -12,6 +12,11 @@ set(LIBS_DOWNLOAD_SRC_DIR ${PROJECT_BINARY_DIR}/downloads/src)
 
 #CMAKE_DEBUG_POSTFIX
 
+if (APPLE)
+    # The list values need to escaped for the external projects (if we have more than one architecture set)
+    string(REPLACE ";" "$<SEMICOLON>" CMAKE_OSX_ARCHITECTURES_ "${CMAKE_OSX_ARCHITECTURES}")
+endif()
+
 # Force the BUNDLED_<name> to OFF if the FEATURE_<name> is OFF. No more unwanted stuff being built.
 get_cmake_property(_variableNames VARIABLES)
 list (SORT _variableNames)
@@ -67,6 +72,7 @@ if(FEATURE_SSL AND BUNDLED_WOLFSSL)
             CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
             -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
             -DCMAKE_C_FLAGS=${WOLFSSL_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
+            -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
             -DWOLFSSL_EXAMPLES=OFF -DWOLFSSL_CRYPT_TESTS=OFF
             -DWOLFSSL_OCSP=ON -DWOLFSSL_OPENSSLEXTRA=ON
             -DWOLFSSL_FAST_MATH=OFF -DWOLFSSL_HARDEN=ON
@@ -202,26 +208,6 @@ if(WIN32)
         set(CURL_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/curl/include")
 
         set_target_properties(bundled_curl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-    endif()
-
-    #-----------------------------------------------------------------
-    # Build bundled Lua library
-    #-----------------------------------------------------------------
-    if(BUNDLED_LUA AND BUILD_MOD)
-        set(LUA_LIB "${CMAKE_CURRENT_LIST_DIR}/lua/src")
-        FILE(GLOB LUA_LIB_SRC
-                ${LUA_LIB}/*.c
-                )
-
-        FILE(GLOB LUA_LIB_HEADERS
-                ${LUA_LIB}/*.h
-                )
-
-        add_library(bundled_lua STATIC ${LUA_LIB_SRC} ${LUA_LIB_HEADERS})
-
-        set_target_properties(bundled_lua PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-        set(LUA_BUNDLED_LIBRARIES bundled_lua)
-        set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
     endif()
 
     #-----------------------------------------------------------------
@@ -541,55 +527,9 @@ elseif(UNIX)
     endif()
 
     #-----------------------------------------------------------------
-    # Build bundled Lua library
-    #-----------------------------------------------------------------
-    # NOTE: the posix32bit target was added into the Lua Makefiles
-    if(BUNDLED_LUA AND BUILD_MOD)
-        if(CMAKE_SYSTEM MATCHES "OpenBSD*")
-            set(LUA_MAKE_TARGET "bsd")
-        elseif(CMAKE_SYSTEM MATCHES "Darwin")
-            set(LUA_MAKE_TARGET "macosx")
-        else()
-            if(NOT CROSS_COMPILE32)
-                set(LUA_MAKE_TARGET "posix")
-            else()
-                set(LUA_MAKE_TARGET "posix32bit")
-            endif()
-        endif()
-
-        # MacOS X requires a different flag order to succeed,
-        # but io.popen support requires the initial order
-        if(NOT CMAKE_SYSTEM MATCHES "Darwin")
-            add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
-                    COMMAND make clean || true
-                    COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
-                    )
-        else()
-            if(CROSS_COMPILE32)
-                set(LUA_BUILD CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -m32\ -DLUA_USE_MACOSX LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -m32)
-            else()
-                set(LUA_BUILD CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -DLUA_USE_MACOSX LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
-            endif()
-            add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
-                    COMMAND make clean || true
-                    COMMAND make ${LUA_MAKE_TARGET} ${LUA_BUILD}
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
-                    )
-        endif()
-
-        set(LUA_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a")
-        set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
-
-        add_custom_target(bundled_lua
-                DEPENDS ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
-                )
-    endif()
-
-    #-----------------------------------------------------------------
     # Build bundled OGG and Vorbis file library
     #-----------------------------------------------------------------
-    if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
+    if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT AND NOT APPLE)
 
         ExternalProject_Add(
                 bundled_ogg
@@ -658,6 +598,91 @@ elseif(UNIX)
 endif()
 
 #-----------------------------------------------------------------
+# Build bundled OGG and Vorbis file library
+#-----------------------------------------------------------------
+if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT AND APPLE)
+    set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    ExternalProject_Add(bundled_ogg
+            SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/ogg
+            BINARY_DIR	${LIBS_BINARY_DIR}/ogg
+            BUILD_BYPRODUCTS ${OGG_BUNDLED_LIBRARIES}
+            CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+            -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
+            -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
+            -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/ogg
+            )
+
+    set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/lib/libogg.a")
+    set(OGG_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/ogg/include")
+
+    set(VORBIS_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/vorbis/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    ExternalProject_Add(bundled_ogg_vorbis
+            DEPENDS bundled_ogg
+            SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/vorbis
+            BINARY_DIR	${LIBS_BINARY_DIR}/vorbis
+            BUILD_BYPRODUCTS ${VORBIS_BUNDLED_LIBRARIES}
+            CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+            -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
+            -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_} -DCMAKE_LIBRARY_PATH=${LIBS_BINARY_DIR}/ogg
+            -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/vorbis
+            )
+    add_custom_target(bundled_ogg_vorbis_file)
+    set(OGG_VORBIS_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
+    set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/vorbis/include")
+endif()
+
+#-----------------------------------------------------------------
+# Build bundled Lua library
+#-----------------------------------------------------------------
+if(BUNDLED_LUA AND BUILD_MOD)
+    if (WIN32 OR APPLE)
+        set(LUA_LIB "${CMAKE_CURRENT_LIST_DIR}/lua/src")
+        FILE(GLOB LUA_LIB_SRC ${LUA_LIB}/*.c)
+        FILE(GLOB LUA_LIB_HEADERS ${LUA_LIB}/*.h)
+
+        add_library(bundled_lua STATIC ${LUA_LIB_SRC} ${LUA_LIB_HEADERS})
+        set_target_properties(bundled_lua PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+
+        # In the lua makefiles APPLE and POSIX get LUA_USE_READLINE as well, disabling it here since no input is or should be used in the mod..
+        if (APPLE)
+            target_compile_definitions(bundled_lua PUBLIC LUA_USE_MACOSX)
+        elseif(WIN32)
+            target_compile_definitions(bundled_lua PUBLIC LUA_USE_WINDOWS)
+        elseif(CMAKE_SYSTEM MATCHES "OpenBSD*")
+            target_compile_definitions(bundled_lua PUBLIC LUA_USE_POSIX)
+        else()
+            target_compile_definitions(bundled_lua PUBLIC LUA_USE_POSIX PUBLIC LUA_USE_DLOPEN)
+        endif()
+
+        set(LUA_BUNDLED_LIBRARIES bundled_lua)
+        set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
+    else()
+        if(CMAKE_SYSTEM MATCHES "OpenBSD*")
+            set(LUA_MAKE_TARGET "bsd")
+        else()
+            if(NOT CROSS_COMPILE32)
+                set(LUA_MAKE_TARGET "posix")
+            else()
+                set(LUA_MAKE_TARGET "posix32bit")
+            endif()
+        endif()
+
+        add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
+                COMMAND make clean || true
+                COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
+                )
+
+        set(LUA_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a")
+        set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
+
+        add_custom_target(bundled_lua DEPENDS ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a)
+    endif()
+endif()
+
+#-----------------------------------------------------------------
 # Copy bundled SDL library to the etl.exe location
 #-----------------------------------------------------------------
 if(BUNDLED_SDL AND BUILD_CLIENT)
@@ -678,7 +703,7 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 
     # Bye bye X11
     if(APPLE)
-        set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DVIDEO_X11=OFF -DVIDEO_X11_XINPUT=OFF -DVIDEO_WAYLAND=OFF -DVIDEO_OPENGLES=OFF -DVIDEO_METAL=OFF -DVIDEO_COCOA=ON)
+        set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DVIDEO_X11=OFF -DVIDEO_X11_XINPUT=OFF -DVIDEO_WAYLAND=OFF -DVIDEO_OPENGLES=OFF -DVIDEO_METAL=OFF -DVIDEO_COCOA=ON -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_})
     elseif(UNIX AND NOT APPLE)
         # Wayland requires OpenglES support so that's why its enabled here.
         set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DVIDEO_X11=ON -DVIDEO_X11_XINPUT=ON -DVIDEO_WAYLAND=ON -DVIDEO_OPENGLES=ON)
@@ -844,7 +869,7 @@ if(BUNDLED_JPEG AND BUILD_CLIENT)
             -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DENABLE_SHARED=OFF -DENABLE_STATIC=ON -DREQUIRE_SIMD=OFF -DWITH_12BIT=OFF
             -DWITH_ARITH_DEC=ON -DWITH_ARITH_ENC=ON -DWITH_JAVA=OFF -DWITH_JPEG7=OFF -DWITH_JPEG8=ON
             -DWITH_MEM_SRCDST=ON -DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON
-            -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}" -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
             INSTALL_COMMAND  ""
             )
 
@@ -878,7 +903,7 @@ if(BUNDLED_PNG AND BUILD_CLIENT)
             CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
             -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
             -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_BUILD_ZLIB=ON -DZLIB_INCLUDE_DIR=${ZLIB_INCLUDE_DIR}
-            -DPNG_TESTS=OFF -DPNG_FRAMEWORK=OFF -DPNG_DEBUG=OFF -DPNG_HARDWARE_OPTIMIZATIONS=ON
+            -DPNG_TESTS=OFF -DPNG_FRAMEWORK=OFF -DPNG_DEBUG=OFF -DPNG_HARDWARE_OPTIMIZATIONS=ON -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
             INSTALL_COMMAND  ""
             )
 
@@ -905,12 +930,13 @@ if(BUNDLED_FREETYPE AND BUILD_CLIENT)
             SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/freetype
             BINARY_DIR	${binary_dir}
             BUILD_BYPRODUCTS ${BUNDLED_FREETYPE_LIBRARIES}
-            CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+            CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
             -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
             -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
             -DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=ON -DCMAKE_DISABLE_FIND_PACKAGE_BZip2=ON -DCMAKE_DISABLE_FIND_PACKAGE_PNG=ON
             -DCMAKE_DISABLE_FIND_PACKAGE_HarfBuzz=ON -DCMAKE_DISABLE_FIND_PACKAGE_BrotliDec=ON
             -DFT_WITH_ZLIB=OFF -DFT_WITH_BZIP2=OFF -DFT_WITH_PNG=OFF -DFT_WITH_HARFBUZZ=OFF -DFT_WITH_BROTLI=OFF -DDISABLE_FORCE_DEBUG_POSTFIX=ON
+            -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
             INSTALL_COMMAND  ""
             )
 
