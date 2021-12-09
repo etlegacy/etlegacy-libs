@@ -105,7 +105,7 @@ if(WIN32)
         endif()
 
         if(WIN32)
-            if(64BITS)
+            if(ETL_64BITS)
                 set(openssl_plat VC-WIN64)
                 # set(curl_plat x64)
             else()
@@ -934,33 +934,59 @@ endif()
 # Build bundled Theora library
 #-----------------------------------------------------------------
 if(BUNDLED_THEORA AND BUILD_CLIENT)
+    set(THEORA_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/theora/lib)
     FILE(GLOB THEORA_SRC
-            "${CMAKE_CURRENT_LIST_DIR}/theora/lib/*.c"
+            "${THEORA_SRC_DIR}/apiwrapper.c"
+            "${THEORA_SRC_DIR}/bitpack.c"
+            "${THEORA_SRC_DIR}/decapiwrapper.c"
+            "${THEORA_SRC_DIR}/decinfo.c"
+            "${THEORA_SRC_DIR}/decode.c"
+            "${THEORA_SRC_DIR}/dequant.c"
+            "${THEORA_SRC_DIR}/fragment.c"
+            "${THEORA_SRC_DIR}/huffdec.c"
+            "${THEORA_SRC_DIR}/idct.c"
+            "${THEORA_SRC_DIR}/info.c"
+            "${THEORA_SRC_DIR}/internal.c"
+            "${THEORA_SRC_DIR}/quant.c"
+            "${THEORA_SRC_DIR}/state.c"
             "${CMAKE_CURRENT_LIST_DIR}/theora/lib/*.h"
             )
 
     # This makes the MSVC build a happier camper
     LIST(REMOVE_ITEM THEORA_SRC ${CMAKE_CURRENT_LIST_DIR}/theora/lib/encoder_disabled.c)
 
-    if(32BITS)
-        add_definitions("-DOC_X86_ASM")
+    if(ETL_X86 AND (ETL_32BITS OR ETL_64BITS))
+        message(STATUS "Enabling theora ASM")
         if(MSVC)
-            FILE(GLOB THEORA_ASM_SRC
-                    "${CMAKE_CURRENT_LIST_DIR}/theora/lib/x86_vc/*.c"
-                    "${CMAKE_CURRENT_LIST_DIR}/theora/lib/x86_vc/*.h"
-                    )
+            set(THEORA_SRC_ASM_DIR ${THEORA_SRC_DIR}/x86_vc)
         else()
-            FILE(GLOB THEORA_ASM_SRC
-                    "${CMAKE_CURRENT_LIST_DIR}/theora/lib/x86/*.c"
-                    "${CMAKE_CURRENT_LIST_DIR}/theora/lib/x86/*.h"
-                    )
+            set(THEORA_SRC_ASM_DIR ${THEORA_SRC_DIR}/x86)
         endif()
+        FILE(GLOB THEORA_ASM_SRC
+                "${THEORA_SRC_ASM_DIR}/mmxidct.c"
+                "${THEORA_SRC_ASM_DIR}/mmxfrag.c"
+                "${THEORA_SRC_ASM_DIR}/mmxstate.c"
+                "${THEORA_SRC_ASM_DIR}/x86state.c"
+                "${THEORA_SRC_ASM_DIR}/*.h"
+                )
 
         LIST(APPEND THEORA_SRC ${THEORA_ASM_SRC})
+    else()
+        message(STATUS "Disabling theora ASM")
     endif()
 
     include_directories("${CMAKE_CURRENT_LIST_DIR}/theora/include")
     add_library(bundled_theora STATIC ${THEORA_SRC})
+
+    if (ETL_X86)
+        if (ETL_32BITS OR ETL_64BITS)
+            target_compile_definitions(bundled_theora PUBLIC OC_X86_ASM)
+        endif()
+
+        if(ETL_64BITS)
+            target_compile_definitions(bundled_theora PUBLIC OC_X86_64_ASM)
+        endif()
+    endif()
 
     set(THEORA_BUNDLED_LIBRARIES bundled_theora)
     set(THEORA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/theora/include")
