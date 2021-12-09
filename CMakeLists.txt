@@ -695,52 +695,36 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 
     set(SDL_CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}
             -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
-            -DRENDER_D3D=OFF -DSDL_RENDER=OFF
-            -DVIDEO_DUMMY=OFF -DVIDEO_OPENGL=ON -DVIDEO_VULKAN=OFF
-            -DVIDEO_KMSDRM=OFF
-            -DSDL_SHARED=OFF -DSNDIO=OFF -DHAVE_LIBC=ON
+            -DSDL_RENDER_D3D=OFF -DSDL_RENDER=OFF
+            -DSDL_VIDEO_DUMMY=OFF -DSDL_VIDEO_OPENGL=ON -DSDL_VIDEO_VULKAN=OFF
+            -DSDL_VIDEO_KMSDRM=OFF
+            -DSDL_SHARED=OFF -DSDL_SNDIO=OFF -DSDL_HAVE_LIBC=ON
             -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/sdl2)
 
     # Bye bye X11
     if(APPLE)
-        set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DVIDEO_X11=OFF -DVIDEO_X11_XINPUT=OFF -DVIDEO_WAYLAND=OFF -DVIDEO_OPENGLES=OFF -DVIDEO_METAL=OFF -DVIDEO_COCOA=ON -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_})
+        set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_VIDEO_X11=OFF -DSDL_VIDEO_X11_XINPUT=OFF -DSDL_VIDEO_WAYLAND=OFF -DSDL_VIDEO_OPENGLES=OFF -DSDL_VIDEO_METAL=OFF -DSDL_VIDEO_COCOA=ON -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_})
     elseif(UNIX AND NOT APPLE)
         # Wayland requires OpenglES support so that's why its enabled here.
-        set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DVIDEO_X11=ON -DVIDEO_X11_XINPUT=ON -DVIDEO_WAYLAND=ON -DVIDEO_OPENGLES=ON)
+        set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_VIDEO_X11=ON -DSDL_VIDEO_X11_XINPUT=ON -DSDL_VIDEO_WAYLAND=ON -DSDL_VIDEO_OPENGLES=ON)
     elseif(ARM)
         # Wayland requires OpenglES support so that's why its enabled here.
-        set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DVIDEO_X11=ON -DVIDEO_X11_XINPUT=OFF -DVIDEO_WAYLAND=ON -DVIDEO_OPENGLES=ON)
+        set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_VIDEO_X11=ON -DSDL_VIDEO_X11_XINPUT=OFF -DSDL_VIDEO_WAYLAND=ON -DSDL_VIDEO_OPENGLES=ON)
     elseif(WIN32)
-        set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DVIDEO_OPENGLES=${FEATURE_RENDERER_GLES} -DFORCE_STATIC_VCRT=ON)
+        set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_VIDEO_OPENGLES=${FEATURE_RENDERER_GLES} -DSDL_FORCE_STATIC_VCRT=ON)
     endif()
 
-    # ship old version on windows due to focus bug
-    # see https://github.com/etlegacy/etlegacy/issues/1762
-    if(WIN32)
-        ExternalProject_Add(bundled_sdl
-                # SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
-                DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-                SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/sdl2"
-                URL https://github.com/libsdl-org/SDL/archive/release-2.0.14.tar.gz
-                URL_HASH MD5=147b87f087cd8aa1c8a1b473280c40b7
-                BINARY_DIR	${LIBS_BINARY_DIR}/sdl2
-                BUILD_BYPRODUCTS ${SDL32_BUNDLED_LIBRARIES}
-                CMAKE_ARGS ${SDL_CMAKE_ARGS}
-                PREFIX ${LIBS_BINARY_DIR}/sdl2
-                )
-    else()
-        ExternalProject_Add(bundled_sdl
-                # SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
-                DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-                SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/sdl2"
-                URL https://github.com/libsdl-org/SDL/archive/release-2.0.16.tar.gz
-                URL_HASH MD5=b52877e5e92d80a20a4be4c868aa1f18
-                BINARY_DIR	${LIBS_BINARY_DIR}/sdl2
-                BUILD_BYPRODUCTS ${SDL32_BUNDLED_LIBRARIES}
-                CMAKE_ARGS ${SDL_CMAKE_ARGS}
-                PREFIX ${LIBS_BINARY_DIR}/sdl2
-                )
-    endif()
+    ExternalProject_Add(bundled_sdl
+            # SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
+            DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+            SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/sdl2"
+            URL https://github.com/libsdl-org/SDL/archive/release-2.0.18.tar.gz
+            URL_HASH MD5=647e2890385e5f13b9aeee2e27fa26e7
+            BINARY_DIR	${LIBS_BINARY_DIR}/sdl2
+            BUILD_BYPRODUCTS ${SDL32_BUNDLED_LIBRARIES}
+            CMAKE_ARGS ${SDL_CMAKE_ARGS}
+            PREFIX ${LIBS_BINARY_DIR}/sdl2
+            )
 
     #ExternalProject_Get_Property(bundled_sdl binary_dir)
 
