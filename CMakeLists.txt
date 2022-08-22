@@ -507,6 +507,8 @@ elseif(UNIX)
             list(APPEND CURL_CONFIGURE --without-ssl)
         endif()
 
+        set(CURL_BUNDLED_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/lib/libcurl.a")
+        set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/include")
         ExternalProject_Add(
                 bundled_curl
                 DEPENDS bundled_wolfssl bundled_openssl
@@ -515,15 +517,13 @@ elseif(UNIX)
                 URL_HASH MD5=d96c3324dd060474508312449105d835
                 SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
                 PATCH_COMMAND sed -i -e "s/LIBS=\"$addlib $LIBS\"/LIBS=\"$addlib -lm $LIBS\"/g" ${LIBS_DOWNLOAD_SRC_DIR}/curl/m4/curl-wolfssl.m4
+                BUILD_BYPRODUCTS ${CURL_BUNDLED_LIBRARY}
                 CONFIGURE_COMMAND ${CURL_CONFIGURE}
                 PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/curl
                 BUILD_COMMAND make ${CURL_BUILD_APPEND}
                 INSTALL_COMMAND make install
                 BUILD_IN_SOURCE 1
         )
-
-        set(CURL_BUNDLED_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/lib/libcurl.a")
-        set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/include")
     endif()
 
     #-----------------------------------------------------------------
@@ -553,11 +553,14 @@ elseif(UNIX)
         # the above set of CFLAGS and LDFLAGS don't trigger on some systems
         # ensure vorbis configure uses our bundled ogg see --with-ogg-includes & --with-ogg-libraries
 
+        set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
+        set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/include")
         ExternalProject_Add(
                 bundled_ogg_vorbis
                 DEPENDS bundled_ogg
                 SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/vorbis
                 #PATCH_COMMAND ./autogen.sh
+                BUILD_BYPRODUCTS ${OGG_VORBIS_BUNDLED_LIBRARIES} ${OGG_BUNDLED_LIBRARIES}
                 CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
                 --disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include
                 --with-ogg-libraries=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib ${CROSS_COMPILE32_FLAGS}
@@ -568,17 +571,18 @@ elseif(UNIX)
                 BUILD_IN_SOURCE 1
         )
         add_custom_target(bundled_ogg_vorbis_file)
-        set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
-        set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/include")
     endif()
 
     #-----------------------------------------------------------------
     # Build bundled OpenAL library
     #-----------------------------------------------------------------
     if(BUNDLED_OPENAL AND BUILD_CLIENT)
+        set(OPENAL_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/openal/libopenal.a")
+        set(OPENAL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/openal/include")
         ExternalProject_Add(bundled_openal
                 SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
                 BINARY_DIR	${LIBS_BINARY_DIR}/openal
+                BUILD_BYPRODUCTS ${OPENAL_BUNDLED_LIBRARIES}
                 CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
                 -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
                 -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal
@@ -589,9 +593,6 @@ elseif(UNIX)
                 )
 
         ExternalProject_Get_Property(bundled_openal binary_dir)
-
-        set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libopenal${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        set(OPENAL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/openal/include")
     elseif(BUNDLED_OPENAL_INCLUDE AND BUILD_CLIENT)
         include_directories(SYSTEM "${CMAKE_CURRENT_LIST_DIR}/openal/include")
     endif()
