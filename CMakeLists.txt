@@ -720,8 +720,8 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
             # SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
             DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
             SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/sdl2"
-            URL https://github.com/libsdl-org/SDL/archive/release-2.0.20.tar.gz
-            URL_HASH MD5=2f06d08510f816f825f9bebb395bd419
+            URL https://github.com/libsdl-org/SDL/archive/release-2.24.1.tar.gz
+            URL_HASH MD5=7c8999f150237df50b9d5ca158a40c56
             BINARY_DIR	${LIBS_BINARY_DIR}/sdl2
             BUILD_BYPRODUCTS ${SDL32_BUNDLED_LIBRARIES}
             CMAKE_ARGS ${SDL_CMAKE_ARGS}
