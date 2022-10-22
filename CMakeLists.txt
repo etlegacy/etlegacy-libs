@@ -210,38 +210,6 @@ if(WIN32)
         set_target_properties(bundled_curl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
     endif()
 
-    #-----------------------------------------------------------------
-    # Build bundled OpenAL library
-    #-----------------------------------------------------------------
-    if(BUNDLED_OPENAL AND BUILD_CLIENT)
-        set(binary_dir "${LIBS_BINARY_DIR}/openal")
-        if(VSTUDIO)
-            set(OPENAL_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        elseif(VS_BUILD)
-            set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        else()
-            set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libOpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        endif()
-
-        ExternalProject_Add(bundled_openal
-                SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
-                BINARY_DIR	${binary_dir}
-                BUILD_BYPRODUCTS ${OPENAL_BUNDLED_LIBRARIES}
-                CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-                -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal
-                -DLIBTYPE=STATIC -DFORCE_STATIC_VCRT=ON
-                -DALSOFT_UTILS=OFF -DALSOFT_NO_CONFIG_UTIL=ON -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF
-                -DALSOFT_CONFIG=OFF -DALSOFT_HRTF_DEFS=OFF -DALSOFT_AMBDEC_PRESETS=OFF
-                INSTALL_COMMAND  ""
-                )
-
-        #ExternalProject_Get_Property(bundled_openal binary_dir)
-
-        set(OPENAL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/openal/include")
-        set_target_properties(bundled_openal PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-    endif()
-
 elseif(UNIX)
 
     if(CROSS_COMPILE32)
@@ -385,13 +353,43 @@ elseif(UNIX)
                 BUILD_IN_SOURCE 1
         )
     endif()
+endif()
 
-    #-----------------------------------------------------------------
-    # Build bundled OpenAL library
-    #-----------------------------------------------------------------
-    if(BUNDLED_OPENAL AND BUILD_CLIENT)
+#-----------------------------------------------------------------
+# Build bundled OpenAL library
+#-----------------------------------------------------------------
+if(BUNDLED_OPENAL AND BUILD_CLIENT)
+    add_library(bundled_openal_int INTERFACE)
+
+    if (WIN)
+        set(binary_dir "${LIBS_BINARY_DIR}/openal")
+        if(VSTUDIO)
+            set(OPENAL_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
+        elseif(VS_BUILD)
+            set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
+        else()
+            set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libOpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
+        endif()
+
+        ExternalProject_Add(bundled_openal
+                SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
+                BINARY_DIR	${binary_dir}
+                BUILD_BYPRODUCTS ${OPENAL_BUNDLED_LIBRARIES}
+                CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+                -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal
+                -DLIBTYPE=STATIC -DFORCE_STATIC_VCRT=ON
+                -DALSOFT_UTILS=OFF -DALSOFT_NO_CONFIG_UTIL=ON -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF
+                -DALSOFT_CONFIG=OFF -DALSOFT_HRTF_DEFS=OFF -DALSOFT_AMBDEC_PRESETS=OFF
+                INSTALL_COMMAND  ""
+        )
+        set_target_properties(bundled_openal PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+
+        target_link_directories(bundled_openal_int INTERFACE ${OPENAL_BUNDLED_LIBRARIES})
+        target_include_directories(bundled_openal_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/openal/include")
+        target_compile_definitions(bundled_openal_int INTERFACE AL_LIBTYPE_STATIC)
+    elseif(UNIX)
         set(OPENAL_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/openal/libopenal.a")
-        set(OPENAL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/openal/include")
         ExternalProject_Add(bundled_openal
                 SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
                 BINARY_DIR	${LIBS_BINARY_DIR}/openal
@@ -403,12 +401,17 @@ elseif(UNIX)
                 -DALSOFT_UTILS=OFF -DALSOFT_NO_CONFIG_UTIL=ON -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF
                 -DALSOFT_CONFIG=OFF -DALSOFT_HRTF_DEFS=OFF -DALSOFT_AMBDEC_PRESETS=OFF -DALSOFT_BACKEND_SNDIO=OFF
                 INSTALL_COMMAND  ""
-                )
+        )
 
         ExternalProject_Get_Property(bundled_openal binary_dir)
+
+        target_link_directories(bundled_openal_int INTERFACE ${OPENAL_BUNDLED_LIBRARIES})
+        target_include_directories(bundled_openal_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/openal/include")
+        target_compile_definitions(bundled_openal_int INTERFACE AL_LIBTYPE_STATIC)
     elseif(BUNDLED_OPENAL_INCLUDE AND BUILD_CLIENT)
-        include_directories(SYSTEM "${CMAKE_CURRENT_LIST_DIR}/openal/include")
+        target_include_directories(bundled_openal_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/openal/include")
     endif()
+
 endif()
 
 #-----------------------------------------------------------------
@@ -681,7 +684,7 @@ if(BUNDLED_LUA AND BUILD_MOD)
                 COMMAND make clean || true
                 COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
                 WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
-                )
+        )
 
         set(LUA_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a")
         set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
