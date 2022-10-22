@@ -15,7 +15,6 @@ if(MINGW OR UNIX)
 endif()
 
 set(GLEW_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR})
-include_directories( ${GLEW_SOURCE_DIR}/include)
 source_group(API FILES ${API})
 
 FILE(GLOB GLEW_FILES
@@ -24,11 +23,9 @@ FILE(GLOB GLEW_FILES
 )
 
 add_library(bundled_glew STATIC ${GLEW_FILES})
-set_target_properties(bundled_glew PROPERTIES
-	LINKER_LANGUAGE C
-	COMPILE_DEFINITIONS "GLEW_STATIC"
-	#ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-)
+target_include_directories(bundled_glew PUBLIC ${GLEW_SOURCE_DIR}/include)
+target_compile_definitions(bundled_glew PUBLIC GLEW_STATIC)
+set_target_properties(bundled_glew PROPERTIES LINKER_LANGUAGE C)
 
 #install(TARGETS glew
 #	LIBRARY DESTINATION "${GLEW_SOURCE_DIR}/lib/"

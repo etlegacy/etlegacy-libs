@@ -694,6 +694,8 @@ endif()
 # Copy bundled SDL library to the etl.exe location
 #-----------------------------------------------------------------
 if(BUNDLED_SDL AND BUILD_CLIENT)
+    add_library(bundled_sdl_int INTERFACE)
+
     if(CMAKE_SYSTEM MATCHES "Darwin" OR WIN32)
         set(SDL32_BUNDLED_LIBRARIES optimized "${LIBS_BINARY_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2main${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARY_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2maind${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		if(MSVC)
@@ -736,12 +738,12 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
             BUILD_BYPRODUCTS ${SDL32_BUNDLED_LIBRARIES}
             CMAKE_ARGS ${SDL_CMAKE_ARGS}
             PREFIX ${LIBS_BINARY_DIR}/sdl2
-            )
-
-    #ExternalProject_Get_Property(bundled_sdl binary_dir)
-
-    set(SDL32_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/sdl2/include")
+    )
     set_target_properties(bundled_sdl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+
+    add_dependencies(bundled_sdl_int bundled_sdl)
+    target_link_libraries(bundled_sdl_int INTERFACE ${SDL32_BUNDLED_LIBRARIES})
+    target_include_directories(bundled_sdl_int INTERFACE "${LIBS_BINARY_DIR}/sdl2/include")
 endif()
 
 #-----------------------------------------------------------------
@@ -777,8 +779,7 @@ if(BUNDLED_ZLIB AND (BUILD_CLIENT OR BUILD_SERVER))
             )
 
     add_library(bundled_zlib STATIC ${ZLIB_LIB_SRC} ${ZLIB_LIB_HEADERS})
-    set(ZLIB_BUNDLED_LIBRARIES bundled_zlib)
-    set(ZLIB_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/zlib")
+    target_include_directories(bundled_zlib PUBLIC "${CMAKE_CURRENT_LIST_DIR}/zlib")
     set_target_properties(bundled_zlib PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
@@ -800,11 +801,10 @@ if(BUNDLED_MINIZIP AND (BUILD_CLIENT OR BUILD_SERVER))
             )
 
     add_library(bundled_minizip STATIC ${MINIZIP_LIB_SRC} ${MINIZIP_LIB_HEADERS})
+    target_include_directories(bundled_minizip PUBLIC "${CMAKE_CURRENT_LIST_DIR}/minizip")
     if(BUNDLED_ZLIB)
         target_link_libraries(bundled_minizip bundled_zlib)
     endif(BUNDLED_ZLIB)
-    set(MINIZIP_BUNDLED_LIBRARIES bundled_minizip)
-    set(MINIZIP_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/minizip")
     set_target_properties(bundled_minizip PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
@@ -832,6 +832,8 @@ endif()
 # Build bundled JPEG library
 #-----------------------------------------------------------------
 if(BUNDLED_JPEG AND BUILD_CLIENT)
+    add_library(bundled_jpeg_int INTERFACE)
+
     check_include_file(stddef.h HAVE_STDDEF_H)
     check_include_file(stdlib.h HAVE_STDLIB_H)
 
@@ -867,18 +869,20 @@ if(BUNDLED_JPEG AND BUILD_CLIENT)
             -DWITH_MEM_SRCDST=ON -DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON
             -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}" -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
             INSTALL_COMMAND  ""
-            )
-
-    #ExternalProject_Get_Property(bundled_jpeg binary_dir)
-
-    set(JPEG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
+    )
     set_target_properties(bundled_jpeg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+
+    add_dependencies(bundled_jpeg_int bundled_jpeg)
+    target_include_directories(bundled_jpeg_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
+    target_link_libraries(bundled_jpeg_int INTERFACE ${JPEG_BUNDLED_LIBRARIES})
 endif()
 
 #-----------------------------------------------------------------
 # Build bundled PNG library
 #-----------------------------------------------------------------
 if(BUNDLED_PNG AND BUILD_CLIENT)
+    add_library(bundled_png_int INTERFACE)
+
     set(binary_dir "${LIBS_BINARY_DIR}/libpng")
     if(VSTUDIO)
         set(PNG_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
@@ -908,18 +912,20 @@ if(BUNDLED_PNG AND BUILD_CLIENT)
             -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_BUILD_ZLIB=ON -DZLIB_INCLUDE_DIR=${ZLIB_INCLUDE_DIR}
             -DPNG_TESTS=OFF -DPNG_FRAMEWORK=OFF -DPNG_DEBUG=OFF -DPNG_HARDWARE_OPTIMIZATIONS=${PNG_OPTIMIZATION} -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
             INSTALL_COMMAND  ""
-            )
-
-    #ExternalProject_Get_Property(bundled_png binary_dir)
-
-    set(PNG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/libpng/include")
+    )
     set_target_properties(bundled_png PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+
+    add_dependencies(bundled_png_int bundled_png)
+    target_include_directories(bundled_png_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/libpng/include")
+    target_link_libraries(bundled_png_int INTERFACE ${PNG_BUNDLED_LIBRARIES})
 endif()
 
 #-----------------------------------------------------------------
 # Build bundled Freetype library
 #-----------------------------------------------------------------
 if(BUNDLED_FREETYPE AND BUILD_CLIENT)
+    add_library(bundled_freetype_int INTERFACE)
+
     set(binary_dir "${LIBS_BINARY_DIR}/freetype")
     if(VSTUDIO)
         set(BUNDLED_FREETYPE_LIBRARIES optimized "${binary_dir}/Release/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
@@ -941,12 +947,12 @@ if(BUNDLED_FREETYPE AND BUILD_CLIENT)
             -DFT_WITH_ZLIB=OFF -DFT_WITH_BZIP2=OFF -DFT_WITH_PNG=OFF -DFT_WITH_HARFBUZZ=OFF -DFT_WITH_BROTLI=OFF -DDISABLE_FORCE_DEBUG_POSTFIX=ON
             -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
             INSTALL_COMMAND  ""
-            )
-
-    # ExternalProject_Get_Property(bundled_freetype binary_dir)
-
-    set(BUNDLED_FREETYPE_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/freetype/include")
+    )
     set_target_properties(bundled_freetype PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+
+    add_dependencies(bundled_freetype_int bundled_freetype)
+    target_include_directories(bundled_freetype_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/freetype/include")
+    target_link_libraries(bundled_freetype_int INTERFACE ${BUNDLED_FREETYPE_LIBRARIES})
 endif()
 
 #-----------------------------------------------------------------
