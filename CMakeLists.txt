@@ -211,146 +211,6 @@ if(WIN32)
     endif()
 
     #-----------------------------------------------------------------
-    # Build bundled OGG and Vorbis file library
-    #-----------------------------------------------------------------
-    if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
-        # OGG
-        SET(OPATH "${CMAKE_CURRENT_LIST_DIR}/ogg")
-
-        SET(OGG_SRC ${OPATH}/src/bitwise.c ${OPATH}/src/framing.c)
-        SET(OGG_HEADERS ${OPATH}/include/ogg/ogg.h ${OPATH}/include/ogg/os_types.h)
-
-        INCLUDE_DIRECTORIES("${OPATH}/include")
-
-        IF(MSVC)
-            #ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
-            LIST(APPEND OGG_SRC ${OPATH}/win32/ogg.def)
-        ENDIF(MSVC)
-
-        IF("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-            # libogg expects configure to be called on linux to
-            # generate config_types.h
-            LIST(APPEND OGG_HEADERS ${OPATH}/include/ogg/config_types.h)
-            add_custom_command(OUTPUT ${OPATH}/include/ogg/config_types.h
-                    COMMAND ${OPATH}/configure
-                    DEPENDS ${OPATH}/include/ogg/ogg.h  # Hopefully if the libogg version changes, so does this file
-                    # so configure_types.h will be regenerated.
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    )
-        ENDIF()
-
-        add_library(bundled_ogg STATIC ${OGG_SRC} ${OGG_HEADERS})
-
-        SET(VPATH "${CMAKE_CURRENT_LIST_DIR}/vorbis")
-
-        SET(VORBIS_SRC
-                ${VPATH}/lib/analysis.c
-                ${VPATH}/lib/bitrate.c
-                ${VPATH}/lib/block.c
-                ${VPATH}/lib/codebook.c
-                ${VPATH}/lib/envelope.c
-                ${VPATH}/lib/floor0.c
-                ${VPATH}/lib/floor1.c
-                ${VPATH}/lib/info.c
-                ${VPATH}/lib/lookup.c
-                ${VPATH}/lib/lpc.c
-                ${VPATH}/lib/lsp.c
-                ${VPATH}/lib/mapping0.c
-                ${VPATH}/lib/mdct.c
-                ${VPATH}/lib/psy.c
-                ${VPATH}/lib/registry.c
-                ${VPATH}/lib/res0.c
-                ${VPATH}/lib/sharedbook.c
-                ${VPATH}/lib/smallft.c
-                ${VPATH}/lib/synthesis.c
-                ${VPATH}/lib/vorbisenc.c
-                ${VPATH}/lib/window.c
-                )
-
-        SET(VORBIS_HEADERS
-                ${VPATH}/lib/backends.h
-                ${VPATH}/lib/bitrate.h
-                ${VPATH}/lib/codebook.h
-                ${VPATH}/lib/codec_internal.h
-                ${VPATH}/lib/envelope.h
-                ${VPATH}/lib/modes/floor_all.h
-                ${VPATH}/lib/books/floor/floor_books.h
-                ${VPATH}/lib/highlevel.h
-                ${VPATH}/lib/lookup.h
-                ${VPATH}/lib/lookup_data.h
-                ${VPATH}/lib/lpc.h
-                ${VPATH}/lib/lsp.h
-                ${VPATH}/lib/masking.h
-                ${VPATH}/lib/mdct.h
-                ${VPATH}/lib/misc.h
-                ${VPATH}/lib/os.h
-                ${VPATH}/lib/psy.h
-                ${VPATH}/lib/modes/psych_11.h
-                ${VPATH}/lib/modes/psych_16.h
-                ${VPATH}/lib/modes/psych_44.h
-                ${VPATH}/lib/modes/psych_8.h
-                ${VPATH}/lib/registry.h
-                ${VPATH}/lib/books/coupled/res_books_stereo.h
-                ${VPATH}/lib/books/uncoupled/res_books_uncoupled.h
-                ${VPATH}/lib/modes/residue_16.h
-                ${VPATH}/lib/modes/residue_44.h
-                ${VPATH}/lib/modes/residue_44u.h
-                ${VPATH}/lib/modes/residue_8.h
-                ${VPATH}/lib/scales.h
-                ${VPATH}/lib/modes/setup_11.h
-                ${VPATH}/lib/modes/setup_16.h
-                ${VPATH}/lib/modes/setup_22.h
-                ${VPATH}/lib/modes/setup_32.h
-                ${VPATH}/lib/modes/setup_44.h
-                ${VPATH}/lib/modes/setup_44u.h
-                ${VPATH}/lib/modes/setup_8.h
-                ${VPATH}/lib/modes/setup_X.h
-                ${VPATH}/lib/smallft.h
-                ${VPATH}/lib/window.h
-                )
-
-        SET(VORBIS_PUB_HEADERS
-                ${VPATH}/include/vorbis/codec.h
-                ${VPATH}/include/vorbis/vorbisenc.h
-                ${VPATH}/include/vorbis/vorbisfile.h
-                )
-
-        INCLUDE_DIRECTORIES("${VPATH}/include" "${VPATH}/lib")
-
-        IF(MSVC)
-            #ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
-            LIST(APPEND VORBIS_SRC ${VPATH}/win32/vorbis.def)
-        ENDIF(MSVC)
-
-        add_library(bundled_ogg_vorbis STATIC ${VORBIS_SRC} ${VORBIS_HEADERS} ${VORBIS_PUB_HEADERS})
-        target_link_libraries(bundled_ogg_vorbis bundled_ogg)
-        add_library(bundled_ogg_vorbis_file STATIC ${VPATH}/lib/vorbisfile.c ${VPATH}/include/vorbis/vorbisfile.h)
-        target_link_libraries(bundled_ogg_vorbis_file bundled_ogg bundled_ogg_vorbis)
-
-        if(MSVC)
-            set(VORB_UNI "_UNICODE;UNICODE")
-            set_target_properties(bundled_ogg PROPERTIES
-                    COMPILE_DEFINITIONS "${VORB_UNI}"
-                    )
-            set_target_properties(bundled_ogg_vorbis PROPERTIES
-                    COMPILE_DEFINITIONS "${VORB_UNI}"
-                    )
-            set_target_properties(bundled_ogg_vorbis_file PROPERTIES
-                    COMPILE_DEFINITIONS "${VORB_UNI}"
-                    )
-        endif(MSVC)
-
-        set_target_properties(bundled_ogg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-        set_target_properties(bundled_ogg_vorbis PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-        set_target_properties(bundled_ogg_vorbis_file PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-
-        set(OGG_BUNDLED_LIBRARIES bundled_ogg)
-        set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/ogg/include")
-        set(OGG_VORBIS_BUNDLED_LIBRARIES bundled_ogg_vorbis bundled_ogg_vorbis_file)
-        set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/vorbis/include")
-    endif()
-
-    #-----------------------------------------------------------------
     # Build bundled OpenAL library
     #-----------------------------------------------------------------
     if(BUNDLED_OPENAL AND BUILD_CLIENT)
@@ -527,53 +387,6 @@ elseif(UNIX)
     endif()
 
     #-----------------------------------------------------------------
-    # Build bundled OGG and Vorbis file library
-    #-----------------------------------------------------------------
-    if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT AND NOT APPLE)
-
-        ExternalProject_Add(
-                bundled_ogg
-                SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/ogg
-                PATCH_COMMAND autoreconf -fiv
-                CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg ${CROSS_COMPILE32_FLAGS}
-                --enable-silent-rules --disable-dependency-tracking --enable-shared=no
-                PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/ogg
-                BUILD_COMMAND make
-                INSTALL_COMMAND make install
-                BUILD_IN_SOURCE 1
-        )
-
-        set(OGG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib/libogg.a")
-        set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
-
-        # OGG Vorbis File
-        set(CFLAGS "${CFLAGS} -I${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
-        set(LDFLAGS "${LDFLAGS} -L${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib")
-
-        # the above set of CFLAGS and LDFLAGS don't trigger on some systems
-        # ensure vorbis configure uses our bundled ogg see --with-ogg-includes & --with-ogg-libraries
-
-        set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
-        set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/include")
-        ExternalProject_Add(
-                bundled_ogg_vorbis
-                DEPENDS bundled_ogg
-                SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/vorbis
-                #PATCH_COMMAND ./autogen.sh
-                BUILD_BYPRODUCTS ${OGG_VORBIS_BUNDLED_LIBRARIES} ${OGG_BUNDLED_LIBRARIES}
-                CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
-                --disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include
-                --with-ogg-libraries=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib ${CROSS_COMPILE32_FLAGS}
-                --disable-dependency-tracking --enable-silent-rules --enable-shared=no
-                PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
-                BUILD_COMMAND make
-                INSTALL_COMMAND make install
-                BUILD_IN_SOURCE 1
-        )
-        add_custom_target(bundled_ogg_vorbis_file)
-    endif()
-
-    #-----------------------------------------------------------------
     # Build bundled OpenAL library
     #-----------------------------------------------------------------
     if(BUNDLED_OPENAL AND BUILD_CLIENT)
@@ -602,37 +415,230 @@ endif()
 # Build bundled OGG and Vorbis file library
 #-----------------------------------------------------------------
 if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT AND APPLE)
-    set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    ExternalProject_Add(bundled_ogg
-            SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/ogg
-            BINARY_DIR	${LIBS_BINARY_DIR}/ogg
-            BUILD_BYPRODUCTS ${OGG_BUNDLED_LIBRARIES}
-            CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-            -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
-            -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
-            -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/ogg
-            )
+    add_library(bundled_ogg_full INTERFACE)
 
-    set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/lib/libogg.a")
-    set(OGG_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/ogg/include")
+    if (APPLE)
+        set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}" INTERNAL)
+        ExternalProject_Add(bundled_ogg
+                SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/ogg
+                BINARY_DIR	${LIBS_BINARY_DIR}/ogg
+                BUILD_BYPRODUCTS ${OGG_BUNDLED_LIBRARIES}
+                CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+                -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
+                -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
+                -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/ogg
+                )
 
-    set(VORBIS_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/vorbis/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    ExternalProject_Add(bundled_ogg_vorbis
-            DEPENDS bundled_ogg
-            SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/vorbis
-            BINARY_DIR	${LIBS_BINARY_DIR}/vorbis
-            BUILD_BYPRODUCTS ${VORBIS_BUNDLED_LIBRARIES}
-            CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-            -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
-            -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_} -DCMAKE_LIBRARY_PATH=${LIBS_BINARY_DIR}/ogg
-            -DOGG_ROOT=${LIBS_BINARY_DIR}/ogg
-            -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/vorbis
+        set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/lib/libogg.a" INTERNAL)
+        set(OGG_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/ogg/include" INTERNAL)
+
+        add_dependencies(bundled_ogg_full bundled_ogg)
+        target_include_directories(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/ogg/include")
+        target_link_libraries(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/ogg/lib/libogg.a")
+
+        set(VORBIS_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/vorbis/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}" INTERNAL)
+        ExternalProject_Add(bundled_ogg_vorbis
+                DEPENDS bundled_ogg
+                SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/vorbis
+                BINARY_DIR	${LIBS_BINARY_DIR}/vorbis
+                BUILD_BYPRODUCTS ${VORBIS_BUNDLED_LIBRARIES}
+                CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+                -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
+                -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_} -DCMAKE_LIBRARY_PATH=${LIBS_BINARY_DIR}/ogg
+                -DOGG_ROOT=${LIBS_BINARY_DIR}/ogg
+                -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/vorbis
+        )
+
+        add_dependencies(bundled_ogg_full bundled_ogg_vorbis)
+        target_include_directories(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/vorbis/include")
+        target_link_libraries(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
+    elseif(WINDOWS)
+        # OGG
+        set(OPATH "${CMAKE_CURRENT_LIST_DIR}/ogg")
+
+        set(OGG_SRC ${OPATH}/src/bitwise.c ${OPATH}/src/framing.c)
+        set(OGG_HEADERS ${OPATH}/include/ogg/ogg.h ${OPATH}/include/ogg/os_types.h)
+
+        if(MSVC)
+            #ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
+            LIST(APPEND OGG_SRC ${OPATH}/win32/ogg.def)
+        endif()
+
+        if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+            # libogg expects configure to be called on linux to
+            # generate config_types.h
+            list(APPEND OGG_HEADERS ${OPATH}/include/ogg/config_types.h)
+            add_custom_command(OUTPUT ${OPATH}/include/ogg/config_types.h
+                    COMMAND ${OPATH}/configure
+                    DEPENDS ${OPATH}/include/ogg/ogg.h  # Hopefully if the libogg version changes, so does this file
+                    # so configure_types.h will be regenerated.
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
             )
-    add_custom_target(bundled_ogg_vorbis_file)
-    set(OGG_VORBIS_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
-    set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/vorbis/include")
+        endif()
+
+        add_library(bundled_ogg STATIC ${OGG_SRC} ${OGG_HEADERS})
+        target_include_directories(bundled_ogg PUBLIC "${OPATH}/include")
+
+        set(VPATH "${CMAKE_CURRENT_LIST_DIR}/vorbis")
+
+        set(VORBIS_SRC
+                ${VPATH}/lib/analysis.c
+                ${VPATH}/lib/bitrate.c
+                ${VPATH}/lib/block.c
+                ${VPATH}/lib/codebook.c
+                ${VPATH}/lib/envelope.c
+                ${VPATH}/lib/floor0.c
+                ${VPATH}/lib/floor1.c
+                ${VPATH}/lib/info.c
+                ${VPATH}/lib/lookup.c
+                ${VPATH}/lib/lpc.c
+                ${VPATH}/lib/lsp.c
+                ${VPATH}/lib/mapping0.c
+                ${VPATH}/lib/mdct.c
+                ${VPATH}/lib/psy.c
+                ${VPATH}/lib/registry.c
+                ${VPATH}/lib/res0.c
+                ${VPATH}/lib/sharedbook.c
+                ${VPATH}/lib/smallft.c
+                ${VPATH}/lib/synthesis.c
+                ${VPATH}/lib/vorbisenc.c
+                ${VPATH}/lib/window.c
+                )
+
+        set(VORBIS_HEADERS
+                ${VPATH}/lib/backends.h
+                ${VPATH}/lib/bitrate.h
+                ${VPATH}/lib/codebook.h
+                ${VPATH}/lib/codec_internal.h
+                ${VPATH}/lib/envelope.h
+                ${VPATH}/lib/modes/floor_all.h
+                ${VPATH}/lib/books/floor/floor_books.h
+                ${VPATH}/lib/highlevel.h
+                ${VPATH}/lib/lookup.h
+                ${VPATH}/lib/lookup_data.h
+                ${VPATH}/lib/lpc.h
+                ${VPATH}/lib/lsp.h
+                ${VPATH}/lib/masking.h
+                ${VPATH}/lib/mdct.h
+                ${VPATH}/lib/misc.h
+                ${VPATH}/lib/os.h
+                ${VPATH}/lib/psy.h
+                ${VPATH}/lib/modes/psych_11.h
+                ${VPATH}/lib/modes/psych_16.h
+                ${VPATH}/lib/modes/psych_44.h
+                ${VPATH}/lib/modes/psych_8.h
+                ${VPATH}/lib/registry.h
+                ${VPATH}/lib/books/coupled/res_books_stereo.h
+                ${VPATH}/lib/books/uncoupled/res_books_uncoupled.h
+                ${VPATH}/lib/modes/residue_16.h
+                ${VPATH}/lib/modes/residue_44.h
+                ${VPATH}/lib/modes/residue_44u.h
+                ${VPATH}/lib/modes/residue_8.h
+                ${VPATH}/lib/scales.h
+                ${VPATH}/lib/modes/setup_11.h
+                ${VPATH}/lib/modes/setup_16.h
+                ${VPATH}/lib/modes/setup_22.h
+                ${VPATH}/lib/modes/setup_32.h
+                ${VPATH}/lib/modes/setup_44.h
+                ${VPATH}/lib/modes/setup_44u.h
+                ${VPATH}/lib/modes/setup_8.h
+                ${VPATH}/lib/modes/setup_X.h
+                ${VPATH}/lib/smallft.h
+                ${VPATH}/lib/window.h
+                )
+
+        set(VORBIS_PUB_HEADERS
+                ${VPATH}/include/vorbis/codec.h
+                ${VPATH}/include/vorbis/vorbisenc.h
+                ${VPATH}/include/vorbis/vorbisfile.h
+                )
+
+        IF(MSVC)
+            #ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
+            list(APPEND VORBIS_SRC ${VPATH}/win32/vorbis.def)
+        ENDIF(MSVC)
+
+        add_library(bundled_ogg_vorbis STATIC ${VORBIS_SRC} ${VORBIS_HEADERS} ${VORBIS_PUB_HEADERS})
+        target_include_directories(bundled_ogg_vorbis PUBLIC "${VPATH}/include" "${VPATH}/lib")
+        target_link_libraries(bundled_ogg_vorbis bundled_ogg)
+        add_library(bundled_ogg_vorbis_file STATIC ${VPATH}/lib/vorbisfile.c ${VPATH}/include/vorbis/vorbisfile.h)
+        target_link_libraries(bundled_ogg_vorbis_file bundled_ogg bundled_ogg_vorbis)
+
+        if(MSVC)
+            set(VORB_UNI "_UNICODE;UNICODE")
+            set_target_properties(bundled_ogg PROPERTIES
+                    COMPILE_DEFINITIONS "${VORB_UNI}"
+                    )
+            set_target_properties(bundled_ogg_vorbis PROPERTIES
+                    COMPILE_DEFINITIONS "${VORB_UNI}"
+                    )
+            set_target_properties(bundled_ogg_vorbis_file PROPERTIES
+                    COMPILE_DEFINITIONS "${VORB_UNI}"
+                    )
+        endif(MSVC)
+
+        set_target_properties(bundled_ogg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+        set_target_properties(bundled_ogg_vorbis PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+        set_target_properties(bundled_ogg_vorbis_file PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+
+        set(OGG_BUNDLED_LIBRARIES bundled_ogg)
+        set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/ogg/include")
+        set(OGG_VORBIS_BUNDLED_LIBRARIES bundled_ogg_vorbis bundled_ogg_vorbis_file)
+        set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/vorbis/include")
+
+        target_link_libraries(bundled_ogg_full INTERFACE bundled_ogg bundled_ogg_vorbis bundled_ogg_vorbis_file)
+    else()
+        ExternalProject_Add(
+                bundled_ogg
+                SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/ogg
+                PATCH_COMMAND autoreconf -fiv
+                CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg ${CROSS_COMPILE32_FLAGS}
+                --enable-silent-rules --disable-dependency-tracking --enable-shared=no
+                PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/ogg
+                BUILD_COMMAND make
+                INSTALL_COMMAND make install
+                BUILD_IN_SOURCE 1
+        )
+
+        set(OGG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib/libogg.a")
+        set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
+
+        add_dependencies(bundled_ogg_full bundled_ogg)
+        target_include_directories(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
+        target_link_libraries(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib/libogg.a")
+
+        # OGG Vorbis File
+        set(CFLAGS "${CFLAGS} -I${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
+        set(LDFLAGS "${LDFLAGS} -L${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib")
+
+        # the above set of CFLAGS and LDFLAGS don't trigger on some systems
+        # ensure vorbis configure uses our bundled ogg see --with-ogg-includes & --with-ogg-libraries
+
+        set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
+        set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/include")
+        ExternalProject_Add(
+                bundled_ogg_vorbis
+                DEPENDS bundled_ogg
+                SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/vorbis
+                #PATCH_COMMAND ./autogen.sh
+                BUILD_BYPRODUCTS ${OGG_VORBIS_BUNDLED_LIBRARIES} ${OGG_BUNDLED_LIBRARIES}
+                CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
+                --disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include
+                --with-ogg-libraries=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib ${CROSS_COMPILE32_FLAGS}
+                --disable-dependency-tracking --enable-silent-rules --enable-shared=no
+                PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
+                BUILD_COMMAND make
+                INSTALL_COMMAND make install
+                BUILD_IN_SOURCE 1
+        )
+        add_custom_target(bundled_ogg_vorbis_file)
+
+        add_dependencies(bundled_ogg_full bundled_ogg_vorbis)
+        target_include_directories(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/include")
+        target_link_libraries(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
+    endif()
 endif()
 
 #-----------------------------------------------------------------
@@ -947,7 +953,7 @@ endif()
 # Build bundled Theora library
 #-----------------------------------------------------------------
 if(BUNDLED_THEORA AND BUILD_CLIENT)
-    set(THEORA_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/theora/lib)
+    set(THEORA_SRC_DIR "${CMAKE_CURRENT_LIST_DIR}/theora/lib")
     FILE(GLOB THEORA_SRC
             "${THEORA_SRC_DIR}/apiwrapper.c"
             "${THEORA_SRC_DIR}/bitpack.c"
@@ -993,6 +999,7 @@ if(BUNDLED_THEORA AND BUILD_CLIENT)
 
     include_directories("${CMAKE_CURRENT_LIST_DIR}/theora/include")
     add_library(bundled_theora STATIC ${THEORA_SRC})
+    target_link_libraries(bundled_theora PUBLIC bundled_ogg_full)
 
     if (USE_THEORA_ASM)
         if (ETL_32BITS OR ETL_64BITS)
@@ -1004,7 +1011,5 @@ if(BUNDLED_THEORA AND BUILD_CLIENT)
         endif()
     endif()
 
-    set(THEORA_BUNDLED_LIBRARIES bundled_theora)
-    set(THEORA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/theora/include")
     set_target_properties(bundled_theora PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
