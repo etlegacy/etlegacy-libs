@@ -36,7 +36,34 @@ foreach (_variableName ${_variableNames})
 	endif()
 endforeach()
 
-if(FEATURE_SSL AND BUNDLED_WOLFSSL)
+if(UNIX)
+
+	if(CROSS_COMPILE32)
+		if(APPLE)
+			set(CROSS_COMPILE32_FLAGS CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -m32 LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -m32)
+		else()
+			set(CROSS_COMPILE32_FLAGS CFLAGS=-m32 LDFLAGS=-m32)
+		endif()
+	else()
+		# when we don't cross compile we have to enable position independant code '-fPIC' for all bundled libs
+		# see http://stackoverflow.com/questions/7216244/why-is-fpic-absolutely-necessary-on-64-and-not-on-32bit-platforms
+		# let's misuse CROSS_COMPILE32_FLAGS var (for 64bit) to set our flag. FIXME: rename to CROSS_COMPILE_OPTIONAL_FLAGS?
+		# notes: - cflag -mcmodel=large might be an option too
+		#        - this has to be done in all dependant CMakeLists-txt files see glew/CMakeLists.txt
+		if(APPLE)
+			set(CROSS_COMPILE32_FLAGS CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -fPIC LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
+		else()
+			set(CROSS_COMPILE32_FLAGS "CFLAGS=-fPIC")
+		endif()
+	endif()
+endif()
+
+#-----------------------------------------------------------------
+# Build bundled OpenSSL library
+#-----------------------------------------------------------------
+if(FEATURE_SSL AND BUNDLED_WOLFSSL AND (BUILD_CLIENT OR BUILD_SERVER))
+	add_library(bundled_wolfssl_int INTERFACE)
+
 	find_package(Patch REQUIRED)
 	if(Patch_FOUND)
 		message(STATUS "Patch found: ${Patch_EXECUTABLE}")
@@ -80,19 +107,25 @@ if(FEATURE_SSL AND BUNDLED_WOLFSSL)
 			-DWOLFSSL_PWDBASED=ON -DBUILD_CRL=ON
 			-DWOLFSSL_DES3=ON -DWOLFSSL_TLSX=ON
 			-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/wolfssl
-			)
-	set(WOLFSSL_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/wolfssl/include" "${LIBS_BINARY_DIR}/wolfssl/include/wolfssl")
+	)
 	set_target_properties(bundled_wolfssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-	add_definitions(-DETL_WOLFSSL)
+
+	add_dependencies(bundled_wolfssl_int bundled_wolfssl)
+	target_link_directories(bundled_wolfssl_int INTERFACE ${WOLFSSL_BUNDLED_LIBRARY})
+	target_include_directories(bundled_wolfssl_int INTERFACE "${LIBS_BINARY_DIR}/wolfssl/include" "${LIBS_BINARY_DIR}/wolfssl/include/wolfssl")
+	target_compile_definitions(bundled_wolfssl_int INTERFACE ETL_WOLFSSL)
 else()
 	add_custom_target(bundled_wolfssl)
 	set_target_properties(bundled_wolfssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
-if(WIN32)
+#-----------------------------------------------------------------
+# Build bundled OpenSSL library
+#-----------------------------------------------------------------
+if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
+	add_library(bundled_openssl_int INTERFACE)
 
-	# moved for now until linux BUNDLED_OPENSSL is done
-	if(FEATURE_SSL AND BUNDLED_OPENSSL)
+	if (WIN32)
 		find_program(NASM_EXECUTABLE nasm)
 		if(NOT NASM_EXECUTABLE)
 			message(FATAL_ERROR "NASM not found")
@@ -104,18 +137,14 @@ if(WIN32)
 			message(FATAL_ERROR "Perl not found")
 		endif()
 
-		if(WIN32)
-			if(ETL_64BITS)
-				set(openssl_plat VC-WIN64)
-				# set(curl_plat x64)
-			else()
-				set(openssl_plat VC-WIN32)
-				# set(curl_plat x86)
-			endif()
+		if(ETL_64BITS)
+			set(openssl_plat VC-WIN64)
+			# set(curl_plat x64)
+		else()
+			set(openssl_plat VC-WIN32)
+			# set(curl_plat x86)
 		endif()
-	endif()
 
-	if(FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 		set(OPENSSL_PREFIX "${LIBS_DOWNLOAD_SRC_DIR}/openssl/build")
 		set(OPENSSL_CONFIGURE "${PERL_EXECUTABLE}" Configure "${openssl_plat}" "--prefix=${OPENSSL_PREFIX}" "--openssldir=${OPENSSL_PREFIX}" no-shared no-unit-test -static)
 		set(OPENSSL_BUILD nmake)
@@ -137,101 +166,11 @@ if(WIN32)
 				)
 		set(OPENSSL_BUNDLED_INCLUDE_DIR "${OPENSSL_PREFIX}/include")
 		set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-	else()
-		add_custom_target(bundled_openssl)
-		set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-	endif()
 
-	#-----------------------------------------------------------------
-	# Build bundled cURL library
-	#-----------------------------------------------------------------
-	if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
-		set(binary_dir "${LIBS_BINARY_DIR}/curl")
-		if(VSTUDIO)
-			set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/Release/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		elseif(MINGW OR VS_BUILD)
-			set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		else(VSTUDIO)
-			set(CURL_BUNDLED_LIBRARY "${binary_dir}/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		endif(VSTUDIO)
-
-		set(CURL_CMAKE_ARGS
-				-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-				-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-				-DBUILD_CURL_EXE=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_ARES=OFF -DENABLE_THREADED_RESOLVER=ON -DENABLE_DEBUG=OFF
-				-DENABLE_CURLDEBUG=OFF -DBUILD_TESTING=OFF -DENABLE_IPV6=ON -DENABLE_MANUAL=OFF -DCMAKE_USE_LIBSSH2=OFF
-				-DUSE_NGHTTP2=OFF -DCURL_WINDOWS_SSPI=OFF -DCURL_ZLIB=AUTO -DCMAKE_USE_GSSAPI=OFF
-				-DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON -DCURL_DISABLE_TELNET=ON -DCURL_DISABLE_DICT=ON
-				-DCURL_DISABLE_FILE=ON -DCURL_DISABLE_TFTP=ON -DCURL_DISABLE_RTSP=ON -DCURL_DISABLE_POP3=ON
-				-DCURL_DISABLE_IMAP=ON -DCURL_DISABLE_SMTP=ON -DCURL_DISABLE_GOPHER=ON -DENABLE_UNIX_SOCKETS=ON
-				-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/curl)
-
-		if(MSVC)
-			list(APPEND CURL_CMAKE_ARGS -DCURL_STATIC_CRT=ON)
-		endif()
-
-		if(FEATURE_SSL)
-			if(BUNDLED_WOLFSSL)
-				include(CheckTypeSize)
-				check_type_size("long long" SIZEOF_LONG_LONG)
-
-				list(APPEND CURL_CMAKE_ARGS
-						-DCMAKE_C_FLAGS=-DSIZEOF_LONG_LONG=${SIZEOF_LONG_LONG}
-						-DCMAKE_USE_OPENSSL=OFF -DCURL_DISABLE_CRYPTO_AUTH=ON
-						-DCMAKE_USE_WOLFSSL=ON
-						-DCMAKE_LIBRARY_PATH=${LIBS_BINARY_DIR}/wolfssl
-						-DWolfSSL_INCLUDE_DIR=${WOLFSSL_BUNDLED_INCLUDE_DIR}
-						)
-			elseif(BUNDLED_OPENSSL)
-				list(APPEND CURL_CMAKE_ARGS -DOPENSSL_ROOT_DIR=${OPENSSL_PREFIX} -DCMAKE_USE_OPENSSL=ON)
-			else()
-				list(APPEND CURL_CMAKE_ARGS -DCMAKE_USE_OPENSSL=OFF -DCMAKE_USE_SCHANNEL=ON)
-			endif()
-		else()
-			list(APPEND CURL_CMAKE_ARGS -DCMAKE_USE_OPENSSL=OFF)
-		endif()
-
-		# -DHTTP_ONLY=ON
-		ExternalProject_Add(bundled_curl
-				DEPENDS bundled_wolfssl bundled_openssl
-				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-				URL https://github.com/curl/curl/archive/curl-7_80_0.tar.gz
-				URL_HASH MD5=d96c3324dd060474508312449105d835
-				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
-				# SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/curl
-				PREFIX ${LIBS_BINARY_DIR}/curl
-				BINARY_DIR ${binary_dir}
-				BUILD_BYPRODUCTS ${CURL_BUNDLED_LIBRARY}
-				CMAKE_ARGS ${CURL_CMAKE_ARGS}
-				)
-
-		set(CURL_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/curl/include")
-
-		set_target_properties(bundled_curl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-	endif()
-
-elseif(UNIX)
-
-	if(CROSS_COMPILE32)
-		if(APPLE)
-			set(CROSS_COMPILE32_FLAGS CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -m32 LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -m32)
-		else()
-			set(CROSS_COMPILE32_FLAGS CFLAGS=-m32 LDFLAGS=-m32)
-		endif()
-	else()
-		# when we don't cross compile we have to enable position independant code '-fPIC' for all bundled libs
-		# see http://stackoverflow.com/questions/7216244/why-is-fpic-absolutely-necessary-on-64-and-not-on-32bit-platforms
-		# let's misuse CROSS_COMPILE32_FLAGS var (for 64bit) to set our flag. FIXME: rename to CROSS_COMPILE_OPTIONAL_FLAGS?
-		# notes: - cflag -mcmodel=large might be an option too
-		#        - this has to be done in all dependant CMakeLists-txt files see glew/CMakeLists.txt
-		if(APPLE)
-			set(CROSS_COMPILE32_FLAGS CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -fPIC LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
-		else()
-			set(CROSS_COMPILE32_FLAGS "CFLAGS=-fPIC")
-		endif()
-	endif()
-
-	if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
+		add_dependencies(bundled_openssl_int bundled_openssl)
+		target_link_directories(bundled_openssl_int INTERFACE ${OPENSSL_BUNDLED_LIBRARY})
+		target_include_directories(bundled_openssl_int INTERFACE "${OPENSSL_PREFIX}/include")
+	elseif (UNIX)
 		# FIXME: check flags
 		if(CROSS_COMPILE32)
 			if(APPLE)
@@ -275,16 +214,88 @@ elseif(UNIX)
 
 		# also generates libcrypto.a
 		set(OPENSSL_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/openssl/include")
-	else()
-		add_custom_target(bundled_openssl)
-		set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+
+		add_dependencies(bundled_openssl_int bundled_openssl)
+		target_link_directories(bundled_openssl_int INTERFACE ${OPENSSL_BUNDLED_LIBRARY})
+		target_include_directories(bundled_openssl_int INTERFACE "${LIBS_BINARY_DIR}/openssl/include")
 	endif()
+else()
+	add_custom_target(bundled_openssl)
+	set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+endif()
 
-	#-----------------------------------------------------------------
-	# Build bundled cURL library
-	#-----------------------------------------------------------------
-	if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
+#-----------------------------------------------------------------
+# Build bundled cURL library
+#-----------------------------------------------------------------
+if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
+	add_library(bundled_curl_int INTERFACE)
 
+	if (WIN32)
+		set(binary_dir "${LIBS_BINARY_DIR}/curl")
+		if(VSTUDIO)
+			set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/Release/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		elseif(MINGW OR VS_BUILD)
+			set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		else(VSTUDIO)
+			set(CURL_BUNDLED_LIBRARY "${binary_dir}/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		endif(VSTUDIO)
+
+		set(CURL_CMAKE_ARGS
+				-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+				-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+				-DBUILD_CURL_EXE=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_ARES=OFF -DENABLE_THREADED_RESOLVER=ON -DENABLE_DEBUG=OFF
+				-DENABLE_CURLDEBUG=OFF -DBUILD_TESTING=OFF -DENABLE_IPV6=ON -DENABLE_MANUAL=OFF -DCMAKE_USE_LIBSSH2=OFF
+				-DUSE_NGHTTP2=OFF -DCURL_WINDOWS_SSPI=OFF -DCURL_ZLIB=AUTO -DCMAKE_USE_GSSAPI=OFF
+				-DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON -DCURL_DISABLE_TELNET=ON -DCURL_DISABLE_DICT=ON
+				-DCURL_DISABLE_FILE=ON -DCURL_DISABLE_TFTP=ON -DCURL_DISABLE_RTSP=ON -DCURL_DISABLE_POP3=ON
+				-DCURL_DISABLE_IMAP=ON -DCURL_DISABLE_SMTP=ON -DCURL_DISABLE_GOPHER=ON -DENABLE_UNIX_SOCKETS=ON
+				-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/curl)
+
+		if(MSVC)
+			list(APPEND CURL_CMAKE_ARGS -DCURL_STATIC_CRT=ON)
+		endif()
+
+		if(FEATURE_SSL)
+			if(BUNDLED_WOLFSSL)
+				include(CheckTypeSize)
+				check_type_size("long long" SIZEOF_LONG_LONG)
+
+				list(APPEND CURL_CMAKE_ARGS
+						-DCMAKE_C_FLAGS=-DSIZEOF_LONG_LONG=${SIZEOF_LONG_LONG}
+						-DCMAKE_USE_OPENSSL=OFF -DCURL_DISABLE_CRYPTO_AUTH=ON
+						-DCMAKE_USE_WOLFSSL=ON
+						-DCMAKE_LIBRARY_PATH=${LIBS_BINARY_DIR}/wolfssl
+						-DWolfSSL_INCLUDE_DIR=${WOLFSSL_BUNDLED_INCLUDE_DIR}
+				)
+			elseif(BUNDLED_OPENSSL)
+				list(APPEND CURL_CMAKE_ARGS -DOPENSSL_ROOT_DIR=${OPENSSL_PREFIX} -DCMAKE_USE_OPENSSL=ON)
+			else()
+				list(APPEND CURL_CMAKE_ARGS -DCMAKE_USE_OPENSSL=OFF -DCMAKE_USE_SCHANNEL=ON)
+			endif()
+		else()
+			list(APPEND CURL_CMAKE_ARGS -DCMAKE_USE_OPENSSL=OFF)
+		endif()
+
+		# -DHTTP_ONLY=ON
+		ExternalProject_Add(bundled_curl
+				DEPENDS bundled_wolfssl bundled_openssl
+				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+				URL https://github.com/curl/curl/archive/curl-7_80_0.tar.gz
+				URL_HASH MD5=d96c3324dd060474508312449105d835
+				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
+				# SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/curl
+				PREFIX ${LIBS_BINARY_DIR}/curl
+				BINARY_DIR ${binary_dir}
+				BUILD_BYPRODUCTS ${CURL_BUNDLED_LIBRARY}
+				CMAKE_ARGS ${CURL_CMAKE_ARGS}
+		)
+
+		set_target_properties(bundled_curl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+
+		add_dependencies(bundled_curl_int bundled_curl)
+		target_link_directories(bundled_curl_int INTERFACE ${CURL_BUNDLED_LIBRARY})
+		target_include_directories(bundled_curl_int INTERFACE "${LIBS_BINARY_DIR}/curl/include")
+	elseif (UNIX)
 		# FIXME: add openssl lib to project
 		# set --with-ssl / remove --without-ssl
 
@@ -311,7 +322,7 @@ elseif(UNIX)
 				--enable-ipv6 --without-libidn2
 				--without-libpsl --without-librtmp
 				--disable-manual
-				)
+		)
 
 		if(APPLE)
 			list(APPEND CURL_CONFIGURE --host=x86_64-apple-darwin ${CURL_BUILD_APPEND})
@@ -336,7 +347,6 @@ elseif(UNIX)
 		endif()
 
 		set(CURL_BUNDLED_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/lib/libcurl.a")
-		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/include")
 		ExternalProject_Add(
 				bundled_curl
 				DEPENDS bundled_wolfssl bundled_openssl
@@ -352,6 +362,9 @@ elseif(UNIX)
 				INSTALL_COMMAND make install
 				BUILD_IN_SOURCE 1
 		)
+		add_dependencies(bundled_curl_int bundled_curl)
+		target_link_directories(bundled_curl_int INTERFACE ${CURL_BUNDLED_LIBRARY})
+		target_include_directories(bundled_curl_int INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/include")
 	endif()
 endif()
 
@@ -417,7 +430,7 @@ endif()
 #-----------------------------------------------------------------
 # Build bundled OGG and Vorbis file library
 #-----------------------------------------------------------------
-if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT AND APPLE)
+if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 	add_library(bundled_ogg_full INTERFACE)
 
 	if (APPLE)
@@ -457,7 +470,7 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT AND APPLE)
 		add_dependencies(bundled_ogg_full bundled_ogg_vorbis)
 		target_include_directories(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/vorbis/include")
 		target_link_libraries(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
-	elseif(WINDOWS)
+	elseif(WIN32)
 		# OGG
 		set(OPATH "${CMAKE_CURRENT_LIST_DIR}/ogg")
 
@@ -826,8 +839,6 @@ endif()
 #-----------------------------------------------------------------
 if(BUNDLED_SQLITE3 AND (BUILD_CLIENT OR BUILD_SERVER OR BUILD_MOD))
 	include(${CMAKE_CURRENT_LIST_DIR}/sqlite3/CMakeLists.txt)
-	set(SQLITE3_BUNDLED_LIBRARIES bundled_sqlite3)
-	set(SQLITE3_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sqlite3/src")
 	set_target_properties(bundled_sqlite3 PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
@@ -913,7 +924,8 @@ if(BUNDLED_PNG AND BUILD_CLIENT)
 			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
 			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
 			-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_BUILD_ZLIB=ON -DZLIB_INCLUDE_DIR=${ZLIB_INCLUDE_DIR}
-			-DPNG_TESTS=OFF -DPNG_FRAMEWORK=OFF -DPNG_DEBUG=OFF -DPNG_HARDWARE_OPTIMIZATIONS=${PNG_OPTIMIZATION} -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
+			-DPNG_TESTS=OFF -DPNG_FRAMEWORK=OFF -DPNG_DEBUG=OFF -DPNG_HARDWARE_OPTIMIZATIONS=${PNG_OPTIMIZATION}
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}" -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
 			INSTALL_COMMAND  ""
 	)
 	set_target_properties(bundled_png PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
