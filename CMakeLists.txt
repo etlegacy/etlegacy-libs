@@ -47,13 +47,48 @@ function(etl_find_lib_path list _out)
 
 	list(FIND ${list} "${_what}" _find_index)
 	if ("${_find_index}" EQUAL "-1")
-		set(${_out} ${list} PARENT_SCOPE)
+		set(${_out} ${${list}} PARENT_SCOPE)
 		return()
 	endif()
 
 	math(EXPR _find_index "${_find_index}+1")
 	list(GET ${list} ${_find_index} _found_item)
-	set(${_out} ${_found_item} PARENT_SCOPE)
+
+	list(APPEND TMP_OUT ${_found_item})
+
+	list(LENGTH ${list} _LIST_LEN)
+	math(EXPR _find_index "${_find_index}+1")
+
+	if (_find_index GREATER_EQUAL _LIST_LEN)
+		set(${_out} ${TMP_OUT} PARENT_SCOPE)
+		return()
+	endif()
+
+	list(SUBLIST ${list} 0 -1 _SUBLIST)
+	list(SUBLIST ${list} ${_find_index} -1 _SUBLIST)
+
+	while(true)
+		list(FIND _SUBLIST "${_what}" _find_index)
+		if ("${_find_index}" EQUAL "-1")
+			set(${_out} ${TMP_OUT} PARENT_SCOPE)
+			return()
+		endif()
+
+		math(EXPR _find_index "${_find_index}+1")
+		list(GET _SUBLIST ${_find_index} _found_item)
+
+		list(APPEND TMP_OUT ${_found_item})
+
+		list(LENGTH _SUBLIST _LIST_LEN)
+		math(EXPR _find_index "${_find_index}+1")
+
+		if (_find_index GREATER_EQUAL _LIST_LEN)
+			set(${_out} ${TMP_OUT} PARENT_SCOPE)
+			return()
+		endif()
+
+		list(SUBLIST _SUBLIST ${_find_index} -1 _SUBLIST)
+	endwhile()
 endfunction()
 
 if(UNIX)
@@ -460,7 +495,7 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 	add_library(bundled_ogg_full INTERFACE)
 
 	if (APPLE)
-		set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/lib/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		ExternalProject_Add(bundled_ogg
 				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/ogg
 				BINARY_DIR	${LIBS_BINARY_DIR}/ogg
@@ -470,16 +505,13 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 				-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
 				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
 				-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/ogg
-				)
-
-		set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/lib/libogg.a")
-		set(OGG_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/ogg/include")
+		)
 
 		add_dependencies(bundled_ogg_full bundled_ogg)
 		target_include_directories(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/ogg/include")
-		target_link_libraries(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/ogg/lib/libogg.a")
+		target_link_libraries(bundled_ogg_full INTERFACE "${OGG_BUNDLED_LIBRARIES}")
 
-		set(VORBIS_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/vorbis/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		set(VORBIS_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/vorbis/lib/libvorbis${CMAKE_STATIC_LIBRARY_SUFFIX}" "${LIBS_BINARY_DIR}/vorbis/lib/libvorbisfile${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		ExternalProject_Add(bundled_ogg_vorbis
 				DEPENDS bundled_ogg
 				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/vorbis
@@ -495,7 +527,7 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 
 		add_dependencies(bundled_ogg_full bundled_ogg_vorbis)
 		target_include_directories(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/vorbis/include")
-		target_link_libraries(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
+		target_link_libraries(bundled_ogg_full INTERFACE "${VORBIS_BUNDLED_LIBRARIES}")
 	elseif(WIN32)
 		# OGG
 		set(OPATH "${CMAKE_CURRENT_LIST_DIR}/ogg")
@@ -643,9 +675,8 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 				INSTALL_COMMAND make install
 				BUILD_IN_SOURCE 1
 		)
-
-		set(OGG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib/libogg.a")
 		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
+		set(OGG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib/libogg.a")
 
 		add_dependencies(bundled_ogg_full bundled_ogg)
 		target_include_directories(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
