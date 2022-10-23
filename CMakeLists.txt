@@ -13,1012 +13,1012 @@ set(LIBS_DOWNLOAD_SRC_DIR ${PROJECT_BINARY_DIR}/downloads/src)
 #CMAKE_DEBUG_POSTFIX
 
 if (APPLE)
-    # The list values need to escaped for the external projects (if we have more than one architecture set)
-    string(REPLACE ";" "$<SEMICOLON>" CMAKE_OSX_ARCHITECTURES_ "${CMAKE_OSX_ARCHITECTURES}")
+	# The list values need to escaped for the external projects (if we have more than one architecture set)
+	string(REPLACE ";" "$<SEMICOLON>" CMAKE_OSX_ARCHITECTURES_ "${CMAKE_OSX_ARCHITECTURES}")
 endif()
 
 # Force the BUNDLED_<name> to OFF if the FEATURE_<name> is OFF. No more unwanted stuff being built.
 get_cmake_property(_variableNames VARIABLES)
 list (SORT _variableNames)
 foreach (_variableName ${_variableNames})
-    string(REGEX MATCH "^FEATURE_.*" _featureName "${_variableName}")
-    string(LENGTH "${_featureName}" _variableLen)
-    # message(STATUS "${_variableName}=${${_variableName}}")
-    if(${_variableLen})
-        if(NOT (${_variableName}))
-            string(FIND ${_variableName} "_" wsloc)
-            string(SUBSTRING ${_variableName} ${wsloc} -1 _featureName)
-            string(PREPEND _featureName "BUNDLED")
-            if((${_featureName}))
-                set(${_featureName} OFF)
-            endif()
-        endif()
-    endif()
+	string(REGEX MATCH "^FEATURE_.*" _featureName "${_variableName}")
+	string(LENGTH "${_featureName}" _variableLen)
+	# message(STATUS "${_variableName}=${${_variableName}}")
+	if(${_variableLen})
+		if(NOT (${_variableName}))
+			string(FIND ${_variableName} "_" wsloc)
+			string(SUBSTRING ${_variableName} ${wsloc} -1 _featureName)
+			string(PREPEND _featureName "BUNDLED")
+			if((${_featureName}))
+				set(${_featureName} OFF)
+			endif()
+		endif()
+	endif()
 endforeach()
 
 if(FEATURE_SSL AND BUNDLED_WOLFSSL)
-    find_package(Patch REQUIRED)
-    if(Patch_FOUND)
-        message(STATUS "Patch found: ${Patch_EXECUTABLE}")
-    endif()
+	find_package(Patch REQUIRED)
+	if(Patch_FOUND)
+		message(STATUS "Patch found: ${Patch_EXECUTABLE}")
+	endif()
 
-    message(STATUS "Configuring wolfSSL")
+	message(STATUS "Configuring wolfSSL")
 
-    if(VSTUDIO)
-        set(WOLFSSL_BUNDLED_LIBRARY optimized "${LIBS_BINARY_DIR}/wolfssl/Release/wolfssl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARY_DIR}/wolfssl/Debug/wolfssl${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    elseif(VS_BUILD)
-        set(WOLFSSL_BUNDLED_LIBRARY "${LIBS_BINARY_DIR}/wolfssl/lib/wolfssl${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    else()
-        set(WOLFSSL_BUNDLED_LIBRARY "${LIBS_BINARY_DIR}/wolfssl/lib/libwolfssl${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    endif()
+	if(VSTUDIO)
+		set(WOLFSSL_BUNDLED_LIBRARY optimized "${LIBS_BINARY_DIR}/wolfssl/Release/wolfssl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARY_DIR}/wolfssl/Debug/wolfssl${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	elseif(VS_BUILD)
+		set(WOLFSSL_BUNDLED_LIBRARY "${LIBS_BINARY_DIR}/wolfssl/lib/wolfssl${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	else()
+		set(WOLFSSL_BUNDLED_LIBRARY "${LIBS_BINARY_DIR}/wolfssl/lib/libwolfssl${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	endif()
 
-    set(WOLFSSL_PATCH_COMMAND "${Patch_EXECUTABLE}" "${LIBS_DOWNLOAD_SRC_DIR}/wolfssl/CMakeLists.txt" "${CMAKE_CURRENT_LIST_DIR}/patches/WolfSSL.patch")
+	set(WOLFSSL_PATCH_COMMAND "${Patch_EXECUTABLE}" "${LIBS_DOWNLOAD_SRC_DIR}/wolfssl/CMakeLists.txt" "${CMAKE_CURRENT_LIST_DIR}/patches/WolfSSL.patch")
 
-    if(MSVC)
-        set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} /DOPENSSL_ALL=1 /DWOLFSSL_DES_ECB=1 /DHAVE_OCSP=1 /DHAVE_CRL=1")
-    else()
-        set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} -DOPENSSL_ALL=1 -DWOLFSSL_DES_ECB=1 -DHAVE_OCSP=1 -DHAVE_CRL=1")
-    endif()
+	if(MSVC)
+		set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} /DOPENSSL_ALL=1 /DWOLFSSL_DES_ECB=1 /DHAVE_OCSP=1 /DHAVE_CRL=1")
+	else()
+		set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} -DOPENSSL_ALL=1 -DWOLFSSL_DES_ECB=1 -DHAVE_OCSP=1 -DHAVE_CRL=1")
+	endif()
 
-    ExternalProject_Add(bundled_wolfssl
-            DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-            URL https://github.com/wolfSSL/wolfssl/archive/v5.0.0-stable.tar.gz
-            URL_HASH MD5=d2044f756db0853dd2da0a90dd42ab62
-            SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/wolfssl"
-            PATCH_COMMAND ${WOLFSSL_PATCH_COMMAND}
-            BINARY_DIR ${LIBS_BINARY_DIR}/wolfssl
-            BUILD_BYPRODUCTS ${WOLFSSL_BUNDLED_LIBRARY}
-            PREFIX ${LIBS_BINARY_DIR}/wolfssl
-            CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-            -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-            -DCMAKE_C_FLAGS=${WOLFSSL_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
-            -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
-            -DWOLFSSL_EXAMPLES=OFF -DWOLFSSL_CRYPT_TESTS=OFF
-            -DWOLFSSL_OCSP=ON -DWOLFSSL_OPENSSLEXTRA=ON
-            -DWOLFSSL_FAST_MATH=OFF -DWOLFSSL_HARDEN=ON
-            -DWOLFSSL_OPENSSL_EXTRA=ON -DBUILD_PWDBASED=ON
-            -DWOLFSSL_PWDBASED=ON -DBUILD_CRL=ON
-            -DWOLFSSL_DES3=ON -DWOLFSSL_TLSX=ON
-            -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/wolfssl
-            )
-    set(WOLFSSL_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/wolfssl/include" "${LIBS_BINARY_DIR}/wolfssl/include/wolfssl")
-    set_target_properties(bundled_wolfssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-    add_definitions(-DETL_WOLFSSL)
+	ExternalProject_Add(bundled_wolfssl
+			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+			URL https://github.com/wolfSSL/wolfssl/archive/v5.0.0-stable.tar.gz
+			URL_HASH MD5=d2044f756db0853dd2da0a90dd42ab62
+			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/wolfssl"
+			PATCH_COMMAND ${WOLFSSL_PATCH_COMMAND}
+			BINARY_DIR ${LIBS_BINARY_DIR}/wolfssl
+			BUILD_BYPRODUCTS ${WOLFSSL_BUNDLED_LIBRARY}
+			PREFIX ${LIBS_BINARY_DIR}/wolfssl
+			CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+			-DCMAKE_C_FLAGS=${WOLFSSL_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
+			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
+			-DWOLFSSL_EXAMPLES=OFF -DWOLFSSL_CRYPT_TESTS=OFF
+			-DWOLFSSL_OCSP=ON -DWOLFSSL_OPENSSLEXTRA=ON
+			-DWOLFSSL_FAST_MATH=OFF -DWOLFSSL_HARDEN=ON
+			-DWOLFSSL_OPENSSL_EXTRA=ON -DBUILD_PWDBASED=ON
+			-DWOLFSSL_PWDBASED=ON -DBUILD_CRL=ON
+			-DWOLFSSL_DES3=ON -DWOLFSSL_TLSX=ON
+			-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/wolfssl
+			)
+	set(WOLFSSL_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/wolfssl/include" "${LIBS_BINARY_DIR}/wolfssl/include/wolfssl")
+	set_target_properties(bundled_wolfssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	add_definitions(-DETL_WOLFSSL)
 else()
-    add_custom_target(bundled_wolfssl)
-    set_target_properties(bundled_wolfssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	add_custom_target(bundled_wolfssl)
+	set_target_properties(bundled_wolfssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
 if(WIN32)
 
-    # moved for now until linux BUNDLED_OPENSSL is done
-    if(FEATURE_SSL AND BUNDLED_OPENSSL)
-        find_program(NASM_EXECUTABLE nasm)
-        if(NOT NASM_EXECUTABLE)
-            message(FATAL_ERROR "NASM not found")
-        endif()
+	# moved for now until linux BUNDLED_OPENSSL is done
+	if(FEATURE_SSL AND BUNDLED_OPENSSL)
+		find_program(NASM_EXECUTABLE nasm)
+		if(NOT NASM_EXECUTABLE)
+			message(FATAL_ERROR "NASM not found")
+		endif()
 
-        # FIXME: there is no findPerl cmake script in project?! (at least for *NIX)
-        FIND_PACKAGE(Perl REQUIRED)
-        if(NOT PERL_FOUND)
-            message(FATAL_ERROR "Perl not found")
-        endif()
+		# FIXME: there is no findPerl cmake script in project?! (at least for *NIX)
+		FIND_PACKAGE(Perl REQUIRED)
+		if(NOT PERL_FOUND)
+			message(FATAL_ERROR "Perl not found")
+		endif()
 
-        if(WIN32)
-            if(ETL_64BITS)
-                set(openssl_plat VC-WIN64)
-                # set(curl_plat x64)
-            else()
-                set(openssl_plat VC-WIN32)
-                # set(curl_plat x86)
-            endif()
-        endif()
-    endif()
+		if(WIN32)
+			if(ETL_64BITS)
+				set(openssl_plat VC-WIN64)
+				# set(curl_plat x64)
+			else()
+				set(openssl_plat VC-WIN32)
+				# set(curl_plat x86)
+			endif()
+		endif()
+	endif()
 
-    if(FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
-        set(OPENSSL_PREFIX "${LIBS_DOWNLOAD_SRC_DIR}/openssl/build")
-        set(OPENSSL_CONFIGURE "${PERL_EXECUTABLE}" Configure "${openssl_plat}" "--prefix=${OPENSSL_PREFIX}" "--openssldir=${OPENSSL_PREFIX}" no-shared no-unit-test -static)
-        set(OPENSSL_BUILD nmake)
-        set(OPENSSL_INSTALL nmake install_sw)
-        set(OPENSSL_BUNDLED_LIBRARY "${OPENSSL_PREFIX}/lib/libcrypto.lib" "${OPENSSL_PREFIX}/lib/libssl.lib")
-        ExternalProject_Add(bundled_openssl
-                # Use github archive instead of the one hosted on openssl.org because of CMake bug #13251
-                #URL_MD5 "76766e98997660138cdaf13a187bd234"
-                #GIT_REPOSITORY "https://github.com/openssl/openssl.git"
-                DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-                URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1l.tar.gz
-                URL_HASH MD5=2ff02cd10f96671162df3efd60470cfe
-                SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/openssl"
-                BUILD_IN_SOURCE 1
-                CONFIGURE_COMMAND ${OPENSSL_CONFIGURE}
-                BUILD_COMMAND ${OPENSSL_BUILD}
-                INSTALL_COMMAND ${OPENSSL_INSTALL}
-                BUILD_BYPRODUCTS ${OPENSSL_BUNDLED_LIBRARY}
-                )
-        set(OPENSSL_BUNDLED_INCLUDE_DIR "${OPENSSL_PREFIX}/include")
-        set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-    else()
-        add_custom_target(bundled_openssl)
-        set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-    endif()
+	if(FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
+		set(OPENSSL_PREFIX "${LIBS_DOWNLOAD_SRC_DIR}/openssl/build")
+		set(OPENSSL_CONFIGURE "${PERL_EXECUTABLE}" Configure "${openssl_plat}" "--prefix=${OPENSSL_PREFIX}" "--openssldir=${OPENSSL_PREFIX}" no-shared no-unit-test -static)
+		set(OPENSSL_BUILD nmake)
+		set(OPENSSL_INSTALL nmake install_sw)
+		set(OPENSSL_BUNDLED_LIBRARY "${OPENSSL_PREFIX}/lib/libcrypto.lib" "${OPENSSL_PREFIX}/lib/libssl.lib")
+		ExternalProject_Add(bundled_openssl
+				# Use github archive instead of the one hosted on openssl.org because of CMake bug #13251
+				#URL_MD5 "76766e98997660138cdaf13a187bd234"
+				#GIT_REPOSITORY "https://github.com/openssl/openssl.git"
+				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+				URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1l.tar.gz
+				URL_HASH MD5=2ff02cd10f96671162df3efd60470cfe
+				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/openssl"
+				BUILD_IN_SOURCE 1
+				CONFIGURE_COMMAND ${OPENSSL_CONFIGURE}
+				BUILD_COMMAND ${OPENSSL_BUILD}
+				INSTALL_COMMAND ${OPENSSL_INSTALL}
+				BUILD_BYPRODUCTS ${OPENSSL_BUNDLED_LIBRARY}
+				)
+		set(OPENSSL_BUNDLED_INCLUDE_DIR "${OPENSSL_PREFIX}/include")
+		set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	else()
+		add_custom_target(bundled_openssl)
+		set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	endif()
 
-    #-----------------------------------------------------------------
-    # Build bundled cURL library
-    #-----------------------------------------------------------------
-    if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
-        set(binary_dir "${LIBS_BINARY_DIR}/curl")
-        if(VSTUDIO)
-            set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/Release/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        elseif(MINGW OR VS_BUILD)
-            set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        else(VSTUDIO)
-            set(CURL_BUNDLED_LIBRARY "${binary_dir}/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        endif(VSTUDIO)
+	#-----------------------------------------------------------------
+	# Build bundled cURL library
+	#-----------------------------------------------------------------
+	if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
+		set(binary_dir "${LIBS_BINARY_DIR}/curl")
+		if(VSTUDIO)
+			set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/Release/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		elseif(MINGW OR VS_BUILD)
+			set(CURL_BUNDLED_LIBRARY optimized "${binary_dir}/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		else(VSTUDIO)
+			set(CURL_BUNDLED_LIBRARY "${binary_dir}/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		endif(VSTUDIO)
 
-        set(CURL_CMAKE_ARGS
-                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-                -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-                -DBUILD_CURL_EXE=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_ARES=OFF -DENABLE_THREADED_RESOLVER=ON -DENABLE_DEBUG=OFF
-                -DENABLE_CURLDEBUG=OFF -DBUILD_TESTING=OFF -DENABLE_IPV6=ON -DENABLE_MANUAL=OFF -DCMAKE_USE_LIBSSH2=OFF
-                -DUSE_NGHTTP2=OFF -DCURL_WINDOWS_SSPI=OFF -DCURL_ZLIB=AUTO -DCMAKE_USE_GSSAPI=OFF
-                -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON -DCURL_DISABLE_TELNET=ON -DCURL_DISABLE_DICT=ON
-                -DCURL_DISABLE_FILE=ON -DCURL_DISABLE_TFTP=ON -DCURL_DISABLE_RTSP=ON -DCURL_DISABLE_POP3=ON
-                -DCURL_DISABLE_IMAP=ON -DCURL_DISABLE_SMTP=ON -DCURL_DISABLE_GOPHER=ON -DENABLE_UNIX_SOCKETS=ON
-                -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/curl)
+		set(CURL_CMAKE_ARGS
+				-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+				-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+				-DBUILD_CURL_EXE=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_ARES=OFF -DENABLE_THREADED_RESOLVER=ON -DENABLE_DEBUG=OFF
+				-DENABLE_CURLDEBUG=OFF -DBUILD_TESTING=OFF -DENABLE_IPV6=ON -DENABLE_MANUAL=OFF -DCMAKE_USE_LIBSSH2=OFF
+				-DUSE_NGHTTP2=OFF -DCURL_WINDOWS_SSPI=OFF -DCURL_ZLIB=AUTO -DCMAKE_USE_GSSAPI=OFF
+				-DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON -DCURL_DISABLE_TELNET=ON -DCURL_DISABLE_DICT=ON
+				-DCURL_DISABLE_FILE=ON -DCURL_DISABLE_TFTP=ON -DCURL_DISABLE_RTSP=ON -DCURL_DISABLE_POP3=ON
+				-DCURL_DISABLE_IMAP=ON -DCURL_DISABLE_SMTP=ON -DCURL_DISABLE_GOPHER=ON -DENABLE_UNIX_SOCKETS=ON
+				-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/curl)
 
-        if(MSVC)
-            list(APPEND CURL_CMAKE_ARGS -DCURL_STATIC_CRT=ON)
-        endif()
+		if(MSVC)
+			list(APPEND CURL_CMAKE_ARGS -DCURL_STATIC_CRT=ON)
+		endif()
 
-        if(FEATURE_SSL)
-            if(BUNDLED_WOLFSSL)
-                include(CheckTypeSize)
-                check_type_size("long long" SIZEOF_LONG_LONG)
+		if(FEATURE_SSL)
+			if(BUNDLED_WOLFSSL)
+				include(CheckTypeSize)
+				check_type_size("long long" SIZEOF_LONG_LONG)
 
-                list(APPEND CURL_CMAKE_ARGS
-                        -DCMAKE_C_FLAGS=-DSIZEOF_LONG_LONG=${SIZEOF_LONG_LONG}
-                        -DCMAKE_USE_OPENSSL=OFF -DCURL_DISABLE_CRYPTO_AUTH=ON
-                        -DCMAKE_USE_WOLFSSL=ON
-                        -DCMAKE_LIBRARY_PATH=${LIBS_BINARY_DIR}/wolfssl
-                        -DWolfSSL_INCLUDE_DIR=${WOLFSSL_BUNDLED_INCLUDE_DIR}
-                        )
-            elseif(BUNDLED_OPENSSL)
-                list(APPEND CURL_CMAKE_ARGS -DOPENSSL_ROOT_DIR=${OPENSSL_PREFIX} -DCMAKE_USE_OPENSSL=ON)
-            else()
-                list(APPEND CURL_CMAKE_ARGS -DCMAKE_USE_OPENSSL=OFF -DCMAKE_USE_SCHANNEL=ON)
-            endif()
-        else()
-            list(APPEND CURL_CMAKE_ARGS -DCMAKE_USE_OPENSSL=OFF)
-        endif()
+				list(APPEND CURL_CMAKE_ARGS
+						-DCMAKE_C_FLAGS=-DSIZEOF_LONG_LONG=${SIZEOF_LONG_LONG}
+						-DCMAKE_USE_OPENSSL=OFF -DCURL_DISABLE_CRYPTO_AUTH=ON
+						-DCMAKE_USE_WOLFSSL=ON
+						-DCMAKE_LIBRARY_PATH=${LIBS_BINARY_DIR}/wolfssl
+						-DWolfSSL_INCLUDE_DIR=${WOLFSSL_BUNDLED_INCLUDE_DIR}
+						)
+			elseif(BUNDLED_OPENSSL)
+				list(APPEND CURL_CMAKE_ARGS -DOPENSSL_ROOT_DIR=${OPENSSL_PREFIX} -DCMAKE_USE_OPENSSL=ON)
+			else()
+				list(APPEND CURL_CMAKE_ARGS -DCMAKE_USE_OPENSSL=OFF -DCMAKE_USE_SCHANNEL=ON)
+			endif()
+		else()
+			list(APPEND CURL_CMAKE_ARGS -DCMAKE_USE_OPENSSL=OFF)
+		endif()
 
-        # -DHTTP_ONLY=ON
-        ExternalProject_Add(bundled_curl
-                DEPENDS bundled_wolfssl bundled_openssl
-                DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-                URL https://github.com/curl/curl/archive/curl-7_80_0.tar.gz
-                URL_HASH MD5=d96c3324dd060474508312449105d835
-                SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
-                # SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/curl
-                PREFIX ${LIBS_BINARY_DIR}/curl
-                BINARY_DIR ${binary_dir}
-                BUILD_BYPRODUCTS ${CURL_BUNDLED_LIBRARY}
-                CMAKE_ARGS ${CURL_CMAKE_ARGS}
-                )
+		# -DHTTP_ONLY=ON
+		ExternalProject_Add(bundled_curl
+				DEPENDS bundled_wolfssl bundled_openssl
+				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+				URL https://github.com/curl/curl/archive/curl-7_80_0.tar.gz
+				URL_HASH MD5=d96c3324dd060474508312449105d835
+				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
+				# SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/curl
+				PREFIX ${LIBS_BINARY_DIR}/curl
+				BINARY_DIR ${binary_dir}
+				BUILD_BYPRODUCTS ${CURL_BUNDLED_LIBRARY}
+				CMAKE_ARGS ${CURL_CMAKE_ARGS}
+				)
 
-        set(CURL_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/curl/include")
+		set(CURL_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/curl/include")
 
-        set_target_properties(bundled_curl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-    endif()
+		set_target_properties(bundled_curl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	endif()
 
 elseif(UNIX)
 
-    if(CROSS_COMPILE32)
-        if(APPLE)
-            set(CROSS_COMPILE32_FLAGS CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -m32 LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -m32)
-        else()
-            set(CROSS_COMPILE32_FLAGS CFLAGS=-m32 LDFLAGS=-m32)
-        endif()
-    else()
-        # when we don't cross compile we have to enable position independant code '-fPIC' for all bundled libs
-        # see http://stackoverflow.com/questions/7216244/why-is-fpic-absolutely-necessary-on-64-and-not-on-32bit-platforms
-        # let's misuse CROSS_COMPILE32_FLAGS var (for 64bit) to set our flag. FIXME: rename to CROSS_COMPILE_OPTIONAL_FLAGS?
-        # notes: - cflag -mcmodel=large might be an option too
-        #        - this has to be done in all dependant CMakeLists-txt files see glew/CMakeLists.txt
-        if(APPLE)
-            set(CROSS_COMPILE32_FLAGS CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -fPIC LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
-        else()
-            set(CROSS_COMPILE32_FLAGS "CFLAGS=-fPIC")
-        endif()
-    endif()
+	if(CROSS_COMPILE32)
+		if(APPLE)
+			set(CROSS_COMPILE32_FLAGS CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -m32 LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -m32)
+		else()
+			set(CROSS_COMPILE32_FLAGS CFLAGS=-m32 LDFLAGS=-m32)
+		endif()
+	else()
+		# when we don't cross compile we have to enable position independant code '-fPIC' for all bundled libs
+		# see http://stackoverflow.com/questions/7216244/why-is-fpic-absolutely-necessary-on-64-and-not-on-32bit-platforms
+		# let's misuse CROSS_COMPILE32_FLAGS var (for 64bit) to set our flag. FIXME: rename to CROSS_COMPILE_OPTIONAL_FLAGS?
+		# notes: - cflag -mcmodel=large might be an option too
+		#        - this has to be done in all dependant CMakeLists-txt files see glew/CMakeLists.txt
+		if(APPLE)
+			set(CROSS_COMPILE32_FLAGS CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -fPIC LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
+		else()
+			set(CROSS_COMPILE32_FLAGS "CFLAGS=-fPIC")
+		endif()
+	endif()
 
-    if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
-        # FIXME: check flags
-        if(CROSS_COMPILE32)
-            if(APPLE)
-                SET(OPENSSL_BUILD ./Configure darwin-i386-cc ${CROSS_COMPILE32_FLAGS})
-            else()
-                SET(OPENSSL_BUILD ./Configure linux-x86 ${CROSS_COMPILE32_FLAGS})
-            endif()
-        else()
-            if(APPLE)
-                SET(OPENSSL_BUILD ./Configure darwin64-x86_64-cc ${CROSS_COMPILE32_FLAGS})
-            else()
-                #SET(OPENSSL_BUILD ./Configure linux-x86_64 ${CROSS_COMPILE32_FLAGS})
-                # better use ./config here?! (..and not the CROSS_COMPILE32_FLAGS?!)
-                if(NOT ARM)
-                    SET(OPENSSL_BUILD ./Configure linux-x86_64)
-                else()
-                    SET(OPENSSL_BUILD ./Configure linux-aarch64)
-                endif()
-            endif()
-        endif()
+	if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
+		# FIXME: check flags
+		if(CROSS_COMPILE32)
+			if(APPLE)
+				SET(OPENSSL_BUILD ./Configure darwin-i386-cc ${CROSS_COMPILE32_FLAGS})
+			else()
+				SET(OPENSSL_BUILD ./Configure linux-x86 ${CROSS_COMPILE32_FLAGS})
+			endif()
+		else()
+			if(APPLE)
+				SET(OPENSSL_BUILD ./Configure darwin64-x86_64-cc ${CROSS_COMPILE32_FLAGS})
+			else()
+				#SET(OPENSSL_BUILD ./Configure linux-x86_64 ${CROSS_COMPILE32_FLAGS})
+				# better use ./config here?! (..and not the CROSS_COMPILE32_FLAGS?!)
+				if(NOT ARM)
+					SET(OPENSSL_BUILD ./Configure linux-x86_64)
+				else()
+					SET(OPENSSL_BUILD ./Configure linux-aarch64)
+				endif()
+			endif()
+		endif()
 
-        set(OPENSSL_BUNDLED_LIBRARY "${LIBS_BINARY_DIR}/openssl/lib/libssl.a" "${LIBS_BINARY_DIR}/openssl/lib/libcrypto.a")
+		set(OPENSSL_BUNDLED_LIBRARY "${LIBS_BINARY_DIR}/openssl/lib/libssl.a" "${LIBS_BINARY_DIR}/openssl/lib/libcrypto.a")
 
-        # FIXME:
-        # check all the locations of the files (runtime files?!)
-        # and enable ssl in CURL
-        ExternalProject_Add(
-                bundled_openssl
-                DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-                URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1l.tar.gz
-                URL_HASH MD5=2ff02cd10f96671162df3efd60470cfe
-                SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/openssl"
-                CONFIGURE_COMMAND ${OPENSSL_BUILD} --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/openssl
-                --openssldir=${LIBS_BINARY_DIR}/openssl
-                PREFIX ${LIBS_BINARY_DIR}/openssl
-                BUILD_COMMAND make ${CROSS_COMPILE32_FLAGS}
-                INSTALL_COMMAND make install_sw
-                BUILD_IN_SOURCE 1
-                BUILD_BYPRODUCTS ${OPENSSL_BUNDLED_LIBRARY}
-        )
+		# FIXME:
+		# check all the locations of the files (runtime files?!)
+		# and enable ssl in CURL
+		ExternalProject_Add(
+				bundled_openssl
+				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+				URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1l.tar.gz
+				URL_HASH MD5=2ff02cd10f96671162df3efd60470cfe
+				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/openssl"
+				CONFIGURE_COMMAND ${OPENSSL_BUILD} --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/openssl
+				--openssldir=${LIBS_BINARY_DIR}/openssl
+				PREFIX ${LIBS_BINARY_DIR}/openssl
+				BUILD_COMMAND make ${CROSS_COMPILE32_FLAGS}
+				INSTALL_COMMAND make install_sw
+				BUILD_IN_SOURCE 1
+				BUILD_BYPRODUCTS ${OPENSSL_BUNDLED_LIBRARY}
+		)
 
-        # also generates libcrypto.a
-        set(OPENSSL_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/openssl/include")
-    else()
-        add_custom_target(bundled_openssl)
-        set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-    endif()
+		# also generates libcrypto.a
+		set(OPENSSL_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/openssl/include")
+	else()
+		add_custom_target(bundled_openssl)
+		set_target_properties(bundled_openssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	endif()
 
-    #-----------------------------------------------------------------
-    # Build bundled cURL library
-    #-----------------------------------------------------------------
-    if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
+	#-----------------------------------------------------------------
+	# Build bundled cURL library
+	#-----------------------------------------------------------------
+	if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
 
-        # FIXME: add openssl lib to project
-        # set --with-ssl / remove --without-ssl
+		# FIXME: add openssl lib to project
+		# set --with-ssl / remove --without-ssl
 
-        if(APPLE)
-            if(CROSS_COMPILE32)
-                set(CURL_BUILD_APPEND CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -m32\ -DLUA_USE_MACOSX LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -m32)
-            else()
-                set(CURL_BUILD_APPEND CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -arch=x86_64\ -pipe\ -Os\ -gdwarf-2\ -fembed-bitcode)
-            endif()
-        else()
-            set(CURL_BUILD_APPEND "")
-        endif()
+		if(APPLE)
+			if(CROSS_COMPILE32)
+				set(CURL_BUILD_APPEND CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -m32\ -DLUA_USE_MACOSX LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -m32)
+			else()
+				set(CURL_BUILD_APPEND CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -arch=x86_64\ -pipe\ -Os\ -gdwarf-2\ -fembed-bitcode)
+			endif()
+		else()
+			set(CURL_BUILD_APPEND "")
+		endif()
 
-        set(CURL_CONFIGURE autoreconf -iv && ./configure --prefix=${LIBS_BINARY_DIR}/curl
-                --enable-shared=no --enable-static=yes
-                --enable-http --enable-ftp --disable-file
-                --disable-ldap --disable-ldaps --disable-rtsp
-                --enable-proxy --disable-dict --disable-telnet
-                --disable-tftp --disable-pop3 --disable-imap
-                --disable-smb --disable-smtp --disable-gopher
-                --without-libssh2 --without-nghttp2 --without-zstd
-                --without-gssapi --with-zlib --without-brotli
-                --enable-threaded-resolver --disable-sspi
-                --enable-ipv6 --without-libidn2
-                --without-libpsl --without-librtmp
-                --disable-manual
-                )
+		set(CURL_CONFIGURE autoreconf -iv && ./configure --prefix=${LIBS_BINARY_DIR}/curl
+				--enable-shared=no --enable-static=yes
+				--enable-http --enable-ftp --disable-file
+				--disable-ldap --disable-ldaps --disable-rtsp
+				--enable-proxy --disable-dict --disable-telnet
+				--disable-tftp --disable-pop3 --disable-imap
+				--disable-smb --disable-smtp --disable-gopher
+				--without-libssh2 --without-nghttp2 --without-zstd
+				--without-gssapi --with-zlib --without-brotli
+				--enable-threaded-resolver --disable-sspi
+				--enable-ipv6 --without-libidn2
+				--without-libpsl --without-librtmp
+				--disable-manual
+				)
 
-        if(APPLE)
-            list(APPEND CURL_CONFIGURE --host=x86_64-apple-darwin ${CURL_BUILD_APPEND})
-        else()
-            list(APPEND CURL_CONFIGURE --enable-unix-sockets --enable-libgcc)
-        endif()
+		if(APPLE)
+			list(APPEND CURL_CONFIGURE --host=x86_64-apple-darwin ${CURL_BUILD_APPEND})
+		else()
+			list(APPEND CURL_CONFIGURE --enable-unix-sockets --enable-libgcc)
+		endif()
 
-        if(FEATURE_SSL)
-            if(BUNDLED_WOLFSSL)
-                list(APPEND CURL_CONFIGURE --with-wolfssl=${LIBS_BINARY_DIR}/wolfssl)
-            elseif(BUNDLED_OPENSSL)
-                list(APPEND CURL_CONFIGURE --with-openssl=${LIBS_BINARY_DIR}/openssl)
-            else()
-                if(APPLE)
-                    list(APPEND CURL_CONFIGURE --with-secure-transport)
-                else()
-                    list(APPEND CURL_CONFIGURE --with-openssl)
-                endif()
-            endif()
-        else()
-            list(APPEND CURL_CONFIGURE --without-ssl)
-        endif()
+		if(FEATURE_SSL)
+			if(BUNDLED_WOLFSSL)
+				list(APPEND CURL_CONFIGURE --with-wolfssl=${LIBS_BINARY_DIR}/wolfssl)
+			elseif(BUNDLED_OPENSSL)
+				list(APPEND CURL_CONFIGURE --with-openssl=${LIBS_BINARY_DIR}/openssl)
+			else()
+				if(APPLE)
+					list(APPEND CURL_CONFIGURE --with-secure-transport)
+				else()
+					list(APPEND CURL_CONFIGURE --with-openssl)
+				endif()
+			endif()
+		else()
+			list(APPEND CURL_CONFIGURE --without-ssl)
+		endif()
 
-        set(CURL_BUNDLED_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/lib/libcurl.a")
-        set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/include")
-        ExternalProject_Add(
-                bundled_curl
-                DEPENDS bundled_wolfssl bundled_openssl
-                DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-                URL https://github.com/curl/curl/archive/curl-7_80_0.tar.gz
-                URL_HASH MD5=d96c3324dd060474508312449105d835
-                SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
-                PATCH_COMMAND sed -i -e "s/LIBS=\"$addlib $LIBS\"/LIBS=\"$addlib -lm $LIBS\"/g" ${LIBS_DOWNLOAD_SRC_DIR}/curl/m4/curl-wolfssl.m4
-                BUILD_BYPRODUCTS ${CURL_BUNDLED_LIBRARY}
-                CONFIGURE_COMMAND ${CURL_CONFIGURE}
-                PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/curl
-                BUILD_COMMAND make ${CURL_BUILD_APPEND}
-                INSTALL_COMMAND make install
-                BUILD_IN_SOURCE 1
-        )
-    endif()
+		set(CURL_BUNDLED_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/lib/libcurl.a")
+		set(CURL_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/include")
+		ExternalProject_Add(
+				bundled_curl
+				DEPENDS bundled_wolfssl bundled_openssl
+				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+				URL https://github.com/curl/curl/archive/curl-7_80_0.tar.gz
+				URL_HASH MD5=d96c3324dd060474508312449105d835
+				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
+				PATCH_COMMAND sed -i -e "s/LIBS=\"$addlib $LIBS\"/LIBS=\"$addlib -lm $LIBS\"/g" ${LIBS_DOWNLOAD_SRC_DIR}/curl/m4/curl-wolfssl.m4
+				BUILD_BYPRODUCTS ${CURL_BUNDLED_LIBRARY}
+				CONFIGURE_COMMAND ${CURL_CONFIGURE}
+				PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/curl
+				BUILD_COMMAND make ${CURL_BUILD_APPEND}
+				INSTALL_COMMAND make install
+				BUILD_IN_SOURCE 1
+		)
+	endif()
 endif()
 
 #-----------------------------------------------------------------
 # Build bundled OpenAL library
 #-----------------------------------------------------------------
 if(BUNDLED_OPENAL AND BUILD_CLIENT)
-    add_library(bundled_openal_int INTERFACE)
+	add_library(bundled_openal_int INTERFACE)
 
-    if (WIN)
-        set(binary_dir "${LIBS_BINARY_DIR}/openal")
-        if(VSTUDIO)
-            set(OPENAL_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        elseif(VS_BUILD)
-            set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        else()
-            set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libOpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        endif()
+	if (WIN)
+		set(binary_dir "${LIBS_BINARY_DIR}/openal")
+		if(VSTUDIO)
+			set(OPENAL_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		elseif(VS_BUILD)
+			set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		else()
+			set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libOpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		endif()
 
-        ExternalProject_Add(bundled_openal
-                SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
-                BINARY_DIR	${binary_dir}
-                BUILD_BYPRODUCTS ${OPENAL_BUNDLED_LIBRARIES}
-                CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-                -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal
-                -DLIBTYPE=STATIC -DFORCE_STATIC_VCRT=ON
-                -DALSOFT_UTILS=OFF -DALSOFT_NO_CONFIG_UTIL=ON -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF
-                -DALSOFT_CONFIG=OFF -DALSOFT_HRTF_DEFS=OFF -DALSOFT_AMBDEC_PRESETS=OFF
-                INSTALL_COMMAND  ""
-        )
-        set_target_properties(bundled_openal PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+		ExternalProject_Add(bundled_openal
+				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
+				BINARY_DIR	${binary_dir}
+				BUILD_BYPRODUCTS ${OPENAL_BUNDLED_LIBRARIES}
+				CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+				-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+				-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal
+				-DLIBTYPE=STATIC -DFORCE_STATIC_VCRT=ON
+				-DALSOFT_UTILS=OFF -DALSOFT_NO_CONFIG_UTIL=ON -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF
+				-DALSOFT_CONFIG=OFF -DALSOFT_HRTF_DEFS=OFF -DALSOFT_AMBDEC_PRESETS=OFF
+				INSTALL_COMMAND  ""
+		)
+		set_target_properties(bundled_openal PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
-        target_link_directories(bundled_openal_int INTERFACE ${OPENAL_BUNDLED_LIBRARIES})
-        target_include_directories(bundled_openal_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/openal/include")
-        target_compile_definitions(bundled_openal_int INTERFACE AL_LIBTYPE_STATIC)
-    elseif(UNIX)
-        set(OPENAL_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/openal/libopenal.a")
-        ExternalProject_Add(bundled_openal
-                SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
-                BINARY_DIR	${LIBS_BINARY_DIR}/openal
-                BUILD_BYPRODUCTS ${OPENAL_BUNDLED_LIBRARIES}
-                CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-                -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal
-                -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}" -DLIBTYPE=STATIC
-                -DALSOFT_UTILS=OFF -DALSOFT_NO_CONFIG_UTIL=ON -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF
-                -DALSOFT_CONFIG=OFF -DALSOFT_HRTF_DEFS=OFF -DALSOFT_AMBDEC_PRESETS=OFF -DALSOFT_BACKEND_SNDIO=OFF
-                INSTALL_COMMAND  ""
-        )
+		add_dependencies(bundled_openal_int bundled_openal)
+		target_link_directories(bundled_openal_int INTERFACE ${OPENAL_BUNDLED_LIBRARIES})
+		target_include_directories(bundled_openal_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/openal/include")
+		target_compile_definitions(bundled_openal_int INTERFACE AL_LIBTYPE_STATIC)
+	elseif(UNIX)
+		set(OPENAL_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/openal/libopenal.a")
+		ExternalProject_Add(bundled_openal
+				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
+				BINARY_DIR	${LIBS_BINARY_DIR}/openal
+				BUILD_BYPRODUCTS ${OPENAL_BUNDLED_LIBRARIES}
+				CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+				-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+				-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal
+				-DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}" -DLIBTYPE=STATIC
+				-DALSOFT_UTILS=OFF -DALSOFT_NO_CONFIG_UTIL=ON -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF
+				-DALSOFT_CONFIG=OFF -DALSOFT_HRTF_DEFS=OFF -DALSOFT_AMBDEC_PRESETS=OFF -DALSOFT_BACKEND_SNDIO=OFF
+				INSTALL_COMMAND  ""
+		)
+		ExternalProject_Get_Property(bundled_openal binary_dir)
 
-        ExternalProject_Get_Property(bundled_openal binary_dir)
-
-        target_link_directories(bundled_openal_int INTERFACE ${OPENAL_BUNDLED_LIBRARIES})
-        target_include_directories(bundled_openal_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/openal/include")
-        target_compile_definitions(bundled_openal_int INTERFACE AL_LIBTYPE_STATIC)
-    elseif(BUNDLED_OPENAL_INCLUDE AND BUILD_CLIENT)
-        target_include_directories(bundled_openal_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/openal/include")
-    endif()
-
+		add_dependencies(bundled_openal_int bundled_openal)
+		target_link_directories(bundled_openal_int INTERFACE ${OPENAL_BUNDLED_LIBRARIES})
+		target_include_directories(bundled_openal_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/openal/include")
+		target_compile_definitions(bundled_openal_int INTERFACE AL_LIBTYPE_STATIC)
+	endif()
+elseif(APPLE AND BUILD_CLIENT) # due to OSX missing headers in base install
+	target_include_directories(client_libraries INTERFACE "${CMAKE_CURRENT_LIST_DIR}/openal/include")
 endif()
 
 #-----------------------------------------------------------------
 # Build bundled OGG and Vorbis file library
 #-----------------------------------------------------------------
 if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT AND APPLE)
-    add_library(bundled_ogg_full INTERFACE)
+	add_library(bundled_ogg_full INTERFACE)
 
-    if (APPLE)
-        set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}" INTERNAL)
-        ExternalProject_Add(bundled_ogg
-                SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/ogg
-                BINARY_DIR	${LIBS_BINARY_DIR}/ogg
-                BUILD_BYPRODUCTS ${OGG_BUNDLED_LIBRARIES}
-                CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-                -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
-                -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
-                -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/ogg
-                )
+	if (APPLE)
+		set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}" INTERNAL)
+		ExternalProject_Add(bundled_ogg
+				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/ogg
+				BINARY_DIR	${LIBS_BINARY_DIR}/ogg
+				BUILD_BYPRODUCTS ${OGG_BUNDLED_LIBRARIES}
+				CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+				-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+				-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
+				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
+				-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/ogg
+				)
 
-        set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/lib/libogg.a" INTERNAL)
-        set(OGG_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/ogg/include" INTERNAL)
+		set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/lib/libogg.a" INTERNAL)
+		set(OGG_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/ogg/include" INTERNAL)
 
-        add_dependencies(bundled_ogg_full bundled_ogg)
-        target_include_directories(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/ogg/include")
-        target_link_libraries(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/ogg/lib/libogg.a")
+		add_dependencies(bundled_ogg_full bundled_ogg)
+		target_include_directories(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/ogg/include")
+		target_link_libraries(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/ogg/lib/libogg.a")
 
-        set(VORBIS_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/vorbis/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}" INTERNAL)
-        ExternalProject_Add(bundled_ogg_vorbis
-                DEPENDS bundled_ogg
-                SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/vorbis
-                BINARY_DIR	${LIBS_BINARY_DIR}/vorbis
-                BUILD_BYPRODUCTS ${VORBIS_BUNDLED_LIBRARIES}
-                CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-                -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
-                -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_} -DCMAKE_LIBRARY_PATH=${LIBS_BINARY_DIR}/ogg
-                -DOGG_ROOT=${LIBS_BINARY_DIR}/ogg
-                -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/vorbis
-        )
+		set(VORBIS_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/vorbis/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}" INTERNAL)
+		ExternalProject_Add(bundled_ogg_vorbis
+				DEPENDS bundled_ogg
+				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/vorbis
+				BINARY_DIR	${LIBS_BINARY_DIR}/vorbis
+				BUILD_BYPRODUCTS ${VORBIS_BUNDLED_LIBRARIES}
+				CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+				-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+				-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
+				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_} -DCMAKE_LIBRARY_PATH=${LIBS_BINARY_DIR}/ogg
+				-DOGG_ROOT=${LIBS_BINARY_DIR}/ogg
+				-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/vorbis
+		)
 
-        add_dependencies(bundled_ogg_full bundled_ogg_vorbis)
-        target_include_directories(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/vorbis/include")
-        target_link_libraries(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
-    elseif(WINDOWS)
-        # OGG
-        set(OPATH "${CMAKE_CURRENT_LIST_DIR}/ogg")
+		add_dependencies(bundled_ogg_full bundled_ogg_vorbis)
+		target_include_directories(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/vorbis/include")
+		target_link_libraries(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
+	elseif(WINDOWS)
+		# OGG
+		set(OPATH "${CMAKE_CURRENT_LIST_DIR}/ogg")
 
-        set(OGG_SRC ${OPATH}/src/bitwise.c ${OPATH}/src/framing.c)
-        set(OGG_HEADERS ${OPATH}/include/ogg/ogg.h ${OPATH}/include/ogg/os_types.h)
+		set(OGG_SRC ${OPATH}/src/bitwise.c ${OPATH}/src/framing.c)
+		set(OGG_HEADERS ${OPATH}/include/ogg/ogg.h ${OPATH}/include/ogg/os_types.h)
 
-        if(MSVC)
-            #ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
-            LIST(APPEND OGG_SRC ${OPATH}/win32/ogg.def)
-        endif()
+		if(MSVC)
+			#ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
+			LIST(APPEND OGG_SRC ${OPATH}/win32/ogg.def)
+		endif()
 
-        if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-            # libogg expects configure to be called on linux to
-            # generate config_types.h
-            list(APPEND OGG_HEADERS ${OPATH}/include/ogg/config_types.h)
-            add_custom_command(OUTPUT ${OPATH}/include/ogg/config_types.h
-                    COMMAND ${OPATH}/configure
-                    DEPENDS ${OPATH}/include/ogg/ogg.h  # Hopefully if the libogg version changes, so does this file
-                    # so configure_types.h will be regenerated.
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            )
-        endif()
+		if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+			# libogg expects configure to be called on linux to
+			# generate config_types.h
+			list(APPEND OGG_HEADERS ${OPATH}/include/ogg/config_types.h)
+			add_custom_command(OUTPUT ${OPATH}/include/ogg/config_types.h
+					COMMAND ${OPATH}/configure
+					DEPENDS ${OPATH}/include/ogg/ogg.h  # Hopefully if the libogg version changes, so does this file
+					# so configure_types.h will be regenerated.
+					WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+			)
+		endif()
 
-        add_library(bundled_ogg STATIC ${OGG_SRC} ${OGG_HEADERS})
-        target_include_directories(bundled_ogg PUBLIC "${OPATH}/include")
+		add_library(bundled_ogg STATIC ${OGG_SRC} ${OGG_HEADERS})
+		target_include_directories(bundled_ogg PUBLIC "${OPATH}/include")
 
-        set(VPATH "${CMAKE_CURRENT_LIST_DIR}/vorbis")
+		set(VPATH "${CMAKE_CURRENT_LIST_DIR}/vorbis")
 
-        set(VORBIS_SRC
-                ${VPATH}/lib/analysis.c
-                ${VPATH}/lib/bitrate.c
-                ${VPATH}/lib/block.c
-                ${VPATH}/lib/codebook.c
-                ${VPATH}/lib/envelope.c
-                ${VPATH}/lib/floor0.c
-                ${VPATH}/lib/floor1.c
-                ${VPATH}/lib/info.c
-                ${VPATH}/lib/lookup.c
-                ${VPATH}/lib/lpc.c
-                ${VPATH}/lib/lsp.c
-                ${VPATH}/lib/mapping0.c
-                ${VPATH}/lib/mdct.c
-                ${VPATH}/lib/psy.c
-                ${VPATH}/lib/registry.c
-                ${VPATH}/lib/res0.c
-                ${VPATH}/lib/sharedbook.c
-                ${VPATH}/lib/smallft.c
-                ${VPATH}/lib/synthesis.c
-                ${VPATH}/lib/vorbisenc.c
-                ${VPATH}/lib/window.c
-                )
+		set(VORBIS_SRC
+				${VPATH}/lib/analysis.c
+				${VPATH}/lib/bitrate.c
+				${VPATH}/lib/block.c
+				${VPATH}/lib/codebook.c
+				${VPATH}/lib/envelope.c
+				${VPATH}/lib/floor0.c
+				${VPATH}/lib/floor1.c
+				${VPATH}/lib/info.c
+				${VPATH}/lib/lookup.c
+				${VPATH}/lib/lpc.c
+				${VPATH}/lib/lsp.c
+				${VPATH}/lib/mapping0.c
+				${VPATH}/lib/mdct.c
+				${VPATH}/lib/psy.c
+				${VPATH}/lib/registry.c
+				${VPATH}/lib/res0.c
+				${VPATH}/lib/sharedbook.c
+				${VPATH}/lib/smallft.c
+				${VPATH}/lib/synthesis.c
+				${VPATH}/lib/vorbisenc.c
+				${VPATH}/lib/window.c
+				)
 
-        set(VORBIS_HEADERS
-                ${VPATH}/lib/backends.h
-                ${VPATH}/lib/bitrate.h
-                ${VPATH}/lib/codebook.h
-                ${VPATH}/lib/codec_internal.h
-                ${VPATH}/lib/envelope.h
-                ${VPATH}/lib/modes/floor_all.h
-                ${VPATH}/lib/books/floor/floor_books.h
-                ${VPATH}/lib/highlevel.h
-                ${VPATH}/lib/lookup.h
-                ${VPATH}/lib/lookup_data.h
-                ${VPATH}/lib/lpc.h
-                ${VPATH}/lib/lsp.h
-                ${VPATH}/lib/masking.h
-                ${VPATH}/lib/mdct.h
-                ${VPATH}/lib/misc.h
-                ${VPATH}/lib/os.h
-                ${VPATH}/lib/psy.h
-                ${VPATH}/lib/modes/psych_11.h
-                ${VPATH}/lib/modes/psych_16.h
-                ${VPATH}/lib/modes/psych_44.h
-                ${VPATH}/lib/modes/psych_8.h
-                ${VPATH}/lib/registry.h
-                ${VPATH}/lib/books/coupled/res_books_stereo.h
-                ${VPATH}/lib/books/uncoupled/res_books_uncoupled.h
-                ${VPATH}/lib/modes/residue_16.h
-                ${VPATH}/lib/modes/residue_44.h
-                ${VPATH}/lib/modes/residue_44u.h
-                ${VPATH}/lib/modes/residue_8.h
-                ${VPATH}/lib/scales.h
-                ${VPATH}/lib/modes/setup_11.h
-                ${VPATH}/lib/modes/setup_16.h
-                ${VPATH}/lib/modes/setup_22.h
-                ${VPATH}/lib/modes/setup_32.h
-                ${VPATH}/lib/modes/setup_44.h
-                ${VPATH}/lib/modes/setup_44u.h
-                ${VPATH}/lib/modes/setup_8.h
-                ${VPATH}/lib/modes/setup_X.h
-                ${VPATH}/lib/smallft.h
-                ${VPATH}/lib/window.h
-                )
+		set(VORBIS_HEADERS
+				${VPATH}/lib/backends.h
+				${VPATH}/lib/bitrate.h
+				${VPATH}/lib/codebook.h
+				${VPATH}/lib/codec_internal.h
+				${VPATH}/lib/envelope.h
+				${VPATH}/lib/modes/floor_all.h
+				${VPATH}/lib/books/floor/floor_books.h
+				${VPATH}/lib/highlevel.h
+				${VPATH}/lib/lookup.h
+				${VPATH}/lib/lookup_data.h
+				${VPATH}/lib/lpc.h
+				${VPATH}/lib/lsp.h
+				${VPATH}/lib/masking.h
+				${VPATH}/lib/mdct.h
+				${VPATH}/lib/misc.h
+				${VPATH}/lib/os.h
+				${VPATH}/lib/psy.h
+				${VPATH}/lib/modes/psych_11.h
+				${VPATH}/lib/modes/psych_16.h
+				${VPATH}/lib/modes/psych_44.h
+				${VPATH}/lib/modes/psych_8.h
+				${VPATH}/lib/registry.h
+				${VPATH}/lib/books/coupled/res_books_stereo.h
+				${VPATH}/lib/books/uncoupled/res_books_uncoupled.h
+				${VPATH}/lib/modes/residue_16.h
+				${VPATH}/lib/modes/residue_44.h
+				${VPATH}/lib/modes/residue_44u.h
+				${VPATH}/lib/modes/residue_8.h
+				${VPATH}/lib/scales.h
+				${VPATH}/lib/modes/setup_11.h
+				${VPATH}/lib/modes/setup_16.h
+				${VPATH}/lib/modes/setup_22.h
+				${VPATH}/lib/modes/setup_32.h
+				${VPATH}/lib/modes/setup_44.h
+				${VPATH}/lib/modes/setup_44u.h
+				${VPATH}/lib/modes/setup_8.h
+				${VPATH}/lib/modes/setup_X.h
+				${VPATH}/lib/smallft.h
+				${VPATH}/lib/window.h
+				)
 
-        set(VORBIS_PUB_HEADERS
-                ${VPATH}/include/vorbis/codec.h
-                ${VPATH}/include/vorbis/vorbisenc.h
-                ${VPATH}/include/vorbis/vorbisfile.h
-                )
+		set(VORBIS_PUB_HEADERS
+				${VPATH}/include/vorbis/codec.h
+				${VPATH}/include/vorbis/vorbisenc.h
+				${VPATH}/include/vorbis/vorbisfile.h
+				)
 
-        IF(MSVC)
-            #ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
-            list(APPEND VORBIS_SRC ${VPATH}/win32/vorbis.def)
-        ENDIF(MSVC)
+		IF(MSVC)
+			#ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
+			list(APPEND VORBIS_SRC ${VPATH}/win32/vorbis.def)
+		ENDIF(MSVC)
 
-        add_library(bundled_ogg_vorbis STATIC ${VORBIS_SRC} ${VORBIS_HEADERS} ${VORBIS_PUB_HEADERS})
-        target_include_directories(bundled_ogg_vorbis PUBLIC "${VPATH}/include" "${VPATH}/lib")
-        target_link_libraries(bundled_ogg_vorbis bundled_ogg)
-        add_library(bundled_ogg_vorbis_file STATIC ${VPATH}/lib/vorbisfile.c ${VPATH}/include/vorbis/vorbisfile.h)
-        target_link_libraries(bundled_ogg_vorbis_file bundled_ogg bundled_ogg_vorbis)
+		add_library(bundled_ogg_vorbis STATIC ${VORBIS_SRC} ${VORBIS_HEADERS} ${VORBIS_PUB_HEADERS})
+		target_include_directories(bundled_ogg_vorbis PUBLIC "${VPATH}/include" "${VPATH}/lib")
+		target_link_libraries(bundled_ogg_vorbis bundled_ogg)
+		add_library(bundled_ogg_vorbis_file STATIC ${VPATH}/lib/vorbisfile.c ${VPATH}/include/vorbis/vorbisfile.h)
+		target_link_libraries(bundled_ogg_vorbis_file bundled_ogg bundled_ogg_vorbis)
 
-        if(MSVC)
-            set(VORB_UNI "_UNICODE;UNICODE")
-            set_target_properties(bundled_ogg PROPERTIES
-                    COMPILE_DEFINITIONS "${VORB_UNI}"
-                    )
-            set_target_properties(bundled_ogg_vorbis PROPERTIES
-                    COMPILE_DEFINITIONS "${VORB_UNI}"
-                    )
-            set_target_properties(bundled_ogg_vorbis_file PROPERTIES
-                    COMPILE_DEFINITIONS "${VORB_UNI}"
-                    )
-        endif(MSVC)
+		if(MSVC)
+			set(VORB_UNI "_UNICODE;UNICODE")
+			set_target_properties(bundled_ogg PROPERTIES
+					COMPILE_DEFINITIONS "${VORB_UNI}"
+					)
+			set_target_properties(bundled_ogg_vorbis PROPERTIES
+					COMPILE_DEFINITIONS "${VORB_UNI}"
+					)
+			set_target_properties(bundled_ogg_vorbis_file PROPERTIES
+					COMPILE_DEFINITIONS "${VORB_UNI}"
+					)
+		endif(MSVC)
 
-        set_target_properties(bundled_ogg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-        set_target_properties(bundled_ogg_vorbis PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-        set_target_properties(bundled_ogg_vorbis_file PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+		set_target_properties(bundled_ogg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+		set_target_properties(bundled_ogg_vorbis PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+		set_target_properties(bundled_ogg_vorbis_file PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
-        set(OGG_BUNDLED_LIBRARIES bundled_ogg)
-        set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/ogg/include")
-        set(OGG_VORBIS_BUNDLED_LIBRARIES bundled_ogg_vorbis bundled_ogg_vorbis_file)
-        set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/vorbis/include")
+		set(OGG_BUNDLED_LIBRARIES bundled_ogg)
+		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/ogg/include")
+		set(OGG_VORBIS_BUNDLED_LIBRARIES bundled_ogg_vorbis bundled_ogg_vorbis_file)
+		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/vorbis/include")
 
-        target_link_libraries(bundled_ogg_full INTERFACE bundled_ogg bundled_ogg_vorbis bundled_ogg_vorbis_file)
-    else()
-        ExternalProject_Add(
-                bundled_ogg
-                SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/ogg
-                PATCH_COMMAND autoreconf -fiv
-                CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg ${CROSS_COMPILE32_FLAGS}
-                --enable-silent-rules --disable-dependency-tracking --enable-shared=no
-                PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/ogg
-                BUILD_COMMAND make
-                INSTALL_COMMAND make install
-                BUILD_IN_SOURCE 1
-        )
+		target_link_libraries(bundled_ogg_full INTERFACE bundled_ogg bundled_ogg_vorbis bundled_ogg_vorbis_file)
+	else()
+		ExternalProject_Add(
+				bundled_ogg
+				SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/ogg
+				PATCH_COMMAND autoreconf -fiv
+				CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg ${CROSS_COMPILE32_FLAGS}
+				--enable-silent-rules --disable-dependency-tracking --enable-shared=no
+				PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/ogg
+				BUILD_COMMAND make
+				INSTALL_COMMAND make install
+				BUILD_IN_SOURCE 1
+		)
 
-        set(OGG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib/libogg.a")
-        set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
+		set(OGG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib/libogg.a")
+		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
 
-        add_dependencies(bundled_ogg_full bundled_ogg)
-        target_include_directories(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
-        target_link_libraries(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib/libogg.a")
+		add_dependencies(bundled_ogg_full bundled_ogg)
+		target_include_directories(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
+		target_link_libraries(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib/libogg.a")
 
-        # OGG Vorbis File
-        set(CFLAGS "${CFLAGS} -I${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
-        set(LDFLAGS "${LDFLAGS} -L${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib")
+		# OGG Vorbis File
+		set(CFLAGS "${CFLAGS} -I${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
+		set(LDFLAGS "${LDFLAGS} -L${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib")
 
-        # the above set of CFLAGS and LDFLAGS don't trigger on some systems
-        # ensure vorbis configure uses our bundled ogg see --with-ogg-includes & --with-ogg-libraries
+		# the above set of CFLAGS and LDFLAGS don't trigger on some systems
+		# ensure vorbis configure uses our bundled ogg see --with-ogg-includes & --with-ogg-libraries
 
-        set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
-        set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/include")
-        ExternalProject_Add(
-                bundled_ogg_vorbis
-                DEPENDS bundled_ogg
-                SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/vorbis
-                #PATCH_COMMAND ./autogen.sh
-                BUILD_BYPRODUCTS ${OGG_VORBIS_BUNDLED_LIBRARIES} ${OGG_BUNDLED_LIBRARIES}
-                CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
-                --disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include
-                --with-ogg-libraries=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib ${CROSS_COMPILE32_FLAGS}
-                --disable-dependency-tracking --enable-silent-rules --enable-shared=no
-                PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
-                BUILD_COMMAND make
-                INSTALL_COMMAND make install
-                BUILD_IN_SOURCE 1
-        )
-        add_custom_target(bundled_ogg_vorbis_file)
+		set(OGG_VORBIS_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
+		set(OGG_VORBIS_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/include")
+		ExternalProject_Add(
+				bundled_ogg_vorbis
+				DEPENDS bundled_ogg
+				SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/vorbis
+				#PATCH_COMMAND ./autogen.sh
+				BUILD_BYPRODUCTS ${OGG_VORBIS_BUNDLED_LIBRARIES} ${OGG_BUNDLED_LIBRARIES}
+				CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
+				--disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include
+				--with-ogg-libraries=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib ${CROSS_COMPILE32_FLAGS}
+				--disable-dependency-tracking --enable-silent-rules --enable-shared=no
+				PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
+				BUILD_COMMAND make
+				INSTALL_COMMAND make install
+				BUILD_IN_SOURCE 1
+		)
+		add_custom_target(bundled_ogg_vorbis_file)
 
-        add_dependencies(bundled_ogg_full bundled_ogg_vorbis)
-        target_include_directories(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/include")
-        target_link_libraries(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
-    endif()
+		add_dependencies(bundled_ogg_full bundled_ogg_vorbis)
+		target_include_directories(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/include")
+		target_link_libraries(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
+	endif()
 endif()
 
 #-----------------------------------------------------------------
 # Build bundled Lua library
 #-----------------------------------------------------------------
 if(BUNDLED_LUA AND BUILD_MOD)
-    if (WIN32 OR APPLE)
-        set(LUA_LIB "${CMAKE_CURRENT_LIST_DIR}/lua/src")
-        FILE(GLOB LUA_LIB_SRC ${LUA_LIB}/*.c)
-        FILE(GLOB LUA_LIB_HEADERS ${LUA_LIB}/*.h)
+	if (WIN32 OR APPLE)
+		set(LUA_LIB "${CMAKE_CURRENT_LIST_DIR}/lua/src")
+		FILE(GLOB LUA_LIB_SRC ${LUA_LIB}/*.c)
+		FILE(GLOB LUA_LIB_HEADERS ${LUA_LIB}/*.h)
 
-        add_library(bundled_lua STATIC ${LUA_LIB_SRC} ${LUA_LIB_HEADERS})
-        set_target_properties(bundled_lua PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+		add_library(bundled_lua STATIC ${LUA_LIB_SRC} ${LUA_LIB_HEADERS})
+		set_target_properties(bundled_lua PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
-        # In the lua makefiles APPLE and POSIX get LUA_USE_READLINE as well, disabling it here since no input is or should be used in the mod..
-        if (APPLE)
-            target_compile_definitions(bundled_lua PUBLIC LUA_USE_MACOSX)
-        elseif(WIN32)
-            target_compile_definitions(bundled_lua PUBLIC LUA_USE_WINDOWS)
-        elseif(CMAKE_SYSTEM MATCHES "OpenBSD*")
-            target_compile_definitions(bundled_lua PUBLIC LUA_USE_POSIX)
-        else()
-            target_compile_definitions(bundled_lua PUBLIC LUA_USE_POSIX PUBLIC LUA_USE_DLOPEN)
-        endif()
+		# In the lua makefiles APPLE and POSIX get LUA_USE_READLINE as well, disabling it here since no input is or should be used in the mod..
+		if (APPLE)
+			target_compile_definitions(bundled_lua PUBLIC LUA_USE_MACOSX)
+		elseif(WIN32)
+			target_compile_definitions(bundled_lua PUBLIC LUA_USE_WINDOWS)
+		elseif(CMAKE_SYSTEM MATCHES "OpenBSD*")
+			target_compile_definitions(bundled_lua PUBLIC LUA_USE_POSIX)
+		else()
+			target_compile_definitions(bundled_lua PUBLIC LUA_USE_POSIX PUBLIC LUA_USE_DLOPEN)
+		endif()
 
-        set(LUA_BUNDLED_LIBRARIES bundled_lua)
-        set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
-    else()
-        if(CMAKE_SYSTEM MATCHES "OpenBSD*")
-            set(LUA_MAKE_TARGET "bsd")
-        else()
-            if(NOT CROSS_COMPILE32)
-                set(LUA_MAKE_TARGET "posix")
-            else()
-                set(LUA_MAKE_TARGET "posix32bit")
-            endif()
-        endif()
+		set(LUA_BUNDLED_LIBRARIES bundled_lua)
+		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
+	else()
+		if(CMAKE_SYSTEM MATCHES "OpenBSD*")
+			set(LUA_MAKE_TARGET "bsd")
+		else()
+			if(NOT CROSS_COMPILE32)
+				set(LUA_MAKE_TARGET "posix")
+			else()
+				set(LUA_MAKE_TARGET "posix32bit")
+			endif()
+		endif()
 
-        add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
-                COMMAND make clean || true
-                COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
-                WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
-        )
+		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
+				COMMAND make clean || true
+				COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
+				WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
+		)
 
-        set(LUA_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a")
-        set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
+		set(LUA_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a")
+		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
 
-        add_custom_target(bundled_lua DEPENDS ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a)
-    endif()
+		add_custom_target(bundled_lua DEPENDS ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a)
+	endif()
 endif()
 
 #-----------------------------------------------------------------
 # Copy bundled SDL library to the etl.exe location
 #-----------------------------------------------------------------
 if(BUNDLED_SDL AND BUILD_CLIENT)
-    add_library(bundled_sdl_int INTERFACE)
+	add_library(bundled_sdl_int INTERFACE)
 
-    if(CMAKE_SYSTEM MATCHES "Darwin" OR WIN32)
-        set(SDL32_BUNDLED_LIBRARIES optimized "${LIBS_BINARY_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2main${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARY_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2maind${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	if(CMAKE_SYSTEM MATCHES "Darwin" OR WIN32)
+		set(SDL32_BUNDLED_LIBRARIES optimized "${LIBS_BINARY_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2main${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARY_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2maind${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		if(MSVC)
 			set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} optimized "${LIBS_BINARY_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2-static${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARY_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2-staticd${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		else()
 			set(SDL32_BUNDLED_LIBRARIES ${SDL32_BUNDLED_LIBRARIES} optimized "${LIBS_BINARY_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARY_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2d${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		endif()
-    else()
-        set(SDL32_BUNDLED_LIBRARIES optimized "${LIBS_BINARY_DIR}/sdl2/${CMAKE_INSTALL_LIBDIR}/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARY_DIR}/sdl2/${CMAKE_INSTALL_LIBDIR}/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2d${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    endif()
+	else()
+		set(SDL32_BUNDLED_LIBRARIES optimized "${LIBS_BINARY_DIR}/sdl2/${CMAKE_INSTALL_LIBDIR}/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARY_DIR}/sdl2/${CMAKE_INSTALL_LIBDIR}/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2d${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	endif()
 
-    set(SDL_CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}
-            -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
-            -DSDL_RENDER_D3D=OFF -DSDL_RENDER=OFF
-            -DSDL_VIDEO_DUMMY=OFF -DSDL_VIDEO_OPENGL=ON -DSDL_VIDEO_VULKAN=OFF
-            -DSDL_VIDEO_KMSDRM=OFF
-            -DSDL_SHARED=OFF -DSDL_SNDIO=OFF -DSDL_LIBC=ON
-            -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/sdl2)
+	set(SDL_CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}
+			-DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
+			-DSDL_RENDER_D3D=OFF -DSDL_RENDER=OFF
+			-DSDL_VIDEO_DUMMY=OFF -DSDL_VIDEO_OPENGL=ON -DSDL_VIDEO_VULKAN=OFF
+			-DSDL_VIDEO_KMSDRM=OFF
+			-DSDL_SHARED=OFF -DSDL_SNDIO=OFF -DSDL_LIBC=ON
+			-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/sdl2)
 
-    # Bye bye X11
-    if(APPLE)
-        set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_VIDEO_X11=OFF -DSDL_VIDEO_X11_XINPUT=OFF -DSDL_VIDEO_WAYLAND=OFF -DSDL_VIDEO_OPENGLES=OFF -DSDL_VIDEO_METAL=OFF -DSDL_VIDEO_COCOA=ON -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_})
-    elseif(UNIX AND NOT APPLE)
-        # Wayland requires OpenglES support so that's why its enabled here.
-        set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_VIDEO_X11=ON -DSDL_VIDEO_X11_XINPUT=ON -DSDL_VIDEO_WAYLAND=ON -DSDL_VIDEO_OPENGLES=ON)
-    elseif(ARM)
-        # Wayland requires OpenglES support so that's why its enabled here.
-        set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_VIDEO_X11=ON -DSDL_VIDEO_X11_XINPUT=OFF -DSDL_VIDEO_WAYLAND=ON -DSDL_VIDEO_OPENGLES=ON)
-    elseif(WIN32)
-        set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_VIDEO_OPENGLES=${FEATURE_RENDERER_GLES} -DSDL_FORCE_STATIC_VCRT=ON)
-    endif()
+	# Bye bye X11
+	if(APPLE)
+		set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_VIDEO_X11=OFF -DSDL_VIDEO_X11_XINPUT=OFF -DSDL_VIDEO_WAYLAND=OFF -DSDL_VIDEO_OPENGLES=OFF -DSDL_VIDEO_METAL=OFF -DSDL_VIDEO_COCOA=ON -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_})
+	elseif(UNIX AND NOT APPLE)
+		# Wayland requires OpenglES support so that's why its enabled here.
+		set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_VIDEO_X11=ON -DSDL_VIDEO_X11_XINPUT=ON -DSDL_VIDEO_WAYLAND=ON -DSDL_VIDEO_OPENGLES=ON)
+	elseif(ARM)
+		# Wayland requires OpenglES support so that's why its enabled here.
+		set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_VIDEO_X11=ON -DSDL_VIDEO_X11_XINPUT=OFF -DSDL_VIDEO_WAYLAND=ON -DSDL_VIDEO_OPENGLES=ON)
+	elseif(WIN32)
+		set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_VIDEO_OPENGLES=${FEATURE_RENDERER_GLES} -DSDL_FORCE_STATIC_VCRT=ON)
+	endif()
 
-    ExternalProject_Add(bundled_sdl
-            # SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
-            DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-            SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/sdl2"
-            URL https://github.com/libsdl-org/SDL/archive/release-2.24.1.tar.gz
-            URL_HASH MD5=7c8999f150237df50b9d5ca158a40c56
-            BINARY_DIR	${LIBS_BINARY_DIR}/sdl2
-            BUILD_BYPRODUCTS ${SDL32_BUNDLED_LIBRARIES}
-            CMAKE_ARGS ${SDL_CMAKE_ARGS}
-            PREFIX ${LIBS_BINARY_DIR}/sdl2
-    )
-    set_target_properties(bundled_sdl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	ExternalProject_Add(bundled_sdl
+			# SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/sdl2
+			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/sdl2"
+			URL https://github.com/libsdl-org/SDL/archive/release-2.24.1.tar.gz
+			URL_HASH MD5=7c8999f150237df50b9d5ca158a40c56
+			BINARY_DIR	${LIBS_BINARY_DIR}/sdl2
+			BUILD_BYPRODUCTS ${SDL32_BUNDLED_LIBRARIES}
+			CMAKE_ARGS ${SDL_CMAKE_ARGS}
+			PREFIX ${LIBS_BINARY_DIR}/sdl2
+	)
+	set_target_properties(bundled_sdl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
-    add_dependencies(bundled_sdl_int bundled_sdl)
-    target_link_libraries(bundled_sdl_int INTERFACE ${SDL32_BUNDLED_LIBRARIES})
-    target_include_directories(bundled_sdl_int INTERFACE "${LIBS_BINARY_DIR}/sdl2/include")
+	add_dependencies(bundled_sdl_int bundled_sdl)
+	target_link_libraries(bundled_sdl_int INTERFACE ${SDL32_BUNDLED_LIBRARIES})
+	target_include_directories(bundled_sdl_int INTERFACE "${LIBS_BINARY_DIR}/sdl2/include")
 endif()
 
 #-----------------------------------------------------------------
 # Build bundled ZLib library
 #-----------------------------------------------------------------
 if(BUNDLED_ZLIB AND (BUILD_CLIENT OR BUILD_SERVER))
-    set(ZLIB_LIB "${CMAKE_CURRENT_LIST_DIR}/zlib")
+	set(ZLIB_LIB "${CMAKE_CURRENT_LIST_DIR}/zlib")
 
-    FILE(GLOB ZLIB_LIB_HEADERS
-            ${ZLIB_LIB}/crc32.h
-            ${ZLIB_LIB}/deflate.h
-            ${ZLIB_LIB}/gzguts.h
-            ${ZLIB_LIB}/inffast.h
-            ${ZLIB_LIB}/inffixed.h
-            ${ZLIB_LIB}/inflate.h
-            ${ZLIB_LIB}/inftrees.h
-            ${ZLIB_LIB}/trees.h
-            ${ZLIB_LIB}/zconf.h
-            ${ZLIB_LIB}/zlib.h
-            ${ZLIB_LIB}/zutil.h
-            )
+	FILE(GLOB ZLIB_LIB_HEADERS
+			${ZLIB_LIB}/crc32.h
+			${ZLIB_LIB}/deflate.h
+			${ZLIB_LIB}/gzguts.h
+			${ZLIB_LIB}/inffast.h
+			${ZLIB_LIB}/inffixed.h
+			${ZLIB_LIB}/inflate.h
+			${ZLIB_LIB}/inftrees.h
+			${ZLIB_LIB}/trees.h
+			${ZLIB_LIB}/zconf.h
+			${ZLIB_LIB}/zlib.h
+			${ZLIB_LIB}/zutil.h
+			)
 
-    FILE(GLOB ZLIB_LIB_SRC
-            ${ZLIB_LIB}/adler32.c
-            ${ZLIB_LIB}/compress.c
-            ${ZLIB_LIB}/crc32.c
-            ${ZLIB_LIB}/deflate.c
-            ${ZLIB_LIB}/inffast.c
-            ${ZLIB_LIB}/inflate.c
-            ${ZLIB_LIB}/inftrees.c
-            ${ZLIB_LIB}/trees.c
-            ${ZLIB_LIB}/zutil.c
-            )
+	FILE(GLOB ZLIB_LIB_SRC
+			${ZLIB_LIB}/adler32.c
+			${ZLIB_LIB}/compress.c
+			${ZLIB_LIB}/crc32.c
+			${ZLIB_LIB}/deflate.c
+			${ZLIB_LIB}/inffast.c
+			${ZLIB_LIB}/inflate.c
+			${ZLIB_LIB}/inftrees.c
+			${ZLIB_LIB}/trees.c
+			${ZLIB_LIB}/zutil.c
+			)
 
-    add_library(bundled_zlib STATIC ${ZLIB_LIB_SRC} ${ZLIB_LIB_HEADERS})
-    target_include_directories(bundled_zlib PUBLIC "${CMAKE_CURRENT_LIST_DIR}/zlib")
-    set_target_properties(bundled_zlib PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	add_library(bundled_zlib STATIC ${ZLIB_LIB_SRC} ${ZLIB_LIB_HEADERS})
+	target_include_directories(bundled_zlib PUBLIC "${CMAKE_CURRENT_LIST_DIR}/zlib")
+	set_target_properties(bundled_zlib PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
 #-----------------------------------------------------------------
 # Build bundled MiniZip library
 #-----------------------------------------------------------------
 if(BUNDLED_MINIZIP AND (BUILD_CLIENT OR BUILD_SERVER))
-    set(MINIZIP_LIB "${CMAKE_CURRENT_LIST_DIR}/minizip")
+	set(MINIZIP_LIB "${CMAKE_CURRENT_LIST_DIR}/minizip")
 
-    FILE(GLOB MINIZIP_LIB_HEADERS
-            ${MINIZIP_LIB}/crypt.h
-            ${MINIZIP_LIB}/ioapi.h
-            ${MINIZIP_LIB}/unzip.h
-            )
+	FILE(GLOB MINIZIP_LIB_HEADERS
+			${MINIZIP_LIB}/crypt.h
+			${MINIZIP_LIB}/ioapi.h
+			${MINIZIP_LIB}/unzip.h
+			)
 
-    FILE(GLOB MINIZIP_LIB_SRC
-            ${MINIZIP_LIB}/ioapi.c
-            ${MINIZIP_LIB}/unzip.c
-            )
+	FILE(GLOB MINIZIP_LIB_SRC
+			${MINIZIP_LIB}/ioapi.c
+			${MINIZIP_LIB}/unzip.c
+			)
 
-    add_library(bundled_minizip STATIC ${MINIZIP_LIB_SRC} ${MINIZIP_LIB_HEADERS})
-    target_include_directories(bundled_minizip PUBLIC "${CMAKE_CURRENT_LIST_DIR}/minizip")
-    if(BUNDLED_ZLIB)
-        target_link_libraries(bundled_minizip bundled_zlib)
-    endif(BUNDLED_ZLIB)
-    set_target_properties(bundled_minizip PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	add_library(bundled_minizip STATIC ${MINIZIP_LIB_SRC} ${MINIZIP_LIB_HEADERS})
+	target_include_directories(bundled_minizip PUBLIC "${CMAKE_CURRENT_LIST_DIR}/minizip")
+	if(BUNDLED_ZLIB)
+		target_link_libraries(bundled_minizip bundled_zlib)
+	endif(BUNDLED_ZLIB)
+	set_target_properties(bundled_minizip PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
 #-----------------------------------------------------------------
 # Build bundled GLEW library
 #-----------------------------------------------------------------
 if(BUNDLED_GLEW AND BUILD_CLIENT)
-    include(${CMAKE_CURRENT_LIST_DIR}/glew/CMakeLists.txt)
-    set(BUNDLED_GLEW_LIBRARIES bundled_glew)
-    set(BUNDLED_GLEW_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/glew/include")
-    set_target_properties(bundled_glew PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	include(${CMAKE_CURRENT_LIST_DIR}/glew/CMakeLists.txt)
+	set(BUNDLED_GLEW_LIBRARIES bundled_glew)
+	set(BUNDLED_GLEW_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/glew/include")
+	set_target_properties(bundled_glew PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
 #-----------------------------------------------------------------
 # Build bundled SQLITE3 library
 #-----------------------------------------------------------------
 if(BUNDLED_SQLITE3 AND (BUILD_CLIENT OR BUILD_SERVER OR BUILD_MOD))
-    include(${CMAKE_CURRENT_LIST_DIR}/sqlite3/CMakeLists.txt)
-    set(SQLITE3_BUNDLED_LIBRARIES bundled_sqlite3)
-    set(SQLITE3_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sqlite3/src")
-    set_target_properties(bundled_sqlite3 PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	include(${CMAKE_CURRENT_LIST_DIR}/sqlite3/CMakeLists.txt)
+	set(SQLITE3_BUNDLED_LIBRARIES bundled_sqlite3)
+	set(SQLITE3_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/sqlite3/src")
+	set_target_properties(bundled_sqlite3 PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
 #-----------------------------------------------------------------
 # Build bundled JPEG library
 #-----------------------------------------------------------------
 if(BUNDLED_JPEG AND BUILD_CLIENT)
-    add_library(bundled_jpeg_int INTERFACE)
+	add_library(bundled_jpeg_int INTERFACE)
 
-    check_include_file(stddef.h HAVE_STDDEF_H)
-    check_include_file(stdlib.h HAVE_STDLIB_H)
+	check_include_file(stddef.h HAVE_STDDEF_H)
+	check_include_file(stdlib.h HAVE_STDLIB_H)
 
-    set(binary_dir "${LIBS_BINARY_DIR}/jpegturbo")
-    if(VSTUDIO)
-        set(JPEG_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/turbojpeg-static${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/turbojpeg-static${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    elseif(VS_BUILD)
-        set(JPEG_BUNDLED_LIBRARIES "${binary_dir}/turbojpeg-static${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    else()
-        set(JPEG_BUNDLED_LIBRARIES "${binary_dir}/libturbojpeg${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    endif()
+	set(binary_dir "${LIBS_BINARY_DIR}/jpegturbo")
+	if(VSTUDIO)
+		set(JPEG_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/turbojpeg-static${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/turbojpeg-static${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	elseif(VS_BUILD)
+		set(JPEG_BUNDLED_LIBRARIES "${binary_dir}/turbojpeg-static${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	else()
+		set(JPEG_BUNDLED_LIBRARIES "${binary_dir}/libturbojpeg${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	endif()
 
-    # Set SIZEOF_SIZE_T  @SIZE_T@ for 64 or 32 bit
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT CROSS_COMPILE32)
-        set(SIZEOF_SIZE_T 8)
-    else()
-        set(SIZEOF_SIZE_T 4)
-    endif()
+	# Set SIZEOF_SIZE_T  @SIZE_T@ for 64 or 32 bit
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT CROSS_COMPILE32)
+		set(SIZEOF_SIZE_T 8)
+	else()
+		set(SIZEOF_SIZE_T 4)
+	endif()
 
-    set(JPEG_LIB "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
+	set(JPEG_LIB "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
 
-    configure_file(${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
-    configure_file(${JPEG_LIB}/jconfigint.h.cmake ${JPEG_LIB}/jconfigint.h)
+	configure_file(${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
+	configure_file(${JPEG_LIB}/jconfigint.h.cmake ${JPEG_LIB}/jconfigint.h)
 
-    ExternalProject_Add(bundled_jpeg
-            SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/jpegturbo
-            BINARY_DIR	${LIBS_BINARY_DIR}/jpegturbo
-            BUILD_BYPRODUCTS ${JPEG_BUNDLED_LIBRARIES}
-            CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-            -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DENABLE_SHARED=OFF -DENABLE_STATIC=ON -DREQUIRE_SIMD=OFF -DWITH_12BIT=OFF
-            -DWITH_ARITH_DEC=ON -DWITH_ARITH_ENC=ON -DWITH_JAVA=OFF -DWITH_JPEG7=OFF -DWITH_JPEG8=ON
-            -DWITH_MEM_SRCDST=ON -DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON
-            -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}" -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
-            INSTALL_COMMAND  ""
-    )
-    set_target_properties(bundled_jpeg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	ExternalProject_Add(bundled_jpeg
+			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/jpegturbo
+			BINARY_DIR	${LIBS_BINARY_DIR}/jpegturbo
+			BUILD_BYPRODUCTS ${JPEG_BUNDLED_LIBRARIES}
+			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+			-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DENABLE_SHARED=OFF -DENABLE_STATIC=ON -DREQUIRE_SIMD=OFF -DWITH_12BIT=OFF
+			-DWITH_ARITH_DEC=ON -DWITH_ARITH_ENC=ON -DWITH_JAVA=OFF -DWITH_JPEG7=OFF -DWITH_JPEG8=ON
+			-DWITH_MEM_SRCDST=ON -DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON
+			-DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}" -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
+			INSTALL_COMMAND  ""
+	)
+	set_target_properties(bundled_jpeg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
-    add_dependencies(bundled_jpeg_int bundled_jpeg)
-    target_include_directories(bundled_jpeg_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
-    target_link_libraries(bundled_jpeg_int INTERFACE ${JPEG_BUNDLED_LIBRARIES})
+	add_dependencies(bundled_jpeg_int bundled_jpeg)
+	target_include_directories(bundled_jpeg_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
+	target_link_libraries(bundled_jpeg_int INTERFACE ${JPEG_BUNDLED_LIBRARIES})
 endif()
 
 #-----------------------------------------------------------------
 # Build bundled PNG library
 #-----------------------------------------------------------------
 if(BUNDLED_PNG AND BUILD_CLIENT)
-    add_library(bundled_png_int INTERFACE)
+	add_library(bundled_png_int INTERFACE)
 
-    set(binary_dir "${LIBS_BINARY_DIR}/libpng")
-    if(VSTUDIO)
-        set(PNG_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    elseif(VS_BUILD)
-        set(PNG_BUNDLED_LIBRARIES "${binary_dir}/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    else()
-        set(PNG_BUNDLED_LIBRARIES "${binary_dir}/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    endif()
+	set(binary_dir "${LIBS_BINARY_DIR}/libpng")
+	if(VSTUDIO)
+		set(PNG_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	elseif(VS_BUILD)
+		set(PNG_BUNDLED_LIBRARIES "${binary_dir}/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	else()
+		set(PNG_BUNDLED_LIBRARIES "${binary_dir}/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	endif()
 
-    if(BUNDLED_ZLIB)
-        set(ZLIB_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/zlib")
-    endif()
+	if(BUNDLED_ZLIB)
+		set(ZLIB_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/zlib")
+	endif()
 
-    # FIXME: re-test this when a new version of libpng is used
-    # as of 2022 with an aarch64 mac the build fails due to the optimizations only being available for lnx
-    set(PNG_OPTIMIZATION ON)
-    if(APPLE AND (CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch64"))
-        set(PNG_OPTIMIZATION OFF)
-    endif()
+	# FIXME: re-test this when a new version of libpng is used
+	# as of 2022 with an aarch64 mac the build fails due to the optimizations only being available for lnx
+	set(PNG_OPTIMIZATION ON)
+	if(APPLE AND (CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch64"))
+		set(PNG_OPTIMIZATION OFF)
+	endif()
 
-    ExternalProject_Add(bundled_png
-            SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/libpng
-            BINARY_DIR	${LIBS_BINARY_DIR}/libpng
-            BUILD_BYPRODUCTS ${PNG_BUNDLED_LIBRARIES}
-            CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-            -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_BUILD_ZLIB=ON -DZLIB_INCLUDE_DIR=${ZLIB_INCLUDE_DIR}
-            -DPNG_TESTS=OFF -DPNG_FRAMEWORK=OFF -DPNG_DEBUG=OFF -DPNG_HARDWARE_OPTIMIZATIONS=${PNG_OPTIMIZATION} -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
-            INSTALL_COMMAND  ""
-    )
-    set_target_properties(bundled_png PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	ExternalProject_Add(bundled_png
+			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/libpng
+			BINARY_DIR	${LIBS_BINARY_DIR}/libpng
+			BUILD_BYPRODUCTS ${PNG_BUNDLED_LIBRARIES}
+			CMAKE_ARGS	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+			-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_BUILD_ZLIB=ON -DZLIB_INCLUDE_DIR=${ZLIB_INCLUDE_DIR}
+			-DPNG_TESTS=OFF -DPNG_FRAMEWORK=OFF -DPNG_DEBUG=OFF -DPNG_HARDWARE_OPTIMIZATIONS=${PNG_OPTIMIZATION} -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
+			INSTALL_COMMAND  ""
+	)
+	set_target_properties(bundled_png PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
-    add_dependencies(bundled_png_int bundled_png)
-    target_include_directories(bundled_png_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/libpng/include")
-    target_link_libraries(bundled_png_int INTERFACE ${PNG_BUNDLED_LIBRARIES})
+	add_dependencies(bundled_png_int bundled_png)
+	target_include_directories(bundled_png_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/libpng/include")
+	target_link_libraries(bundled_png_int INTERFACE ${PNG_BUNDLED_LIBRARIES})
 endif()
 
 #-----------------------------------------------------------------
 # Build bundled Freetype library
 #-----------------------------------------------------------------
 if(BUNDLED_FREETYPE AND BUILD_CLIENT)
-    add_library(bundled_freetype_int INTERFACE)
+	add_library(bundled_freetype_int INTERFACE)
 
-    set(binary_dir "${LIBS_BINARY_DIR}/freetype")
-    if(VSTUDIO)
-        set(BUNDLED_FREETYPE_LIBRARIES optimized "${binary_dir}/Release/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    elseif(VS_BUILD)
-        set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    else()
-        set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/libfreetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    endif()
+	set(binary_dir "${LIBS_BINARY_DIR}/freetype")
+	if(VSTUDIO)
+		set(BUNDLED_FREETYPE_LIBRARIES optimized "${binary_dir}/Release/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	elseif(VS_BUILD)
+		set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	else()
+		set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/libfreetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	endif()
 
-    ExternalProject_Add(bundled_freetype
-            SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/freetype
-            BINARY_DIR	${binary_dir}
-            BUILD_BYPRODUCTS ${BUNDLED_FREETYPE_LIBRARIES}
-            CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-            -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
-            -DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=ON -DCMAKE_DISABLE_FIND_PACKAGE_BZip2=ON -DCMAKE_DISABLE_FIND_PACKAGE_PNG=ON
-            -DCMAKE_DISABLE_FIND_PACKAGE_HarfBuzz=ON -DCMAKE_DISABLE_FIND_PACKAGE_BrotliDec=ON
-            -DFT_WITH_ZLIB=OFF -DFT_WITH_BZIP2=OFF -DFT_WITH_PNG=OFF -DFT_WITH_HARFBUZZ=OFF -DFT_WITH_BROTLI=OFF -DDISABLE_FORCE_DEBUG_POSTFIX=ON
-            -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
-            INSTALL_COMMAND  ""
-    )
-    set_target_properties(bundled_freetype PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	ExternalProject_Add(bundled_freetype
+			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/freetype
+			BINARY_DIR	${binary_dir}
+			BUILD_BYPRODUCTS ${BUNDLED_FREETYPE_LIBRARIES}
+			CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+			-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
+			-DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=ON -DCMAKE_DISABLE_FIND_PACKAGE_BZip2=ON -DCMAKE_DISABLE_FIND_PACKAGE_PNG=ON
+			-DCMAKE_DISABLE_FIND_PACKAGE_HarfBuzz=ON -DCMAKE_DISABLE_FIND_PACKAGE_BrotliDec=ON
+			-DFT_WITH_ZLIB=OFF -DFT_WITH_BZIP2=OFF -DFT_WITH_PNG=OFF -DFT_WITH_HARFBUZZ=OFF -DFT_WITH_BROTLI=OFF -DDISABLE_FORCE_DEBUG_POSTFIX=ON
+			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
+			INSTALL_COMMAND  ""
+	)
+	set_target_properties(bundled_freetype PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
-    add_dependencies(bundled_freetype_int bundled_freetype)
-    target_include_directories(bundled_freetype_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/freetype/include")
-    target_link_libraries(bundled_freetype_int INTERFACE ${BUNDLED_FREETYPE_LIBRARIES})
+	add_dependencies(bundled_freetype_int bundled_freetype)
+	target_include_directories(bundled_freetype_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/freetype/include")
+	target_link_libraries(bundled_freetype_int INTERFACE ${BUNDLED_FREETYPE_LIBRARIES})
 endif()
 
 #-----------------------------------------------------------------
 # Build bundled Theora library
 #-----------------------------------------------------------------
 if(BUNDLED_THEORA AND BUILD_CLIENT)
-    set(THEORA_SRC_DIR "${CMAKE_CURRENT_LIST_DIR}/theora/lib")
-    FILE(GLOB THEORA_SRC
-            "${THEORA_SRC_DIR}/apiwrapper.c"
-            "${THEORA_SRC_DIR}/bitpack.c"
-            "${THEORA_SRC_DIR}/decapiwrapper.c"
-            "${THEORA_SRC_DIR}/decinfo.c"
-            "${THEORA_SRC_DIR}/decode.c"
-            "${THEORA_SRC_DIR}/dequant.c"
-            "${THEORA_SRC_DIR}/fragment.c"
-            "${THEORA_SRC_DIR}/huffdec.c"
-            "${THEORA_SRC_DIR}/idct.c"
-            "${THEORA_SRC_DIR}/info.c"
-            "${THEORA_SRC_DIR}/internal.c"
-            "${THEORA_SRC_DIR}/quant.c"
-            "${THEORA_SRC_DIR}/state.c"
-            "${CMAKE_CURRENT_LIST_DIR}/theora/lib/*.h"
-            )
+	set(THEORA_SRC_DIR "${CMAKE_CURRENT_LIST_DIR}/theora/lib")
+	FILE(GLOB THEORA_SRC
+			"${THEORA_SRC_DIR}/apiwrapper.c"
+			"${THEORA_SRC_DIR}/bitpack.c"
+			"${THEORA_SRC_DIR}/decapiwrapper.c"
+			"${THEORA_SRC_DIR}/decinfo.c"
+			"${THEORA_SRC_DIR}/decode.c"
+			"${THEORA_SRC_DIR}/dequant.c"
+			"${THEORA_SRC_DIR}/fragment.c"
+			"${THEORA_SRC_DIR}/huffdec.c"
+			"${THEORA_SRC_DIR}/idct.c"
+			"${THEORA_SRC_DIR}/info.c"
+			"${THEORA_SRC_DIR}/internal.c"
+			"${THEORA_SRC_DIR}/quant.c"
+			"${THEORA_SRC_DIR}/state.c"
+			"${CMAKE_CURRENT_LIST_DIR}/theora/lib/*.h"
+			)
 
-    # This makes the MSVC build a happier camper
-    LIST(REMOVE_ITEM THEORA_SRC ${CMAKE_CURRENT_LIST_DIR}/theora/lib/encoder_disabled.c)
+	# This makes the MSVC build a happier camper
+	LIST(REMOVE_ITEM THEORA_SRC ${CMAKE_CURRENT_LIST_DIR}/theora/lib/encoder_disabled.c)
 
-    # if we are building an universal package, this would need a lot more fiddling about to make it work correctly
-    if(ETL_X86 AND (ETL_32BITS OR ETL_64BITS) AND (ETL_ARCH_COUNT EQUAL 1))
-        set(USE_THEORA_ASM 1)
-        message(STATUS "Enabling theora ASM")
-        if(MSVC)
-            set(THEORA_SRC_ASM_DIR ${THEORA_SRC_DIR}/x86_vc)
-        else()
-            set(THEORA_SRC_ASM_DIR ${THEORA_SRC_DIR}/x86)
-        endif()
-        FILE(GLOB THEORA_ASM_SRC
-                "${THEORA_SRC_ASM_DIR}/mmxidct.c"
-                "${THEORA_SRC_ASM_DIR}/mmxfrag.c"
-                "${THEORA_SRC_ASM_DIR}/mmxstate.c"
-                "${THEORA_SRC_ASM_DIR}/x86state.c"
-                "${THEORA_SRC_ASM_DIR}/*.h"
-                )
+	# if we are building an universal package, this would need a lot more fiddling about to make it work correctly
+	if(ETL_X86 AND (ETL_32BITS OR ETL_64BITS) AND (ETL_ARCH_COUNT EQUAL 1))
+		set(USE_THEORA_ASM 1)
+		message(STATUS "Enabling theora ASM")
+		if(MSVC)
+			set(THEORA_SRC_ASM_DIR ${THEORA_SRC_DIR}/x86_vc)
+		else()
+			set(THEORA_SRC_ASM_DIR ${THEORA_SRC_DIR}/x86)
+		endif()
+		FILE(GLOB THEORA_ASM_SRC
+				"${THEORA_SRC_ASM_DIR}/mmxidct.c"
+				"${THEORA_SRC_ASM_DIR}/mmxfrag.c"
+				"${THEORA_SRC_ASM_DIR}/mmxstate.c"
+				"${THEORA_SRC_ASM_DIR}/x86state.c"
+				"${THEORA_SRC_ASM_DIR}/*.h"
+				)
 
-        LIST(APPEND THEORA_SRC ${THEORA_ASM_SRC})
-    else()
-        message(STATUS "Disabling theora ASM")
-        set(USE_THEORA_ASM 0)
-    endif()
+		LIST(APPEND THEORA_SRC ${THEORA_ASM_SRC})
+	else()
+		message(STATUS "Disabling theora ASM")
+		set(USE_THEORA_ASM 0)
+	endif()
 
-    include_directories("${CMAKE_CURRENT_LIST_DIR}/theora/include")
-    add_library(bundled_theora STATIC ${THEORA_SRC})
-    target_link_libraries(bundled_theora PUBLIC bundled_ogg_full)
+	include_directories("${CMAKE_CURRENT_LIST_DIR}/theora/include")
+	add_library(bundled_theora STATIC ${THEORA_SRC})
+	target_link_libraries(bundled_theora PUBLIC bundled_ogg_full)
 
-    if (USE_THEORA_ASM)
-        if (ETL_32BITS OR ETL_64BITS)
-            target_compile_definitions(bundled_theora PUBLIC OC_X86_ASM)
-        endif()
+	if (USE_THEORA_ASM)
+		if (ETL_32BITS OR ETL_64BITS)
+			target_compile_definitions(bundled_theora PUBLIC OC_X86_ASM)
+		endif()
 
-        if(ETL_64BITS)
-            target_compile_definitions(bundled_theora PUBLIC OC_X86_64_ASM)
-        endif()
-    endif()
+		if(ETL_64BITS)
+			target_compile_definitions(bundled_theora PUBLIC OC_X86_64_ASM)
+		endif()
+	endif()
 
-    set_target_properties(bundled_theora PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+	set_target_properties(bundled_theora PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
