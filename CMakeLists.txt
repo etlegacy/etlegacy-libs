@@ -680,10 +680,6 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 				BUILD_IN_SOURCE 1
 		)
 
-		add_dependencies(bundled_ogg_full bundled_ogg)
-		target_include_directories(bundled_ogg_full INTERFACE ${OGG_BUNDLED_INCLUDE_DIR})
-		target_link_libraries(bundled_ogg_full INTERFACE ${OGG_BUNDLED_LIBRARIES})
-
 		# OGG Vorbis File
 		set(CFLAGS "${CFLAGS} -I${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
 		set(LDFLAGS "${LDFLAGS} -L${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib")
@@ -713,6 +709,11 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 		add_dependencies(bundled_ogg_full bundled_ogg_vorbis)
 		target_include_directories(bundled_ogg_full INTERFACE "${OGG_VORBIS_BUNDLED_INCLUDE_DIR}")
 		target_link_libraries(bundled_ogg_full INTERFACE "${OGG_VORBIS_BUNDLED_LIBRARIES}")
+
+		# linker library ordering requires that ogg comes after the vorbis one's
+		add_dependencies(bundled_ogg_full bundled_ogg)
+		target_include_directories(bundled_ogg_full INTERFACE ${OGG_BUNDLED_INCLUDE_DIR})
+		target_link_libraries(bundled_ogg_full INTERFACE ${OGG_BUNDLED_LIBRARIES})
 	endif()
 endif()
 
