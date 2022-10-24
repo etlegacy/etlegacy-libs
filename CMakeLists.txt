@@ -665,10 +665,13 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 
 		target_link_libraries(bundled_ogg_full INTERFACE bundled_ogg bundled_ogg_vorbis bundled_ogg_vorbis_file)
 	else()
+		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
+		set(OGG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib/libogg.a")
 		ExternalProject_Add(
 				bundled_ogg
 				SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/ogg
 				PATCH_COMMAND autoreconf -fiv
+				BUILD_BYPRODUCTS ${OGG_BUNDLED_LIBRARIES}
 				CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg ${CROSS_COMPILE32_FLAGS}
 				--enable-silent-rules --disable-dependency-tracking --enable-shared=no
 				PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/ogg
@@ -676,12 +679,10 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 				INSTALL_COMMAND make install
 				BUILD_IN_SOURCE 1
 		)
-		set(OGG_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
-		set(OGG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib/libogg.a")
 
 		add_dependencies(bundled_ogg_full bundled_ogg)
-		target_include_directories(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
-		target_link_libraries(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib/libogg.a")
+		target_include_directories(bundled_ogg_full INTERFACE ${OGG_BUNDLED_INCLUDE_DIR})
+		target_link_libraries(bundled_ogg_full INTERFACE ${OGG_BUNDLED_LIBRARIES})
 
 		# OGG Vorbis File
 		set(CFLAGS "${CFLAGS} -I${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include")
@@ -697,7 +698,7 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 				DEPENDS bundled_ogg
 				SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/vorbis
 				#PATCH_COMMAND ./autogen.sh
-				BUILD_BYPRODUCTS ${OGG_VORBIS_BUNDLED_LIBRARIES} ${OGG_BUNDLED_LIBRARIES}
+				BUILD_BYPRODUCTS ${OGG_VORBIS_BUNDLED_LIBRARIES}
 				CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
 				--disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include
 				--with-ogg-libraries=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib ${CROSS_COMPILE32_FLAGS}
@@ -710,8 +711,8 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 		add_custom_target(bundled_ogg_vorbis_file)
 
 		add_dependencies(bundled_ogg_full bundled_ogg_vorbis)
-		target_include_directories(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/include")
-		target_link_libraries(bundled_ogg_full INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbisfile.a" "${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis/lib/libvorbis.a")
+		target_include_directories(bundled_ogg_full INTERFACE "${OGG_VORBIS_BUNDLED_INCLUDE_DIR}")
+		target_link_libraries(bundled_ogg_full INTERFACE "${OGG_VORBIS_BUNDLED_LIBRARIES}")
 	endif()
 endif()
 
