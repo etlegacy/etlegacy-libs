@@ -580,7 +580,7 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 				${VPATH}/lib/synthesis.c
 				${VPATH}/lib/vorbisenc.c
 				${VPATH}/lib/window.c
-				)
+		)
 
 		set(VORBIS_HEADERS
 				${VPATH}/lib/backends.h
@@ -622,13 +622,13 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 				${VPATH}/lib/modes/setup_X.h
 				${VPATH}/lib/smallft.h
 				${VPATH}/lib/window.h
-				)
+		)
 
 		set(VORBIS_PUB_HEADERS
 				${VPATH}/include/vorbis/codec.h
 				${VPATH}/include/vorbis/vorbisenc.h
 				${VPATH}/include/vorbis/vorbisfile.h
-				)
+		)
 
 		IF(MSVC)
 			#ADD_DEFINITIONS(/D_UNICODE /DUNICODE)
@@ -721,9 +721,16 @@ endif()
 # Build bundled Lua library
 #-----------------------------------------------------------------
 if(BUNDLED_LUA AND BUILD_MOD)
+	add_library(bundled_lua_int INTERFACE)
+	target_compile_definitions(bundled_lua_int INTERFACE BUNDLED_LUA)
+
 	if (WIN32 OR APPLE)
 		set(LUA_LIB "${CMAKE_CURRENT_LIST_DIR}/lua/src")
+
 		FILE(GLOB LUA_LIB_SRC ${LUA_LIB}/*.c)
+		list(REMOVE_ITEM LUA_LIB_SRC "${LUA_LIB}/lua.c")
+		list(REMOVE_ITEM LUA_LIB_SRC "${LUA_LIB}/luac.c")
+
 		FILE(GLOB LUA_LIB_HEADERS ${LUA_LIB}/*.h)
 
 		add_library(bundled_lua STATIC ${LUA_LIB_SRC} ${LUA_LIB_HEADERS})
@@ -742,6 +749,10 @@ if(BUNDLED_LUA AND BUILD_MOD)
 
 		set(LUA_BUNDLED_LIBRARIES bundled_lua)
 		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
+
+		add_dependencies(bundled_lua_int bundled_lua)
+		target_link_libraries(bundled_lua_int INTERFACE bundled_lua)
+		target_include_directories(bundled_lua_int INTERFACE ${LUA_BUNDLED_INCLUDE_DIR})
 	else()
 		if(CMAKE_SYSTEM MATCHES "OpenBSD*")
 			set(LUA_MAKE_TARGET "bsd")
@@ -763,6 +774,10 @@ if(BUNDLED_LUA AND BUILD_MOD)
 		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
 
 		add_custom_target(bundled_lua DEPENDS ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a)
+
+		add_dependencies(bundled_lua_int bundled_lua)
+		target_link_libraries(bundled_lua_int INTERFACE ${LUA_BUNDLED_LIBRARIES})
+		target_include_directories(bundled_lua_int INTERFACE ${LUA_BUNDLED_INCLUDE_DIR})
 	endif()
 endif()
 
