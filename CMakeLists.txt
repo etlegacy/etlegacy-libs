@@ -895,6 +895,12 @@ if(BUNDLED_MINIZIP AND (BUILD_CLIENT OR BUILD_SERVER))
 
 	add_library(bundled_minizip STATIC ${MINIZIP_LIB_SRC} ${MINIZIP_LIB_HEADERS})
 	target_include_directories(bundled_minizip PUBLIC "${CMAKE_CURRENT_LIST_DIR}/minizip")
+
+	if(APPLE)
+		# The ioapi requires this since OSX already uses 64 fileapi (there is no fseek64 etc)
+		target_compile_definitions(bundled_minizip PUBLIC USE_FILE32API)
+	endif(APPLE)
+
 	if(BUNDLED_ZLIB)
 		target_link_libraries(bundled_minizip bundled_zlib)
 	endif(BUNDLED_ZLIB)
