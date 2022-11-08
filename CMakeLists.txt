@@ -146,10 +146,9 @@ if(FEATURE_SSL AND BUNDLED_WOLFSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 
 	ExternalProject_Add(bundled_wolfssl
 			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-			URL https://github.com/wolfSSL/wolfssl/archive/v5.0.0-stable.tar.gz
-			URL_HASH MD5=d2044f756db0853dd2da0a90dd42ab62
+			URL https://github.com/wolfSSL/wolfssl/archive/v5.1.1-stable.tar.gz
+			URL_HASH MD5=d84a2c724a900e2f83a51f3f160a6505
 			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/wolfssl"
-			PATCH_COMMAND ${WOLFSSL_PATCH_COMMAND}
 			BINARY_DIR ${LIBS_BINARY_DIR}/wolfssl
 			BUILD_BYPRODUCTS ${_WOLFSSL_OUTPUT}
 			PREFIX ${LIBS_BINARY_DIR}/wolfssl
@@ -163,11 +162,15 @@ if(FEATURE_SSL AND BUNDLED_WOLFSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 			-DWOLFSSL_OPENSSL_EXTRA=ON -DBUILD_PWDBASED=ON
 			-DWOLFSSL_PWDBASED=ON -DBUILD_CRL=ON
 			-DWOLFSSL_DES3=ON -DWOLFSSL_TLSX=ON
+			-DBUILD_SHARED_LIBS=OFF
+			-DCMAKE_POLICY_DEFAULT_CMP0091=NEW                                  # This is just for MSCV
+			-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>  # No more patching needed!
 			-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/wolfssl
 	)
 	set_target_properties(bundled_wolfssl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
 	add_dependencies(bundled_wolfssl_int bundled_wolfssl)
+
 	target_link_libraries(bundled_wolfssl_int INTERFACE ${WOLFSSL_BUNDLED_LIBRARY})
 	target_include_directories(bundled_wolfssl_int INTERFACE "${LIBS_BINARY_DIR}/wolfssl/include" "${LIBS_BINARY_DIR}/wolfssl/include/wolfssl")
 	target_compile_definitions(bundled_wolfssl_int INTERFACE ETL_WOLFSSL)
