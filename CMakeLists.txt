@@ -413,8 +413,8 @@ if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
 				bundled_curl
 				DEPENDS bundled_wolfssl bundled_openssl
 				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-				URL https://github.com/curl/curl/archive/curl-7_80_0.tar.gz
-				URL_HASH MD5=d96c3324dd060474508312449105d835
+                URL https://github.com/curl/curl/archive/curl-7_86_0.tar.gz
+                URL_HASH MD5=fdbf8d543998fb0d6aa1e7afdf8ad4e1
 				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
 				PATCH_COMMAND sed -i -e "s/LIBS=\"$addlib $LIBS\"/LIBS=\"$addlib -lm $LIBS\"/g" ${LIBS_DOWNLOAD_SRC_DIR}/curl/m4/curl-wolfssl.m4
 				BUILD_BYPRODUCTS ${CURL_BUNDLED_LIBRARY}
