@@ -1115,7 +1115,7 @@ if(BUNDLED_THEORA AND BUILD_CLIENT)
 	add_library(bundled_theora STATIC ${THEORA_SRC})
 	target_link_libraries(bundled_theora PUBLIC bundled_ogg_full)
 
-	if (USE_THEORA_ASM)
+    if (USE_THEORA_ASM AND NOT ETL_WIN64)
 		if (ETL_32BITS OR ETL_64BITS)
 			target_compile_definitions(bundled_theora PUBLIC OC_X86_ASM)
 		endif()
