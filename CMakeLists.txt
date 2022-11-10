@@ -1130,6 +1130,7 @@ endif()
 
 if(BUNDLED_CJSON)
 	add_library(bundled_cjson STATIC "${CMAKE_CURRENT_LIST_DIR}/cjson/cJSON.c")
+	set_property(TARGET bundled_cjson PROPERTY POSITION_INDEPENDENT_CODE ON)
 	target_include_directories(bundled_cjson PUBLIC "${CMAKE_CURRENT_LIST_DIR}/cjson/")
 	target_compile_definitions(bundled_cjson PUBLIC BUNDLED_CJSON)
 endif()
