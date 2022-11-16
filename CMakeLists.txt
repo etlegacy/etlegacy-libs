@@ -357,6 +357,9 @@ if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
 
 		add_dependencies(bundled_curl_int bundled_curl)
 		target_link_libraries(bundled_curl_int INTERFACE ${CURL_BUNDLED_LIBRARIES})
+		if(MINGW) # Mingw requires the bcrypt library
+			target_link_libraries(bundled_curl_int INTERFACE bcrypt)
+		endif()
 		target_include_directories(bundled_curl_int INTERFACE "${LIBS_BINARY_DIR}/curl/include")
 	elseif (UNIX)
 		# FIXME: add openssl lib to project
