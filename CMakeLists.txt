@@ -362,8 +362,6 @@ if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
 		endif()
 		target_include_directories(bundled_curl_int INTERFACE "${LIBS_BINARY_DIR}/curl/include")
 	elseif (UNIX)
-		# FIXME: add openssl lib to project
-		# set --with-ssl / remove --without-ssl
 
 		if(APPLE)
 			if(CROSS_COMPILE32)
