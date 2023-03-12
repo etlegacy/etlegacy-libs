@@ -114,7 +114,7 @@ if(UNIX)
 endif()
 
 #-----------------------------------------------------------------
-# Build bundled OpenSSL library
+# Build bundled WolfSSL library
 #-----------------------------------------------------------------
 if(FEATURE_SSL AND BUNDLED_WOLFSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 	add_library(bundled_wolfssl_int INTERFACE)
@@ -823,6 +823,14 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 		set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_OPENGLES=${FEATURE_RENDERER_GLES} -DSDL_FORCE_STATIC_VCRT=ON)
 	endif()
 
+	# In the current version (2.26.4) there are files that do not conform to ansi c89 so patch them
+	if (UNIX AND NOT APPLE)
+		find_package(Patch REQUIRED)
+		set(SDL_PATCH_COMMAND "${Patch_EXECUTABLE}" -p0 < "${CMAKE_CURRENT_LIST_DIR}/patches/sdl-2.26.4.c89.patch")
+	else()
+		set(SDL_PATCH_COMMAND)
+	endif()
+
 	etl_find_lib_path(SDL2_BUNDLED_LIBRARIES _SDL_OUTPUT)
 
 	ExternalProject_Add(bundled_sdl
@@ -831,7 +839,8 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/sdl2"
 			URL https://github.com/libsdl-org/SDL/archive/release-2.26.4.tar.gz
 			URL_HASH MD5=8b79847e3bd0f279e242d7fccb272f93
-			BINARY_DIR	${LIBS_BINARY_DIR}/sdl2
+			PATCH_COMMAND ${SDL_PATCH_COMMAND}
+			BINARY_DIR ${LIBS_BINARY_DIR}/sdl2
 			BUILD_BYPRODUCTS ${_SDL_OUTPUT}
 			CMAKE_ARGS ${SDL_CMAKE_ARGS}
 			PREFIX ${LIBS_BINARY_DIR}/sdl2
