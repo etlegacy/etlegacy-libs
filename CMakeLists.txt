@@ -136,18 +136,18 @@ if(FEATURE_SSL AND BUNDLED_WOLFSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 
 	set(WOLFSSL_PATCH_COMMAND "${Patch_EXECUTABLE}" "${LIBS_DOWNLOAD_SRC_DIR}/wolfssl/CMakeLists.txt" "${CMAKE_CURRENT_LIST_DIR}/patches/WolfSSL.patch")
 
-	if(MSVC)
-		set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} /DOPENSSL_ALL=1 /DWOLFSSL_DES_ECB=1 /DHAVE_OCSP=1 /DHAVE_CRL=1")
-	else()
-		set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} -DOPENSSL_ALL=1 -DWOLFSSL_DES_ECB=1 -DHAVE_OCSP=1 -DHAVE_CRL=1")
-	endif()
+	#if(MSVC)
+	# set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} /DOPENSSL_ALL=1 /DWOLFSSL_DES_ECB=1 /DHAVE_OCSP=1 /DHAVE_CRL=1")
+	#else()
+	#	set(WOLFSSL_FLAGS "${CMAKE_C_FLAGS} -DOPENSSL_ALL=1 -DWOLFSSL_DES_ECB=1 -DHAVE_OCSP=1 -DHAVE_CRL=1")
+	#endif()
 
 	etl_find_lib_path(WOLFSSL_BUNDLED_LIBRARY _WOLFSSL_OUTPUT)
 
 	ExternalProject_Add(bundled_wolfssl
 			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-			URL https://github.com/wolfSSL/wolfssl/archive/v5.5.3-stable.tar.gz
-			URL_HASH MD5=0776c6d8a83ac1476879dba572ef5c71
+			URL https://github.com/wolfSSL/wolfssl/releases/download/v5.6.6-stable/wolfssl-5.6.6.tar.gz
+			URL_HASH MD5=772dfa0eed22e31d9d2fb457a1343138
 			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/wolfssl"
 			BINARY_DIR ${LIBS_BINARY_DIR}/wolfssl
 			BUILD_BYPRODUCTS ${_WOLFSSL_OUTPUT}
@@ -156,14 +156,12 @@ if(FEATURE_SSL AND BUNDLED_WOLFSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
 			-DCMAKE_C_FLAGS=${WOLFSSL_FLAGS} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
 			-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
-			-DWOLFSSL_EXAMPLES=OFF -DWOLFSSL_CRYPT_TESTS=OFF
-			-DWOLFSSL_OCSP=ON -DWOLFSSL_OPENSSLEXTRA=ON
-			-DWOLFSSL_FAST_MATH=OFF -DWOLFSSL_HARDEN=ON
-			-DWOLFSSL_OPENSSL_EXTRA=ON -DBUILD_PWDBASED=ON
-			-DWOLFSSL_PWDBASED=ON -DBUILD_CRL=ON
-			-DWOLFSSL_DES3=ON -DWOLFSSL_TLSX=ON
-			-DWOLFSSL_CHACHA=OFF
-			-DBUILD_SHARED_LIBS=OFF
+			-DWOLFSSL_EXAMPLES=OFF -DWOLFSSL_CRYPT_TESTS=OFF -DWOLFSSL_OCSP=yes
+			-DWOLFSSL_OPENSSLEXTRA=yes -DWOLFSSL_FAST_MATH=OFF -DWOLFSSL_HARDEN=yes
+			-DWOLFSSL_OPENSSL_EXTRA=yes -DBUILD_PWDBASED=yes -DWOLFSSL_PWDBASED=yes
+			-DBUILD_CRL=yes -DWOLFSSL_DES3=yes -DWOLFSSL_TLSX=yes -DWOLFSSL_CHACHA=OFF
+			-DBUILD_SHARED_LIBS=OFF -DWOLFSSL_CURL=yes -DWOLFSSL_OPENSSLALL=yes
+			-DWOLFSSL_ASIO=yes -DWOLFSSL_CRL=yes
 			# -DCMAKE_POLICY_DEFAULT_CMP0091=NEW                                # This is just for MSCV
 			-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>  # No more patching needed!
 			-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/wolfssl
@@ -200,9 +198,11 @@ if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 
 		if(ETL_64BITS)
 			set(openssl_plat VC-WIN64)
+			set(openssl_lib_folder lib64)
 			# set(curl_plat x64)
 		else()
 			set(openssl_plat VC-WIN32)
+			set(openssl_lib_folder lib)
 			# set(curl_plat x86)
 		endif()
 
@@ -210,14 +210,14 @@ if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 		set(OPENSSL_CONFIGURE "${PERL_EXECUTABLE}" Configure "${openssl_plat}" "--prefix=${OPENSSL_PREFIX}" "--openssldir=${OPENSSL_PREFIX}" no-shared no-unit-test -static)
 		set(OPENSSL_BUILD nmake)
 		set(OPENSSL_INSTALL nmake install_sw)
-		set(OPENSSL_BUNDLED_LIBRARY "${OPENSSL_PREFIX}/lib/libcrypto.lib" "${OPENSSL_PREFIX}/lib/libssl.lib")
+		set(OPENSSL_BUNDLED_LIBRARY "${OPENSSL_PREFIX}/${openssl_lib_folder}/libcrypto.lib" "${OPENSSL_PREFIX}/${openssl_lib_folder}/libssl.lib")
 		ExternalProject_Add(bundled_openssl
 				# Use github archive instead of the one hosted on openssl.org because of CMake bug #13251
 				#URL_MD5 "76766e98997660138cdaf13a187bd234"
 				#GIT_REPOSITORY "https://github.com/openssl/openssl.git"
 				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-				URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1l.tar.gz
-				URL_HASH MD5=2ff02cd10f96671162df3efd60470cfe
+				URL https://github.com/openssl/openssl/releases/download/openssl-3.2.0/openssl-3.2.0.tar.gz
+				URL_HASH MD5=7903549a14abebc5c323ce4e85f2cbb2
 				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/openssl"
 				BUILD_IN_SOURCE 1
 				CONFIGURE_COMMAND ${OPENSSL_CONFIGURE}
@@ -234,12 +234,14 @@ if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 	elseif (UNIX)
 		# FIXME: check flags
 		if(CROSS_COMPILE32)
+			set(openssl_lib_folder lib)
 			if(APPLE)
 				SET(OPENSSL_BUILD ./Configure darwin-i386-cc ${CROSS_COMPILE32_FLAGS})
 			else()
 				SET(OPENSSL_BUILD ./Configure linux-x86 ${CROSS_COMPILE32_FLAGS})
 			endif()
 		else()
+			set(openssl_lib_folder lib64)
 			if(APPLE)
 				SET(OPENSSL_BUILD ./Configure darwin64-x86_64-cc ${CROSS_COMPILE32_FLAGS})
 			else()
@@ -253,7 +255,7 @@ if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 			endif()
 		endif()
 
-		set(OPENSSL_BUNDLED_LIBRARY "${LIBS_BINARY_DIR}/openssl/lib/libssl.a" "${LIBS_BINARY_DIR}/openssl/lib/libcrypto.a")
+		set(OPENSSL_BUNDLED_LIBRARY "${LIBS_BINARY_DIR}/openssl/${openssl_lib_folder}/libssl.a" "${LIBS_BINARY_DIR}/openssl/${openssl_lib_folder}/libcrypto.a")
 
 		# FIXME:
 		# check all the locations of the files (runtime files?!)
@@ -261,8 +263,8 @@ if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 		ExternalProject_Add(
 				bundled_openssl
 				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-				URL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1l.tar.gz
-				URL_HASH MD5=2ff02cd10f96671162df3efd60470cfe
+				URL https://github.com/openssl/openssl/releases/download/openssl-3.2.0/openssl-3.2.0.tar.gz
+				URL_HASH MD5=7903549a14abebc5c323ce4e85f2cbb2
 				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/openssl"
 				CONFIGURE_COMMAND ${OPENSSL_BUILD} --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/openssl
 				--openssldir=${LIBS_BINARY_DIR}/openssl
@@ -291,12 +293,15 @@ endif()
 if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
 	add_library(bundled_curl_int INTERFACE)
 
+	set(CURL_DOWNLOAD_URL "https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz")
+	set(CURL_DOWNLOAD_HASH "MD5=0bc69288b20ae165ff4b7d6d7bbe70d2")
 	set(CURL_CMAKE_ARGS
 			-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
 			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-			-DBUILD_CURL_EXE=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_ARES=OFF -DENABLE_THREADED_RESOLVER=ON -DENABLE_DEBUG=OFF
-			-DENABLE_CURLDEBUG=OFF -DBUILD_TESTING=OFF -DENABLE_IPV6=ON -DENABLE_MANUAL=OFF -DCURL_USE_LIBSSH=OFF -DCURL_USE_LIBSSH2=OFF
+			-DBUILD_CURL_EXE=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_ARES=OFF -DENABLE_THREADED_RESOLVER=ON
+			-DENABLE_CURLDEBUG=OFF -DBUILD_TESTING=OFF -DENABLE_IPV6=ON -DENABLE_MANUAL=OFF -DCURL_USE_LIBPSL=OFF
 			-DUSE_NGHTTP2=OFF -DCURL_WINDOWS_SSPI=OFF -DCURL_ZLIB=AUTO -DCMAKE_USE_GSSAPI=OFF
+			-DUSE_LIBIDN2=OFF -DCURL_USE_LIBSSH=OFF -DCURL_USE_LIBSSH2=OFF -DENABLE_DEBUG=OFF
 			-DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON -DCURL_DISABLE_TELNET=ON -DCURL_DISABLE_DICT=ON
 			-DCURL_DISABLE_FILE=ON -DCURL_DISABLE_TFTP=ON -DCURL_DISABLE_RTSP=ON -DCURL_DISABLE_POP3=ON
 			-DCURL_DISABLE_IMAP=ON -DCURL_DISABLE_SMTP=ON -DCURL_DISABLE_GOPHER=ON -DENABLE_UNIX_SOCKETS=ON
@@ -344,8 +349,8 @@ if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
 		ExternalProject_Add(bundled_curl
 				DEPENDS bundled_wolfssl bundled_openssl
 				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-				URL https://github.com/curl/curl/archive/curl-7_87_0.tar.gz
-				URL_HASH MD5=ade16c73e4a4d42bc526e852757660f4
+				URL ${CURL_DOWNLOAD_URL}
+				URL_HASH ${CURL_DOWNLOAD_HASH}
 				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
 				PREFIX ${LIBS_BINARY_DIR}/curl
 				BINARY_DIR ${binary_dir}
@@ -388,8 +393,8 @@ if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
 		ExternalProject_Add(bundled_curl
 				DEPENDS bundled_wolfssl bundled_openssl
 				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-				URL https://github.com/curl/curl/archive/curl-7_87_0.tar.gz
-				URL_HASH MD5=ade16c73e4a4d42bc526e852757660f4
+				URL ${CURL_DOWNLOAD_URL}
+				URL_HASH ${CURL_DOWNLOAD_HASH}
 				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
 				PREFIX ${LIBS_BINARY_DIR}/curl
 				BINARY_DIR ${binary_dir}
@@ -404,59 +409,46 @@ if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
 		target_include_directories(bundled_curl_int INTERFACE "${LIBS_BINARY_DIR}/curl/include")
 	elseif (UNIX)
 
-		# TODO: swap out to CMake at some point
-		set(CURL_CONFIGURE autoreconf -iv && ./configure --prefix=${LIBS_BINARY_DIR}/curl
-				--enable-shared=no --enable-static=yes
-				--enable-http --enable-ftp --disable-file
-				--disable-ldap --disable-ldaps --disable-rtsp
-				--enable-proxy --disable-dict --disable-telnet
-				--disable-tftp --disable-pop3 --disable-imap
-				--disable-smb --disable-smtp --disable-gopher
-				--without-libssh2 --without-nghttp2 --without-zstd
-				--without-gssapi --with-zlib --without-brotli
-				--enable-threaded-resolver --disable-sspi
-				--enable-ipv6 --without-libidn2
-				--without-libpsl --without-librtmp
-				--disable-manual
-		)
-
-		list(APPEND CURL_CONFIGURE --enable-unix-sockets --enable-libgcc)
-
 		if(FEATURE_SSL)
 			if(BUNDLED_WOLFSSL)
-				list(APPEND CURL_CONFIGURE --with-wolfssl=${LIBS_BINARY_DIR}/wolfssl)
+				include(CheckTypeSize)
+				check_type_size("long long" SIZEOF_LONG_LONG)
+
+				list(APPEND CURL_CMAKE_ARGS
+						-DCMAKE_C_FLAGS=-DSIZEOF_LONG_LONG=${SIZEOF_LONG_LONG}
+						-DCURL_USE_OPENSSL=OFF -DCURL_DISABLE_CRYPTO_AUTH=ON
+						-DCURL_USE_WOLFSSL=ON
+						-DCMAKE_LIBRARY_PATH=${LIBS_BINARY_DIR}/wolfssl/lib
+						-DCMAKE_INCLUDE_PATH=${LIBS_BINARY_DIR}/wolfssl/include
+				)
 			elseif(BUNDLED_OPENSSL)
-				list(APPEND CURL_CONFIGURE --with-openssl=${LIBS_BINARY_DIR}/openssl)
+				list(APPEND CURL_CMAKE_ARGS -DOPENSSL_ROOT_DIR=${OPENSSL_PREFIX} -DCURL_USE_OPENSSL=ON -DCURL_USE_WOLFSSL=OFF)
 			else()
-				if(APPLE)
-					list(APPEND CURL_CONFIGURE --with-secure-transport)
-				else()
-					list(APPEND CURL_CONFIGURE --with-openssl)
-				endif()
+				message(WARNING "Using system OpenSSL")
+				list(APPEND CURL_CMAKE_ARGS -DCURL_USE_OPENSSL=ON -DCURL_USE_WOLFSSL=OFF)
 			endif()
-		else()
-			list(APPEND CURL_CONFIGURE --without-ssl)
 		endif()
 
-		set(CURL_BUNDLED_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/lib/libcurl.a")
-		ExternalProject_Add(
-				bundled_curl
-				DEPENDS bundled_wolfssl bundled_openssl
-				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-				URL https://github.com/curl/curl/archive/curl-7_86_0.tar.gz
-				URL_HASH MD5=fdbf8d543998fb0d6aa1e7afdf8ad4e1
-				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
-				PATCH_COMMAND sed -i -e "s/LIBS=\"$addlib $LIBS\"/LIBS=\"$addlib -lm $LIBS\"/g" ${LIBS_DOWNLOAD_SRC_DIR}/curl/m4/curl-wolfssl.m4
-				BUILD_BYPRODUCTS ${CURL_BUNDLED_LIBRARY}
-				CONFIGURE_COMMAND ${CURL_CONFIGURE}
-				PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/curl
-				BUILD_COMMAND make ${CURL_BUILD_APPEND}
-				INSTALL_COMMAND make install
-				BUILD_IN_SOURCE 1
+		set(CURL_BUNDLED_LIBRARIES optimized "${binary_dir}/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		etl_find_lib_path(CURL_BUNDLED_LIBRARIES _CURL_OUTPUT)
+
+		ExternalProject_Add(bundled_curl
+			DEPENDS bundled_wolfssl bundled_openssl
+			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+			URL ${CURL_DOWNLOAD_URL}
+			URL_HASH ${CURL_DOWNLOAD_HASH}
+			SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/curl"
+			PREFIX ${LIBS_BINARY_DIR}/curl
+			BINARY_DIR ${binary_dir}
+			BUILD_BYPRODUCTS ${_CURL_OUTPUT}
+			CMAKE_ARGS ${CURL_CMAKE_ARGS}
 		)
+
+		set_target_properties(bundled_curl PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+
 		add_dependencies(bundled_curl_int bundled_curl)
-		target_link_libraries(bundled_curl_int INTERFACE ${CURL_BUNDLED_LIBRARY})
-		target_include_directories(bundled_curl_int INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/libs/curl/include")
+		target_link_libraries(bundled_curl_int INTERFACE ${CURL_BUNDLED_LIBRARIES})
+		target_include_directories(bundled_curl_int INTERFACE "${LIBS_BINARY_DIR}/curl/include")
 	endif()
 endif()
 
