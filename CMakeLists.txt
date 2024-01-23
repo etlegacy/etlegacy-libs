@@ -232,21 +232,21 @@ if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 		target_link_libraries(bundled_openssl_int INTERFACE ${OPENSSL_BUNDLED_LIBRARY})
 		target_include_directories(bundled_openssl_int INTERFACE "${OPENSSL_PREFIX}/include")
 	elseif (UNIX)
+
+		set(openssl_lib_folder lib)
+		set(OPENSSL_PREFIX "${LIBS_BINARY_DIR}/openssl")
+
 		# FIXME: check flags
 		if(CROSS_COMPILE32)
-			set(openssl_lib_folder lib)
 			if(APPLE)
 				SET(OPENSSL_BUILD ./Configure darwin-i386-cc ${CROSS_COMPILE32_FLAGS})
 			else()
 				SET(OPENSSL_BUILD ./Configure linux-x86 ${CROSS_COMPILE32_FLAGS})
 			endif()
 		else()
-			set(openssl_lib_folder lib64)
 			if(APPLE)
 				SET(OPENSSL_BUILD ./Configure darwin64-x86_64-cc ${CROSS_COMPILE32_FLAGS})
 			else()
-				#SET(OPENSSL_BUILD ./Configure linux-x86_64 ${CROSS_COMPILE32_FLAGS})
-				# better use ./config here?! (..and not the CROSS_COMPILE32_FLAGS?!)
 				if(NOT ARM)
 					SET(OPENSSL_BUILD ./Configure linux-x86_64)
 				else()
@@ -266,9 +266,9 @@ if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 				URL https://github.com/openssl/openssl/releases/download/openssl-3.2.0/openssl-3.2.0.tar.gz
 				URL_HASH MD5=7903549a14abebc5c323ce4e85f2cbb2
 				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/openssl"
-				CONFIGURE_COMMAND ${OPENSSL_BUILD} --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/openssl
-				--openssldir=${LIBS_BINARY_DIR}/openssl
-				PREFIX ${LIBS_BINARY_DIR}/openssl
+				CONFIGURE_COMMAND ${OPENSSL_BUILD} --prefix=${OPENSSL_PREFIX}
+				--openssldir=${OPENSSL_PREFIX} --libdir=${openssl_lib_folder}
+				PREFIX ${OPENSSL_PREFIX}
 				BUILD_COMMAND make ${CROSS_COMPILE32_FLAGS}
 				INSTALL_COMMAND make install_sw
 				BUILD_IN_SOURCE 1
