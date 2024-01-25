@@ -116,22 +116,27 @@ function(etl_setup_cmake_args _list)
             -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
             -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_C_FLAGS_DEBUG=${CMAKE_C_FLAGS_DEBUG} -DCMAKE_C_FLAGS_RELEASE=${CMAKE_C_FLAGS_RELEASE})
 
-    if (APPLE)
-        list(APPEND ${_list} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
-                -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_})
-    endif()
-
-    if (MSVC)
-        list(APPEND ${_list} -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>)
-    endif()
-
     if (CMAKE_C_STANDARD_INCLUDE_DIRECTORIES)
         list(APPEND ${_list} -DCMAKE_C_STANDARD_INCLUDE_DIRECTORIES=${CMAKE_C_STANDARD_INCLUDE_DIRECTORIES})
     endif()
 
     if (CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES)
         list(APPEND ${_list} -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES=${CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES})
-    endif()
+	endif()
+
+	if (APPLE)
+		list(APPEND ${_list} -DCMAKE_OSX_DEPLOYMENT_TARGET="${CMAKE_OSX_DEPLOYMENT_TARGET}"
+				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_})
+	endif()
+
+	if (MSVC)
+		list(APPEND ${_list} -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>)
+	endif()
+
+	# NOTE: set the CMAKE_POSITION_INDEPENDENT_CODE flag for all bundled libs (-fPIC) on 64 bit
+	if (ETL_64BITS)
+		list(APPEND ${_list} -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+	endif()
 
     # Stuff that configures the Android toolchain file (needs to be kept up to date)
     if (ANDROID)
@@ -179,7 +184,7 @@ function(etl_setup_cmake_args _list)
     if (CMAKE_TOOLCHAIN_FILE)
         # list(APPEND ${_list} -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE})
         list(APPEND ${_list} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
-    endif()
+	endif()
 
     if (ARGC GREATER 1)
         list(APPEND ${_list} ${ARGN})
@@ -188,23 +193,22 @@ function(etl_setup_cmake_args _list)
 endfunction()
 
 if(UNIX)
-
 	if(CROSS_COMPILE32)
 		if(APPLE)
-			set(CROSS_COMPILE32_FLAGS CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -m32 LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -m32)
+			set(LIBS_COMPILE_FLAGS CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -m32 LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -m32)
 		else()
-			set(CROSS_COMPILE32_FLAGS CFLAGS=-m32 LDFLAGS=-m32)
+			set(LIBS_COMPILE_FLAGS CFLAGS=-m32 LDFLAGS=-m32)
 		endif()
 	else()
-		# when we don't cross compile we have to enable position independant code '-fPIC' for all bundled libs
+		# when we don't cross compile we have to enable position independent code '-fPIC' for all bundled libs
 		# see http://stackoverflow.com/questions/7216244/why-is-fpic-absolutely-necessary-on-64-and-not-on-32bit-platforms
-		# let's misuse CROSS_COMPILE32_FLAGS var (for 64bit) to set our flag. FIXME: rename to CROSS_COMPILE_OPTIONAL_FLAGS?
+		# let's misuse LIBS_COMPILE_FLAGS var (for 64bit) to set our flag.
 		# notes: - cflag -mcmodel=large might be an option too
 		#        - this has to be done in all dependant CMakeLists-txt files see glew/CMakeLists.txt
 		if(APPLE)
-			set(CROSS_COMPILE32_FLAGS CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -fPIC LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
+			set(LIBS_COMPILE_FLAGS CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -fPIC LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
 		else()
-			set(CROSS_COMPILE32_FLAGS "CFLAGS=-fPIC")
+			set(LIBS_COMPILE_FLAGS "CFLAGS=-fPIC")
 		endif()
 	endif()
 endif()
@@ -330,20 +334,24 @@ if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 		set(OPENSSL_PREFIX "${LIBS_BINARY_DIR}/openssl")
 
 		# FIXME: check flags
-		if(CROSS_COMPILE32)
+		if(ETL_32BITS)
 			if(APPLE)
-				SET(OPENSSL_BUILD ./Configure darwin-i386-cc ${CROSS_COMPILE32_FLAGS})
+				SET(OPENSSL_BUILD ./Configure darwin-i386-cc ${LIBS_COMPILE_FLAGS})
 			else()
-				SET(OPENSSL_BUILD ./Configure linux-x86 ${CROSS_COMPILE32_FLAGS})
+				SET(OPENSSL_BUILD ./Configure linux-x86 ${LIBS_COMPILE_FLAGS})
 			endif()
 		else()
-			if(APPLE)
-				SET(OPENSSL_BUILD ./Configure darwin64-x86_64-cc ${CROSS_COMPILE32_FLAGS})
-			else()
-				if(NOT ARM)
-					SET(OPENSSL_BUILD ./Configure linux-x86_64)
+			if(ETL_ARM)
+				if(APPLE)
+					SET(OPENSSL_BUILD ./Configure darwin64-arm64 ${LIBS_COMPILE_FLAGS})
 				else()
 					SET(OPENSSL_BUILD ./Configure linux-aarch64)
+				endif()
+			else()
+				if(APPLE)
+					SET(OPENSSL_BUILD ./Configure darwin64-x86_64 ${LIBS_COMPILE_FLAGS})
+				else()
+					SET(OPENSSL_BUILD ./Configure linux-x86_64)
 				endif()
 			endif()
 		endif()
@@ -362,7 +370,7 @@ if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 				CONFIGURE_COMMAND ${OPENSSL_BUILD} --prefix=${OPENSSL_PREFIX}
 				--openssldir=${OPENSSL_PREFIX} --libdir=${openssl_lib_folder}
 				PREFIX ${OPENSSL_PREFIX}
-				BUILD_COMMAND make ${CROSS_COMPILE32_FLAGS}
+				BUILD_COMMAND make ${LIBS_COMPILE_FLAGS}
 				INSTALL_COMMAND make install_sw
 				BUILD_IN_SOURCE 1
 				BUILD_BYPRODUCTS ${OPENSSL_BUNDLED_LIBRARY}
@@ -785,7 +793,7 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 				SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/ogg
 				PATCH_COMMAND autoreconf -fiv
 				BUILD_BYPRODUCTS ${OGG_BUNDLED_LIBRARIES}
-				CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg ${CROSS_COMPILE32_FLAGS}
+				CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg ${LIBS_COMPILE_FLAGS}
 				--enable-silent-rules --disable-dependency-tracking --enable-shared=no
 				PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/ogg
 				BUILD_COMMAND make
@@ -810,7 +818,7 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 				BUILD_BYPRODUCTS ${OGG_VORBIS_BUNDLED_LIBRARIES}
 				CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
 				--disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include
-				--with-ogg-libraries=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib ${CROSS_COMPILE32_FLAGS}
+				--with-ogg-libraries=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib ${LIBS_COMPILE_FLAGS}
 				--disable-dependency-tracking --enable-silent-rules --enable-shared=no
 				PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
 				BUILD_COMMAND make
@@ -879,7 +887,7 @@ if(BUNDLED_LUA AND BUILD_MOD)
 
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
 				COMMAND make clean || true
-				COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
+				COMMAND ${LIBS_COMPILE_FLAGS} make ${LUA_MAKE_TARGET}
 				WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
 		)
 
@@ -925,7 +933,7 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 	elseif(UNIX AND NOT APPLE)
 		# Wayland requires OpenglES support so that's why its enabled here.
 		set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_X11=ON -DSDL_VIDEO_X11=ON -DSDL_VIDEO_X11_XINPUT=ON -DSDL_WAYLAND=ON -DSDL_OPENGLES=ON)
-	elseif(ARM)
+	elseif(ETL_ARM)
 		# Wayland requires OpenglES support so that's why its enabled here.
 		set(SDL_CMAKE_ARGS ${SDL_CMAKE_ARGS} -DSDL_X11=ON -DSDL_VIDEO_X11=ON -DSDL_VIDEO_X11_XINPUT=OFF -DSDL_WAYLAND=ON -DSDL_OPENGLES=ON)
 	elseif(WIN32)
@@ -1067,7 +1075,7 @@ if(BUNDLED_JPEG AND BUILD_CLIENT)
 	endif()
 
 	# Set SIZEOF_SIZE_T  @SIZE_T@ for 64 or 32 bit
-	if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT CROSS_COMPILE32)
+	if(ETL_64BITS)
 		set(SIZEOF_SIZE_T 8)
 	else()
 		set(SIZEOF_SIZE_T 4)
@@ -1123,7 +1131,7 @@ if(BUNDLED_PNG AND BUILD_CLIENT)
 	# FIXME: re-test this when a new version of libpng is used
 	# as of 2022 with an aarch64 mac the build fails due to the optimizations only being available for lnx
 	set(PNG_OPTIMIZATION ON)
-	if(APPLE AND (CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch64"))
+	if(APPLE AND ETL_ARM)
 		set(PNG_OPTIMIZATION OFF)
 	endif()
 

@@ -57,19 +57,18 @@ else()
 	#set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -ldl")
 	# probably not needed
 	#set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -ldl")
-
-	target_link_options(sqlite_int INTERFACE "-ldl")
+	target_link_libraries(sqlite_int INTERFACE dl)
 endif()
 
 if(MINGW OR UNIX)
-	# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-attributes")
 	target_compile_options(sqlite_int INTERFACE "-Wno-attributes")
 
 	# this is required for bundled 64bit sqlite3 lib
 	# http://stackoverflow.com/questions/7216244/why-is-fpic-absolutely-necessary-on-64-and-not-on-32bit-platforms
 	if(NOT CROSS_COMPILE32)
 		# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-		target_compile_options(sqlite_int INTERFACE "-fPIC")
+		# target_compile_options(sqlite_int INTERFACE "-fPIC")
+		set_target_properties(sqlite_int PROPERTIES POSITION_INDEPENDENT_CODE ON)
 	endif(NOT CROSS_COMPILE32)
 endif()
 
