@@ -18,18 +18,18 @@ if (APPLE)
 endif()
 
 if (ANDROID)
-    get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
-    foreach(dir ${dirs})
-        message(INFO "Adding include dir='${dir}'")
-        list(APPEND CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${dir})
-        list(APPEND CMAKE_C_STANDARD_INCLUDE_DIRECTORIES ${dir})
-    endforeach()
+	get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+	foreach(dir ${dirs})
+		message(INFO "Adding include dir='${dir}'")
+		list(APPEND CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${dir})
+		list(APPEND CMAKE_C_STANDARD_INCLUDE_DIRECTORIES ${dir})
+	endforeach()
 endif()
 
 if (CMAKE_INSTALL_LIBDIR)
-    set(LIBS_LIB_DIR ${CMAKE_INSTALL_LIBDIR})
+	set(LIBS_LIB_DIR ${CMAKE_INSTALL_LIBDIR})
 else()
-    set(LIBS_LIB_DIR lib)
+	set(LIBS_LIB_DIR lib)
 endif()
 
 # Force the BUNDLED_<name> to OFF if the FEATURE_<name> is OFF. No more unwanted stuff being built.
@@ -109,19 +109,19 @@ endfunction()
 # ensure that all the required flags get passed to the sub-projects
 # these include the msvc runtime, apple architechtures and android toolchain flags
 function(etl_setup_cmake_args _list)
-    if (NOT ${_list})
-        set(${_list} "" PARENT_SCOPE)
-    endif()
-    list(APPEND ${_list} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-            -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_C_FLAGS_DEBUG=${CMAKE_C_FLAGS_DEBUG} -DCMAKE_C_FLAGS_RELEASE=${CMAKE_C_FLAGS_RELEASE})
+	if (NOT ${_list})
+		set(${_list} "" PARENT_SCOPE)
+	endif()
+	list(APPEND ${_list} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+			-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+			-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_C_FLAGS_DEBUG=${CMAKE_C_FLAGS_DEBUG} -DCMAKE_C_FLAGS_RELEASE=${CMAKE_C_FLAGS_RELEASE})
 
-    if (CMAKE_C_STANDARD_INCLUDE_DIRECTORIES)
-        list(APPEND ${_list} -DCMAKE_C_STANDARD_INCLUDE_DIRECTORIES=${CMAKE_C_STANDARD_INCLUDE_DIRECTORIES})
-    endif()
+	if (CMAKE_C_STANDARD_INCLUDE_DIRECTORIES)
+		list(APPEND ${_list} -DCMAKE_C_STANDARD_INCLUDE_DIRECTORIES=${CMAKE_C_STANDARD_INCLUDE_DIRECTORIES})
+	endif()
 
-    if (CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES)
-        list(APPEND ${_list} -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES=${CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES})
+	if (CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES)
+		list(APPEND ${_list} -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES=${CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES})
 	endif()
 
 	if (APPLE)
@@ -138,58 +138,64 @@ function(etl_setup_cmake_args _list)
 		list(APPEND ${_list} -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
 	endif()
 
-    # Stuff that configures the Android toolchain file (needs to be kept up to date)
-    if (ANDROID)
-        if (ANDROID_TOOLCHAIN)
-            list(APPEND ${_list} -DANDROID_TOOLCHAIN=${ANDROID_TOOLCHAIN})
-        endif()
+	# Stuff that configures the Android toolchain file (needs to be kept up to date)
+	if (ANDROID)
+		if (ANDROID_TOOLCHAIN)
+			list(APPEND ${_list} -DANDROID_TOOLCHAIN=${ANDROID_TOOLCHAIN})
+		endif()
 
-        if (ANDROID_ABI)
-            list(APPEND ${_list} -DANDROID_ABI=${ANDROID_ABI})
-        endif()
+		if (ANDROID_ABI)
+			list(APPEND ${_list} -DANDROID_ABI=${ANDROID_ABI})
+		endif()
 
-        if (ANDROID_PLATFORM)
-            list(APPEND ${_list} -DANDROID_PLATFORM=${ANDROID_PLATFORM})
-        endif()
+		if (ANDROID_PLATFORM)
+			list(APPEND ${_list} -DANDROID_PLATFORM=${ANDROID_PLATFORM})
+		endif()
 
-        if (ANDROID_STL)
-            list(APPEND ${_list} -DANDROID_STL=${ANDROID_STL})
-        endif()
+		if (ANDROID_STL)
+			list(APPEND ${_list} -DANDROID_STL=${ANDROID_STL})
+		endif()
 
-        if (ANDROID_PIE)
-            list(APPEND ${_list} -DANDROID_PIE=${ANDROID_PIE})
-        endif()
+		if (ANDROID_PIE)
+			list(APPEND ${_list} -DANDROID_PIE=${ANDROID_PIE})
+		endif()
 
-        if (ANDROID_CPP_FEATURES)
-            list(APPEND ${_list} -DANDROID_CPP_FEATURES=${ANDROID_CPP_FEATURES})
-        endif()
+		if (ANDROID_CPP_FEATURES)
+			list(APPEND ${_list} -DANDROID_CPP_FEATURES=${ANDROID_CPP_FEATURES})
+		endif()
 
-        if (ANDROID_ALLOW_UNDEFINED_SYMBOLS)
-            list(APPEND ${_list} -DANDROID_ALLOW_UNDEFINED_SYMBOLS=${ANDROID_ALLOW_UNDEFINED_SYMBOLS})
-        endif()
+		if (ANDROID_ALLOW_UNDEFINED_SYMBOLS)
+			list(APPEND ${_list} -DANDROID_ALLOW_UNDEFINED_SYMBOLS=${ANDROID_ALLOW_UNDEFINED_SYMBOLS})
+		endif()
 
-        if (ANDROID_ARM_MODE)
-            list(APPEND ${_list} -DANDROID_ARM_MODE=${ANDROID_ARM_MODE})
-        endif()
+		if (ANDROID_ARM_MODE)
+			list(APPEND ${_list} -DANDROID_ARM_MODE=${ANDROID_ARM_MODE})
+		endif()
 
-        if (ANDROID_DISABLE_FORMAT_STRING_CHECKS)
-            list(APPEND ${_list} -DANDROID_DISABLE_FORMAT_STRING_CHECKS=${ANDROID_DISABLE_FORMAT_STRING_CHECKS})
-        endif()
+		if (ANDROID_DISABLE_FORMAT_STRING_CHECKS)
+			list(APPEND ${_list} -DANDROID_DISABLE_FORMAT_STRING_CHECKS=${ANDROID_DISABLE_FORMAT_STRING_CHECKS})
+		endif()
 
-        if (ANDROID_CCACHE)
-            list(APPEND ${_list} -DANDROID_CCACHE=${ANDROID_CCACHE})
-        endif()
-    endif()
-
-    if (CMAKE_TOOLCHAIN_FILE)
-        # list(APPEND ${_list} -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE})
-        list(APPEND ${_list} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
+		if (ANDROID_CCACHE)
+			list(APPEND ${_list} -DANDROID_CCACHE=${ANDROID_CCACHE})
+		endif()
 	endif()
 
-    if (ARGC GREATER 1)
-        list(APPEND ${_list} ${ARGN})
-    endif()
-    set(${_list} ${${_list}} PARENT_SCOPE)
+	if (CMAKE_TOOLCHAIN_FILE)
+		# list(APPEND ${_list} -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE})
+		list(APPEND ${_list} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
+	endif()
+
+
+	if (NOT "${ARGN}" MATCHES "-DCMAKE_INSTALL_PREFIX=")
+		message(VERBOSE "Appending default install prefix to the cmake args")
+		list(APPEND ${_list} -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>)
+	endif()
+
+	if (ARGC GREATER 1)
+		list(APPEND ${_list} ${ARGN})
+	endif()
+	set(${_list} ${${_list}} PARENT_SCOPE)
 endfunction()
 
 if(UNIX)
@@ -204,7 +210,7 @@ if(UNIX)
 		# see http://stackoverflow.com/questions/7216244/why-is-fpic-absolutely-necessary-on-64-and-not-on-32bit-platforms
 		# let's misuse LIBS_COMPILE_FLAGS var (for 64bit) to set our flag.
 		# notes: - cflag -mcmodel=large might be an option too
-		#        - this has to be done in all dependant CMakeLists-txt files see glew/CMakeLists.txt
+		#		 - this has to be done in all dependant CMakeLists-txt files see glew/CMakeLists.txt
 		if(APPLE)
 			set(LIBS_COMPILE_FLAGS CFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}\ -O3\ -fPIC LDFLAGS=-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
 		else()
@@ -243,15 +249,15 @@ if(FEATURE_SSL AND BUNDLED_WOLFSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 	#endif()
 
 	etl_find_lib_path(WOLFSSL_BUNDLED_LIBRARY _WOLFSSL_OUTPUT)
-    etl_setup_cmake_args(wolfssl_cmake_args
-            -DWOLFSSL_EXAMPLES=OFF -DWOLFSSL_CRYPT_TESTS=OFF -DWOLFSSL_OCSP=yes
-            -DWOLFSSL_OPENSSLEXTRA=yes -DWOLFSSL_FAST_MATH=OFF -DWOLFSSL_HARDEN=yes
-            -DWOLFSSL_OPENSSL_EXTRA=yes -DBUILD_PWDBASED=yes -DWOLFSSL_PWDBASED=yes
-            -DBUILD_CRL=yes -DWOLFSSL_DES3=yes -DWOLFSSL_TLSX=yes -DWOLFSSL_CHACHA=OFF
-            -DBUILD_SHARED_LIBS=OFF -DWOLFSSL_CURL=yes -DWOLFSSL_OPENSSLALL=yes
-            -DWOLFSSL_ASIO=yes -DWOLFSSL_CRL=yes
-            -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/wolfssl
-    )
+	etl_setup_cmake_args(wolfssl_cmake_args
+			-DWOLFSSL_EXAMPLES=OFF -DWOLFSSL_CRYPT_TESTS=OFF -DWOLFSSL_OCSP=yes
+			-DWOLFSSL_OPENSSLEXTRA=yes -DWOLFSSL_FAST_MATH=OFF -DWOLFSSL_HARDEN=yes
+			-DWOLFSSL_OPENSSL_EXTRA=yes -DBUILD_PWDBASED=yes -DWOLFSSL_PWDBASED=yes
+			-DBUILD_CRL=yes -DWOLFSSL_DES3=yes -DWOLFSSL_TLSX=yes -DWOLFSSL_CHACHA=OFF
+			-DBUILD_SHARED_LIBS=OFF -DWOLFSSL_CURL=yes -DWOLFSSL_OPENSSLALL=yes
+			-DWOLFSSL_ASIO=yes -DWOLFSSL_CRL=yes
+			-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/wolfssl
+	)
 
 	ExternalProject_Add(bundled_wolfssl
 			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
@@ -396,7 +402,7 @@ if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
 
 	set(CURL_DOWNLOAD_URL "https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz")
 	set(CURL_DOWNLOAD_HASH "MD5=0bc69288b20ae165ff4b7d6d7bbe70d2")
-    etl_setup_cmake_args(CURL_CMAKE_ARGS
+	etl_setup_cmake_args(CURL_CMAKE_ARGS
 			-DBUILD_CURL_EXE=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_ARES=OFF -DENABLE_THREADED_RESOLVER=ON
 			-DENABLE_CURLDEBUG=OFF -DBUILD_TESTING=OFF -DENABLE_IPV6=ON -DENABLE_MANUAL=OFF -DCURL_USE_LIBPSL=OFF
 			-DUSE_NGHTTP2=OFF -DCURL_WINDOWS_SSPI=OFF -DCURL_ZLIB=AUTO -DCMAKE_USE_GSSAPI=OFF
@@ -567,12 +573,12 @@ if(BUNDLED_OPENAL AND BUILD_CLIENT)
 		endif()
 
 		etl_find_lib_path(OPENAL_BUNDLED_LIBRARIES _OPENAL_OUTPUT)
-        etl_setup_cmake_args(BUNDLED_OPENAL_CMAKE_ARGS
-                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal
-                -DLIBTYPE=STATIC -DFORCE_STATIC_VCRT=ON
-                -DALSOFT_UTILS=OFF -DALSOFT_NO_CONFIG_UTIL=ON -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF
-                -DALSOFT_CONFIG=OFF -DALSOFT_HRTF_DEFS=OFF -DALSOFT_AMBDEC_PRESETS=OFF
-        )
+		etl_setup_cmake_args(BUNDLED_OPENAL_CMAKE_ARGS
+				-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal
+				-DLIBTYPE=STATIC -DFORCE_STATIC_VCRT=ON
+				-DALSOFT_UTILS=OFF -DALSOFT_NO_CONFIG_UTIL=ON -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF
+				-DALSOFT_CONFIG=OFF -DALSOFT_HRTF_DEFS=OFF -DALSOFT_AMBDEC_PRESETS=OFF
+		)
 
 		ExternalProject_Add(bundled_openal
 				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
@@ -589,11 +595,11 @@ if(BUNDLED_OPENAL AND BUILD_CLIENT)
 		target_compile_definitions(bundled_openal_int INTERFACE AL_LIBTYPE_STATIC)
 	elseif(UNIX)
 		set(OPENAL_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/openal/libopenal.a")
-        etl_setup_cmake_args(BUNDLED_OPENAL_CMAKE_ARGS
-                -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal -DLIBTYPE=STATIC
-                -DALSOFT_UTILS=OFF -DALSOFT_NO_CONFIG_UTIL=ON -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF
-                -DALSOFT_CONFIG=OFF -DALSOFT_HRTF_DEFS=OFF -DALSOFT_AMBDEC_PRESETS=OFF -DALSOFT_BACKEND_SNDIO=OFF
-        )
+		etl_setup_cmake_args(BUNDLED_OPENAL_CMAKE_ARGS
+				-DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/openal -DLIBTYPE=STATIC
+				-DALSOFT_UTILS=OFF -DALSOFT_NO_CONFIG_UTIL=ON -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF
+				-DALSOFT_CONFIG=OFF -DALSOFT_HRTF_DEFS=OFF -DALSOFT_AMBDEC_PRESETS=OFF -DALSOFT_BACKEND_SNDIO=OFF
+		)
 		ExternalProject_Add(bundled_openal
 				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
 				BINARY_DIR	${LIBS_BINARY_DIR}/openal
@@ -620,7 +626,7 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 
 	if (APPLE)
 		set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/lib/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        etl_setup_cmake_args(BUNDLED_OGG_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/ogg)
+		etl_setup_cmake_args(BUNDLED_OGG_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/ogg)
 		ExternalProject_Add(bundled_ogg
 				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/ogg
 				BINARY_DIR	${LIBS_BINARY_DIR}/ogg
@@ -633,11 +639,11 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 		target_link_libraries(bundled_ogg_full INTERFACE "${OGG_BUNDLED_LIBRARIES}")
 
 		set(VORBIS_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/vorbis/lib/libvorbis${CMAKE_STATIC_LIBRARY_SUFFIX}" "${LIBS_BINARY_DIR}/vorbis/lib/libvorbisfile${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        etl_setup_cmake_args(BUNDLED_OGG_VORBIS_CMAKE_ARGS
-                -DCMAKE_LIBRARY_PATH=${LIBS_BINARY_DIR}/ogg
-                -DOGG_ROOT=${LIBS_BINARY_DIR}/ogg
-                -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/vorbis
-        )
+		etl_setup_cmake_args(BUNDLED_OGG_VORBIS_CMAKE_ARGS
+				-DCMAKE_LIBRARY_PATH=${LIBS_BINARY_DIR}/ogg
+				-DOGG_ROOT=${LIBS_BINARY_DIR}/ogg
+				-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/vorbis
+		)
 
 		ExternalProject_Add(bundled_ogg_vorbis
 				DEPENDS bundled_ogg
@@ -668,7 +674,7 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 			list(APPEND OGG_HEADERS ${OPATH}/include/ogg/config_types.h)
 			add_custom_command(OUTPUT ${OPATH}/include/ogg/config_types.h
 					COMMAND ${OPATH}/configure
-					DEPENDS ${OPATH}/include/ogg/ogg.h  # Hopefully if the libogg version changes, so does this file
+					DEPENDS ${OPATH}/include/ogg/ogg.h	# Hopefully if the libogg version changes, so does this file
 					# so configure_types.h will be regenerated.
 					WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 			)
@@ -885,17 +891,22 @@ if(BUNDLED_LUA AND BUILD_MOD)
 			endif()
 		endif()
 
-		add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a
-				COMMAND make clean || true
-				COMMAND ${LIBS_COMPILE_FLAGS} make ${LUA_MAKE_TARGET}
-				WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/lua/src
+		set(LUA_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/lua/lib/liblua.a")
+		set(LUA_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/lua/include")
+
+		ExternalProject_Add(
+				bundled_lua
+				URL "${CMAKE_CURRENT_LIST_DIR}/lua"
+				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/lua"
+				BUILD_BYPRODUCTS ${LUA_BUNDLED_LIBRARIES}
+				CONFIGURE_COMMAND ""
+				BUILD_COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
+				INSTALL_COMMAND make "INSTALL_TOP=${LIBS_BINARY_DIR}/lua" install
+				WORKING_DIRECTORY "${LIBS_DOWNLOAD_SRC_DIR}/lua"
+				BUILD_IN_SOURCE 1
+				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
 		)
-
-		set(LUA_BUNDLED_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a")
-		set(LUA_BUNDLED_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/lua/src")
-
-		add_custom_target(bundled_lua DEPENDS ${CMAKE_CURRENT_LIST_DIR}/lua/src/liblua.a)
-
 		add_dependencies(bundled_lua_int bundled_lua)
 		target_link_libraries(bundled_lua_int INTERFACE ${LUA_BUNDLED_LIBRARIES})
 		target_include_directories(bundled_lua_int INTERFACE ${LUA_BUNDLED_INCLUDE_DIR})
@@ -914,18 +925,18 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 			set(SDL2_BUNDLED_LIBRARIES ${SDL2_BUNDLED_LIBRARIES} optimized "${LIBS_BINARY_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2-static${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARY_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2-staticd${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		else()
 			set(SDL2_BUNDLED_LIBRARIES ${SDL2_BUNDLED_LIBRARIES} optimized "${LIBS_BINARY_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARY_DIR}/sdl2/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2d${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        endif()
-    elseif (ANDROID)
-        set(SDL2_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/sdl2/${LIBS_LIB_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    else()
+		endif()
+	elseif (ANDROID)
+		set(SDL2_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/sdl2/${LIBS_LIB_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	else()
 		set(SDL2_BUNDLED_LIBRARIES optimized "${LIBS_BINARY_DIR}/sdl2/${LIBS_LIB_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${LIBS_BINARY_DIR}/sdl2/${LIBS_LIB_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2d${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	endif()
 
-    etl_setup_cmake_args(SDL_CMAKE_ARGS
-            -DSDL_RENDER_D3D=OFF -DSDL_RENDER_METAL=OFF -DSDL_RENDER=OFF
-            -DSDL_DUMMYVIDEO=OFF -DSDL_OPENGL=ON -DSDL_VULKAN=OFF -DSDL_KMSDRM=OFF
-            -DSDL_SHARED=OFF -DSDL_SNDIO=OFF -DSDL_LIBC=ON
-            -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/sdl2)
+	etl_setup_cmake_args(SDL_CMAKE_ARGS
+			-DSDL_RENDER_D3D=OFF -DSDL_RENDER_METAL=OFF -DSDL_RENDER=OFF
+			-DSDL_DUMMYVIDEO=OFF -DSDL_OPENGL=ON -DSDL_VULKAN=OFF -DSDL_KMSDRM=OFF
+			-DSDL_SHARED=OFF -DSDL_SNDIO=OFF -DSDL_LIBC=ON
+			-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/sdl2)
 
 	# Bye bye X11
 	if(APPLE)
@@ -1071,7 +1082,7 @@ if(BUNDLED_JPEG AND BUILD_CLIENT)
 	elseif(VS_BUILD)
 		set(JPEG_BUNDLED_LIBRARIES "${binary_dir}/turbojpeg-static${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	else()
-		set(JPEG_BUNDLED_LIBRARIES "${binary_dir}/libturbojpeg${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		set(JPEG_BUNDLED_LIBRARIES "${binary_dir}/lib/libturbojpeg${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	endif()
 
 	# Set SIZEOF_SIZE_T  @SIZE_T@ for 64 or 32 bit
@@ -1083,27 +1094,35 @@ if(BUNDLED_JPEG AND BUILD_CLIENT)
 
 	set(JPEG_LIB "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
 
-	configure_file(${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
-	configure_file(${JPEG_LIB}/jconfigint.h.cmake ${JPEG_LIB}/jconfigint.h)
+	# configure_file(${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
+	# configure_file(${JPEG_LIB}/jconfigint.h.cmake ${JPEG_LIB}/jconfigint.h)
 
 	etl_find_lib_path(JPEG_BUNDLED_LIBRARIES _JPEG_OUTPUT)
-    etl_setup_cmake_args(bundled_jpeg_cmake_args
-            -DENABLE_SHARED=OFF -DENABLE_STATIC=ON -DREQUIRE_SIMD=OFF -DWITH_12BIT=OFF
-            -DWITH_ARITH_DEC=ON -DWITH_ARITH_ENC=ON -DWITH_JAVA=OFF -DWITH_JPEG7=OFF -DWITH_JPEG8=ON
-            -DWITH_MEM_SRCDST=ON -DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON
-    )
+	etl_setup_cmake_args(bundled_jpeg_cmake_args
+			-DENABLE_SHARED=OFF -DENABLE_STATIC=ON -DREQUIRE_SIMD=OFF -DWITH_12BIT=OFF
+			-DWITH_ARITH_DEC=ON -DWITH_ARITH_ENC=ON -DWITH_JAVA=OFF -DWITH_JPEG7=OFF -DWITH_JPEG8=ON
+			-DWITH_MEM_SRCDST=ON -DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON
+	)
 
 	ExternalProject_Add(bundled_jpeg
-			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/jpegturbo
-			BINARY_DIR	${LIBS_BINARY_DIR}/jpegturbo
+			PREFIX ${LIBS_BINARY_DIR}/jpegturbo
+			URL	${CMAKE_CURRENT_LIST_DIR}/jpegturbo
 			BUILD_BYPRODUCTS ${_JPEG_OUTPUT}
 			CMAKE_ARGS ${bundled_jpeg_cmake_args}
-			INSTALL_COMMAND  ""
 	)
+	# ExternalProject_Add(bundled_jpeg
+	#		URL	${CMAKE_CURRENT_LIST_DIR}/jpegturbo
+	#		DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+	#		SOURCE_DIR	${LIBS_DOWNLOAD_SRC_DIR}/jpegturbo
+	#		BINARY_DIR	${LIBS_BINARY_DIR}/jpegturbo
+	#		BUILD_BYPRODUCTS ${_JPEG_OUTPUT}
+	#		CMAKE_ARGS ${bundled_jpeg_cmake_args}
+	#		INSTALL_COMMAND  ""
+	# )
 	set_target_properties(bundled_jpeg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
 	add_dependencies(bundled_jpeg_int bundled_jpeg)
-	target_include_directories(bundled_jpeg_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
+	target_include_directories(bundled_jpeg_int INTERFACE "${LIBS_BINARY_DIR}/jpegturbo/include")
 	target_link_libraries(bundled_jpeg_int INTERFACE ${JPEG_BUNDLED_LIBRARIES})
 endif()
 
@@ -1118,8 +1137,8 @@ if(BUNDLED_PNG AND BUILD_CLIENT)
 		set(PNG_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/libpng16_static${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/libpng16_staticd${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	elseif(MSVC)
 		set(PNG_BUNDLED_LIBRARIES optimized "${binary_dir}/libpng16_static${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/libpng16_staticd${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    elseif(ANDROID)
-        set(PNG_BUNDLED_LIBRARIES optimized "${binary_dir}/libpng16${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/libpng16d${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	elseif(ANDROID)
+		set(PNG_BUNDLED_LIBRARIES optimized "${binary_dir}/libpng16${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/libpng16d${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	else()
 		set(PNG_BUNDLED_LIBRARIES "${binary_dir}/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	endif()
@@ -1136,13 +1155,15 @@ if(BUNDLED_PNG AND BUILD_CLIENT)
 	endif()
 
 	etl_find_lib_path(PNG_BUNDLED_LIBRARIES _PNG_OUTPUT)
-    etl_setup_cmake_args(bundled_png_cmake_args
-            -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_BUILD_ZLIB=ON -DZLIB_INCLUDE_DIRS=${ZLIB_INCLUDE_DIR}
-            -DPNG_TESTS=OFF -DPNG_FRAMEWORK=OFF -DPNG_DEBUG=OFF -DPNG_HARDWARE_OPTIMIZATIONS=${PNG_OPTIMIZATION} -DAWK=OFF
-    )
+	etl_setup_cmake_args(bundled_png_cmake_args
+			-DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_BUILD_ZLIB=ON -DZLIB_INCLUDE_DIRS=${ZLIB_INCLUDE_DIR}
+			-DPNG_TESTS=OFF -DPNG_FRAMEWORK=OFF -DPNG_DEBUG=OFF -DPNG_HARDWARE_OPTIMIZATIONS=${PNG_OPTIMIZATION} -DAWK=OFF
+	)
 
 	ExternalProject_Add(bundled_png
-			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/libpng
+			URL	${CMAKE_CURRENT_LIST_DIR}/libpng
+			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+			SOURCE_DIR	${LIBS_DOWNLOAD_SRC_DIR}/libpng
 			BINARY_DIR	${LIBS_BINARY_DIR}/libpng
 			BUILD_BYPRODUCTS ${_PNG_OUTPUT}
 			PREFIX ${LIBS_BINARY_DIR}/libpng
@@ -1152,7 +1173,7 @@ if(BUNDLED_PNG AND BUILD_CLIENT)
 	set_target_properties(bundled_png PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
 	add_dependencies(bundled_png_int bundled_png)
-	target_include_directories(bundled_png_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/libpng/include")
+	target_include_directories(bundled_png_int INTERFACE "${LIBS_DOWNLOAD_SRC_DIR}/libpng/include")
 	target_link_libraries(bundled_png_int INTERFACE ${PNG_BUNDLED_LIBRARIES})
 endif()
 
@@ -1172,14 +1193,16 @@ if(BUNDLED_FREETYPE AND BUILD_CLIENT)
 	endif()
 
 	etl_find_lib_path(BUNDLED_FREETYPE_LIBRARIES _FREETYPE_OUTPUT)
-    etl_find_lib_path(BUNDLED_FREETYPE_CMAKE_ARGS
-            DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=ON -DCMAKE_DISABLE_FIND_PACKAGE_BZip2=ON -DCMAKE_DISABLE_FIND_PACKAGE_PNG=ON
-            -DCMAKE_DISABLE_FIND_PACKAGE_HarfBuzz=ON -DCMAKE_DISABLE_FIND_PACKAGE_BrotliDec=ON
-            -DFT_WITH_ZLIB=OFF -DFT_WITH_BZIP2=OFF -DFT_WITH_PNG=OFF -DFT_WITH_HARFBUZZ=OFF -DFT_WITH_BROTLI=OFF -DDISABLE_FORCE_DEBUG_POSTFIX=ON
-    )
+	etl_find_lib_path(BUNDLED_FREETYPE_CMAKE_ARGS
+			DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=ON -DCMAKE_DISABLE_FIND_PACKAGE_BZip2=ON -DCMAKE_DISABLE_FIND_PACKAGE_PNG=ON
+			-DCMAKE_DISABLE_FIND_PACKAGE_HarfBuzz=ON -DCMAKE_DISABLE_FIND_PACKAGE_BrotliDec=ON
+			-DFT_WITH_ZLIB=OFF -DFT_WITH_BZIP2=OFF -DFT_WITH_PNG=OFF -DFT_WITH_HARFBUZZ=OFF -DFT_WITH_BROTLI=OFF -DDISABLE_FORCE_DEBUG_POSTFIX=ON
+	)
 
 	ExternalProject_Add(bundled_freetype
-			SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/freetype
+			URL	${CMAKE_CURRENT_LIST_DIR}/freetype
+			DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
+			SOURCE_DIR	${LIBS_DOWNLOAD_SRC_DIR}/freetype
 			BINARY_DIR	${binary_dir}
 			BUILD_BYPRODUCTS ${_FREETYPE_OUTPUT}
 			CMAKE_ARGS ${BUNDLED_FREETYPE_CMAKE_ARGS}
@@ -1188,7 +1211,7 @@ if(BUNDLED_FREETYPE AND BUILD_CLIENT)
 	set_target_properties(bundled_freetype PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
 	add_dependencies(bundled_freetype_int bundled_freetype)
-	target_include_directories(bundled_freetype_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/freetype/include")
+	target_include_directories(bundled_freetype_int INTERFACE "${LIBS_DOWNLOAD_SRC_DIR}/freetype/include")
 	target_link_libraries(bundled_freetype_int INTERFACE ${BUNDLED_FREETYPE_LIBRARIES})
 endif()
 
