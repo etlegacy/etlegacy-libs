@@ -5,6 +5,10 @@ set(LIBS_BINARY_DIR ${PROJECT_BINARY_DIR}/libs)
 set(LIBS_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads/pgk)
 set(LIBS_DOWNLOAD_SRC_DIR ${PROJECT_BINARY_DIR}/downloads/src)
 
+if (UNIX)
+	find_program(MAKE NAMES gmake make mingw32-make REQUIRED)
+endif()
+
 # note/FIXME/clarify:
 # when features are disabled this script is still
 # adding the related targets? F.e. LUA_FEATURE is Off and BUNDLED_LUA On
@@ -107,7 +111,7 @@ function(etl_find_lib_path list _out)
 endfunction()
 
 # ensure that all the required flags get passed to the sub-projects
-# these include the msvc runtime, apple architechtures and android toolchain flags
+# these include the msvc runtime, apple architectures and android toolchain flags
 function(etl_setup_cmake_args _list)
 	if (NOT ${_list})
 		set(${_list} "" PARENT_SCOPE)
@@ -372,12 +376,11 @@ if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
 				URL https://github.com/openssl/openssl/releases/download/openssl-3.2.0/openssl-3.2.0.tar.gz
 				URL_HASH MD5=7903549a14abebc5c323ce4e85f2cbb2
-				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/openssl"
-				CONFIGURE_COMMAND ${OPENSSL_BUILD} --prefix=${OPENSSL_PREFIX}
-				--openssldir=${OPENSSL_PREFIX} --libdir=${openssl_lib_folder}
-				PREFIX ${OPENSSL_PREFIX}
-				BUILD_COMMAND make ${LIBS_COMPILE_FLAGS}
-				INSTALL_COMMAND make install_sw
+                PREFIX ${OPENSSL_PREFIX}
+				CONFIGURE_COMMAND ${OPENSSL_BUILD} --prefix=<INSTALL_DIR>
+				--openssldir=<INSTALL_DIR> --libdir=${openssl_lib_folder}
+				BUILD_COMMAND ${MAKE} -j ${LIBS_COMPILE_FLAGS}
+				INSTALL_COMMAND ${MAKE} install_sw
 				BUILD_IN_SOURCE 1
 				BUILD_BYPRODUCTS ${OPENSSL_BUNDLED_LIBRARY}
 		)
@@ -581,7 +584,8 @@ if(BUNDLED_OPENAL AND BUILD_CLIENT)
 		)
 
 		ExternalProject_Add(bundled_openal
-				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
+                PREFIX ${binary_dir}
+				URL	${CMAKE_CURRENT_LIST_DIR}/openal
 				BINARY_DIR	${binary_dir}
 				BUILD_BYPRODUCTS ${_OPENAL_OUTPUT}
 				CMAKE_ARGS	${BUNDLED_OPENAL_CMAKE_ARGS}
@@ -601,6 +605,8 @@ if(BUNDLED_OPENAL AND BUILD_CLIENT)
 				-DALSOFT_CONFIG=OFF -DALSOFT_HRTF_DEFS=OFF -DALSOFT_AMBDEC_PRESETS=OFF -DALSOFT_BACKEND_SNDIO=OFF
 		)
 		ExternalProject_Add(bundled_openal
+                PREFIX ${binary_dir}
+                URL	${CMAKE_CURRENT_LIST_DIR}/openal
 				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/openal
 				BINARY_DIR	${LIBS_BINARY_DIR}/openal
 				BUILD_BYPRODUCTS ${OPENAL_BUNDLED_LIBRARIES}
@@ -628,7 +634,8 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 		set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/lib/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		etl_setup_cmake_args(BUNDLED_OGG_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/ogg)
 		ExternalProject_Add(bundled_ogg
-				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/ogg
+                PREFIX ${LIBS_BINARY_DIR}/ogg
+				URL	${CMAKE_CURRENT_LIST_DIR}/ogg
 				BINARY_DIR	${LIBS_BINARY_DIR}/ogg
 				BUILD_BYPRODUCTS ${OGG_BUNDLED_LIBRARIES}
 				CMAKE_ARGS	${BUNDLED_OGG_CMAKE_ARGS}
@@ -647,7 +654,8 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 
 		ExternalProject_Add(bundled_ogg_vorbis
 				DEPENDS bundled_ogg
-				SOURCE_DIR	${CMAKE_CURRENT_LIST_DIR}/vorbis
+                PREFIX ${LIBS_BINARY_DIR}/vorbis
+				URL	${CMAKE_CURRENT_LIST_DIR}/vorbis
 				BINARY_DIR	${LIBS_BINARY_DIR}/vorbis
 				BUILD_BYPRODUCTS ${VORBIS_BUNDLED_LIBRARIES}
 				CMAKE_ARGS	${BUNDLED_OGG_VORBIS_CMAKE_ARGS}
@@ -796,14 +804,15 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 		set(OGG_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib/libogg.a")
 		ExternalProject_Add(
 				bundled_ogg
-				SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/ogg
+                PREFIX ${LIBS_BINARY_DIR}/ogg
+				URL ${CMAKE_CURRENT_LIST_DIR}/ogg
 				PATCH_COMMAND autoreconf -fiv
 				BUILD_BYPRODUCTS ${OGG_BUNDLED_LIBRARIES}
-				CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg ${LIBS_COMPILE_FLAGS}
+				CONFIGURE_COMMAND ./configure --prefix=<INSTALL_DIR> ${LIBS_COMPILE_FLAGS}
 				--enable-silent-rules --disable-dependency-tracking --enable-shared=no
 				PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/ogg
-				BUILD_COMMAND make
-				INSTALL_COMMAND make install
+				BUILD_COMMAND ${MAKE} -j -C <SOURCE_DIR>
+				INSTALL_COMMAND ${MAKE} -C <SOURCE_DIR> install
 				BUILD_IN_SOURCE 1
 		)
 
@@ -819,16 +828,16 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 		ExternalProject_Add(
 				bundled_ogg_vorbis
 				DEPENDS bundled_ogg
-				SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/vorbis
+                PREFIX ${LIBS_BINARY_DIR}/vorbis
+				URL ${CMAKE_CURRENT_LIST_DIR}/vorbis
 				#PATCH_COMMAND ./autogen.sh
 				BUILD_BYPRODUCTS ${OGG_VORBIS_BUNDLED_LIBRARIES}
-				CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
-				--disable-oggtest --with-ogg-includes=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/include
-				--with-ogg-libraries=${CMAKE_CURRENT_BINARY_DIR}/libs/ogg/lib ${LIBS_COMPILE_FLAGS}
+				CONFIGURE_COMMAND ./configure --prefix=<INSTALL_DIR>
+				--disable-oggtest --with-ogg-includes=${LIBS_BINARY_DIR}/ogg/include
+				--with-ogg-libraries=${LIBS_BINARY_DIR}/ogg/lib ${LIBS_COMPILE_FLAGS}
 				--disable-dependency-tracking --enable-silent-rules --enable-shared=no
-				PREFIX ${CMAKE_CURRENT_BINARY_DIR}/libs/vorbis
-				BUILD_COMMAND make
-				INSTALL_COMMAND make install
+				BUILD_COMMAND ${MAKE} -j -C <SOURCE_DIR>
+				INSTALL_COMMAND ${MAKE} -C <SOURCE_DIR> install
 				BUILD_IN_SOURCE 1
 		)
 		add_custom_target(bundled_ogg_vorbis_file)
@@ -896,16 +905,13 @@ if(BUNDLED_LUA AND BUILD_MOD)
 
 		ExternalProject_Add(
 				bundled_lua
+				PREFIX "${LIBS_DOWNLOAD_SRC_DIR}/lua"
 				URL "${CMAKE_CURRENT_LIST_DIR}/lua"
-				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/lua"
 				BUILD_BYPRODUCTS ${LUA_BUNDLED_LIBRARIES}
-				CONFIGURE_COMMAND ""
-				BUILD_COMMAND ${CROSS_COMPILE32_FLAGS} make ${LUA_MAKE_TARGET}
-				INSTALL_COMMAND make "INSTALL_TOP=${LIBS_BINARY_DIR}/lua" install
-				WORKING_DIRECTORY "${LIBS_DOWNLOAD_SRC_DIR}/lua"
+				CONFIGURE_COMMAND ${MAKE} -C <SOURCE_DIR> clean
+				BUILD_COMMAND ${CROSS_COMPILE32_FLAGS} ${MAKE} -C <SOURCE_DIR> ${LUA_MAKE_TARGET}
+				INSTALL_COMMAND ${MAKE} -C <SOURCE_DIR> "INSTALL_TOP=<INSTALL_DIR>" install
 				BUILD_IN_SOURCE 1
-				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
 		)
 		add_dependencies(bundled_lua_int bundled_lua)
 		target_link_libraries(bundled_lua_int INTERFACE ${LUA_BUNDLED_LIBRARIES})
