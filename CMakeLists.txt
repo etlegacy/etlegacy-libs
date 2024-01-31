@@ -6,7 +6,7 @@ set(LIBS_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads/pgk)
 set(LIBS_DOWNLOAD_SRC_DIR ${PROJECT_BINARY_DIR}/downloads/src)
 
 if (UNIX)
-	find_program(MAKE NAMES gmake make mingw32-make REQUIRED)
+	find_program(MAKE NAMES gmake make mingw32-make ninja REQUIRED)
 endif()
 
 # note/FIXME/clarify:
