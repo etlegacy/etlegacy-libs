@@ -1081,9 +1081,8 @@ if(BUNDLED_JPEG AND BUILD_CLIENT)
     endif()
 
 	set(binary_dir "${LIBS_BINARY_DIR}/jpegturbo")
-	if(VSTUDIO)
-		set(JPEG_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/turbojpeg-static${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/turbojpeg-static${CMAKE_STATIC_LIBRARY_SUFFIX}")
-	elseif(VS_BUILD)
+
+	if(MSVC)
 		set(JPEG_BUNDLED_LIBRARIES "${binary_dir}/lib/turbojpeg-static${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	else()
 		set(JPEG_BUNDLED_LIBRARIES "${binary_dir}/lib/libturbojpeg${CMAKE_STATIC_LIBRARY_SUFFIX}")
@@ -1130,14 +1129,12 @@ if(BUNDLED_PNG AND BUILD_CLIENT)
 	add_library(bundled_png_int INTERFACE)
 
 	set(binary_dir "${LIBS_BINARY_DIR}/libpng")
-	if(VSTUDIO)
-		set(PNG_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/libpng16_static${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/libpng16_staticd${CMAKE_STATIC_LIBRARY_SUFFIX}")
-	elseif(MSVC)
-		set(PNG_BUNDLED_LIBRARIES optimized "${binary_dir}/libpng16_static${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/libpng16_staticd${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	if(MSVC)
+		set(PNG_BUNDLED_LIBRARIES optimized "${binary_dir}/lib/libpng16_static${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/libpng16_staticd${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	elseif(ANDROID)
-		set(PNG_BUNDLED_LIBRARIES optimized "${binary_dir}/libpng16${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/libpng16d${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		set(PNG_BUNDLED_LIBRARIES optimized "${binary_dir}/lib/libpng16${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/libpng16d${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	else()
-		set(PNG_BUNDLED_LIBRARIES "${binary_dir}/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		set(PNG_BUNDLED_LIBRARIES "${binary_dir}/lib/libpng${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	endif()
 
 	if(BUNDLED_ZLIB)
@@ -1159,11 +1156,9 @@ if(BUNDLED_PNG AND BUILD_CLIENT)
 
 	ExternalProject_Add(bundled_png
 			URL	${CMAKE_CURRENT_LIST_DIR}/libpng
-			BINARY_DIR	${LIBS_BINARY_DIR}/libpng
 			BUILD_BYPRODUCTS ${_PNG_OUTPUT}
 			PREFIX ${LIBS_BINARY_DIR}/libpng
 			CMAKE_ARGS ${bundled_png_cmake_args}
-			INSTALL_COMMAND  ""
 	)
 	set_target_properties(bundled_png PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
@@ -1179,9 +1174,7 @@ if(BUNDLED_FREETYPE AND BUILD_CLIENT)
 	add_library(bundled_freetype_int INTERFACE)
 
 	set(binary_dir "${LIBS_BINARY_DIR}/freetype")
-	if(VSTUDIO)
-		set(BUNDLED_FREETYPE_LIBRARIES optimized "${binary_dir}/Release/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
-	elseif(VS_BUILD)
+	if(MSVC)
 		set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/lib/freetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	else()
 		set(BUNDLED_FREETYPE_LIBRARIES "${binary_dir}/lib/libfreetype${CMAKE_STATIC_LIBRARY_SUFFIX}")
