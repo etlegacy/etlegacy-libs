@@ -5,7 +5,8 @@ set(LIBS_BINARY_DIR ${PROJECT_BINARY_DIR}/libs)
 set(LIBS_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads/pgk)
 set(LIBS_DOWNLOAD_SRC_DIR ${PROJECT_BINARY_DIR}/downloads/src)
 
-if (UNIX)
+# keep this check in sync with the external libs build commands
+if (UNIX AND (BUNDLED_OGG_VORBIS OR BUNDLED_OPENAL OR BUNDLED_LUA))
 	find_program(MAKE NAMES gmake make mingw32-make REQUIRED)
 endif()
 
