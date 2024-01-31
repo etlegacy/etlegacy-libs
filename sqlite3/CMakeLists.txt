@@ -110,7 +110,7 @@ endif()
 if (SQLITE_BUILD_STATIC)
 	# build static library
 	add_library(${SQLITE_STATIC_NAME} STATIC ${SRC_LIB_FILE})
-	target_link_libraries(${SQLITE_STATIC_NAME} PRIVATE sqlite_int)
+	target_link_libraries(${SQLITE_STATIC_NAME} PUBLIC sqlite_int)
 endif()
 
 if (SQLITE_BUILD_SHARED)
@@ -120,7 +120,7 @@ if (SQLITE_BUILD_SHARED)
 		#then we do dll library, so need to export api
 		set_target_properties(${SQLITE_DYN_NAME} PROPERTIES DEFINE_SYMBOL "SQLITE_API=__declspec(dllexport)")
 	endif()
-	target_link_libraries(${SQLITE_DYN_NAME} PRIVATE sqlite_int)
+	target_link_libraries(${SQLITE_DYN_NAME} PUBLIC sqlite_int)
 endif()
 
 #install(TARGETS ${TO_INSTALL}
