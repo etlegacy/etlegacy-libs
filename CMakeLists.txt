@@ -567,12 +567,10 @@ if(BUNDLED_OPENAL AND BUILD_CLIENT)
     set(binary_dir "${LIBS_BINARY_DIR}/openal")
 
 	if (WIN32)
-		if(VSTUDIO)
-			set(OPENAL_BUNDLED_LIBRARIES optimized "${binary_dir}/Release/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/Debug/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		elseif(VS_BUILD)
-			set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
+		if(MSVC)
+			set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/lib/OpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		else()
-			set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/libOpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
+			set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/lib/libOpenAL32${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		endif()
 
 		etl_find_lib_path(OPENAL_BUNDLED_LIBRARIES _OPENAL_OUTPUT)
@@ -584,37 +582,33 @@ if(BUNDLED_OPENAL AND BUILD_CLIENT)
 
 		ExternalProject_Add(bundled_openal
                 PREFIX ${binary_dir}
-				URL	${CMAKE_CURRENT_LIST_DIR}/openal
-				BINARY_DIR	${binary_dir}
+				URL ${CMAKE_CURRENT_LIST_DIR}/openal
 				BUILD_BYPRODUCTS ${_OPENAL_OUTPUT}
-				CMAKE_ARGS	${BUNDLED_OPENAL_CMAKE_ARGS}
-				INSTALL_COMMAND  ""
+				CMAKE_ARGS ${BUNDLED_OPENAL_CMAKE_ARGS}
 		)
 		set_target_properties(bundled_openal PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
 		add_dependencies(bundled_openal_int bundled_openal)
 		target_link_libraries(bundled_openal_int INTERFACE ${OPENAL_BUNDLED_LIBRARIES})
-		target_include_directories(bundled_openal_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/openal/include")
+		target_include_directories(bundled_openal_int INTERFACE "${binary_dir}/include")
 		target_compile_definitions(bundled_openal_int INTERFACE AL_LIBTYPE_STATIC)
 	elseif(UNIX)
-		set(OPENAL_BUNDLED_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/libs/openal/libopenal.a")
+		set(OPENAL_BUNDLED_LIBRARIES "${binary_dir}/lib/libopenal.a")
 		etl_setup_cmake_args(BUNDLED_OPENAL_CMAKE_ARGS
 				-DLIBTYPE=STATIC -DALSOFT_UTILS=OFF -DALSOFT_NO_CONFIG_UTIL=ON -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF
 				-DALSOFT_CONFIG=OFF -DALSOFT_HRTF_DEFS=OFF -DALSOFT_AMBDEC_PRESETS=OFF -DALSOFT_BACKEND_SNDIO=OFF
 		)
 		ExternalProject_Add(bundled_openal
                 PREFIX ${binary_dir}
-                URL	${CMAKE_CURRENT_LIST_DIR}/openal
-				BINARY_DIR	${LIBS_BINARY_DIR}/openal
+                URL ${CMAKE_CURRENT_LIST_DIR}/openal
 				BUILD_BYPRODUCTS ${OPENAL_BUNDLED_LIBRARIES}
-				CMAKE_ARGS	${BUNDLED_OPENAL_CMAKE_ARGS}
-				INSTALL_COMMAND  ""
+				CMAKE_ARGS ${BUNDLED_OPENAL_CMAKE_ARGS}
 		)
 		ExternalProject_Get_Property(bundled_openal binary_dir)
 
 		add_dependencies(bundled_openal_int bundled_openal)
 		target_link_libraries(bundled_openal_int INTERFACE ${OPENAL_BUNDLED_LIBRARIES})
-		target_include_directories(bundled_openal_int INTERFACE "${CMAKE_CURRENT_LIST_DIR}/openal/include")
+		target_include_directories(bundled_openal_int INTERFACE "${binary_dir}/include")
 		target_compile_definitions(bundled_openal_int INTERFACE AL_LIBTYPE_STATIC)
 	endif()
 elseif(APPLE AND BUILD_CLIENT) # due to OSX missing headers in base install
@@ -633,7 +627,6 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 		ExternalProject_Add(bundled_ogg
                 PREFIX ${LIBS_BINARY_DIR}/ogg
 				URL	${CMAKE_CURRENT_LIST_DIR}/ogg
-				BINARY_DIR	${LIBS_BINARY_DIR}/ogg
 				BUILD_BYPRODUCTS ${OGG_BUNDLED_LIBRARIES}
 				CMAKE_ARGS	${BUNDLED_OGG_CMAKE_ARGS}
 		)
@@ -653,7 +646,6 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 				DEPENDS bundled_ogg
                 PREFIX ${LIBS_BINARY_DIR}/vorbis
 				URL	${CMAKE_CURRENT_LIST_DIR}/vorbis
-				BINARY_DIR	${LIBS_BINARY_DIR}/vorbis
 				BUILD_BYPRODUCTS ${VORBIS_BUNDLED_LIBRARIES}
 				CMAKE_ARGS	${BUNDLED_OGG_VORBIS_CMAKE_ARGS}
 		)
@@ -1106,15 +1098,7 @@ if(BUNDLED_JPEG AND BUILD_CLIENT)
 			BUILD_BYPRODUCTS ${_JPEG_OUTPUT}
 			CMAKE_ARGS ${bundled_jpeg_cmake_args}
 	)
-	# ExternalProject_Add(bundled_jpeg
-	#		URL	${CMAKE_CURRENT_LIST_DIR}/jpegturbo
-	#		DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-	#		SOURCE_DIR	${LIBS_DOWNLOAD_SRC_DIR}/jpegturbo
-	#		BINARY_DIR	${LIBS_BINARY_DIR}/jpegturbo
-	#		BUILD_BYPRODUCTS ${_JPEG_OUTPUT}
-	#		CMAKE_ARGS ${bundled_jpeg_cmake_args}
-	#		INSTALL_COMMAND  ""
-	# )
+
 	set_target_properties(bundled_jpeg PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
 	add_dependencies(bundled_jpeg_int bundled_jpeg)
