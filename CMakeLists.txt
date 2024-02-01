@@ -197,6 +197,11 @@ function(etl_setup_cmake_args _list)
 		list(APPEND ${_list} -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>)
 	endif()
 
+	if (NOT "${ARGN}" MATCHES "-DCMAKE_INSTALL_LIBDIR=" AND UNIX)
+		message(VERBOSE "Appending default 32 bit gnu libdir to the cmake args")
+		list(APPEND ${_list} -DCMAKE_INSTALL_LIBDIR=<INSTALL_DIR>/lib)
+	endif()
+
 	if (ARGC GREATER 1)
 		list(APPEND ${_list} ${ARGN})
 	endif()
@@ -605,7 +610,6 @@ if(BUNDLED_OPENAL AND BUILD_CLIENT)
 				BUILD_BYPRODUCTS ${OPENAL_BUNDLED_LIBRARIES}
 				CMAKE_ARGS ${BUNDLED_OPENAL_CMAKE_ARGS}
 		)
-		ExternalProject_Get_Property(bundled_openal binary_dir)
 
 		add_dependencies(bundled_openal_int bundled_openal)
 		target_link_libraries(bundled_openal_int INTERFACE ${OPENAL_BUNDLED_LIBRARIES})
@@ -1090,7 +1094,7 @@ if(BUNDLED_JPEG AND BUILD_CLIENT)
 	etl_setup_cmake_args(bundled_jpeg_cmake_args
 			-DENABLE_SHARED=OFF -DENABLE_STATIC=ON -DREQUIRE_SIMD=OFF -DWITH_12BIT=OFF
 			-DWITH_ARITH_DEC=ON -DWITH_ARITH_ENC=ON -DWITH_JAVA=OFF -DWITH_JPEG7=OFF -DWITH_JPEG8=ON
-			-DWITH_MEM_SRCDST=ON -DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON -DCMAKE_INSTALL_LIBDIR=<INSTALL_DIR>/lib
+			-DWITH_MEM_SRCDST=ON -DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON
 	)
 
 	ExternalProject_Add(bundled_jpeg
