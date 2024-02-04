@@ -374,6 +374,13 @@ if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 
 		set(OPENSSL_BUNDLED_LIBRARY "${LIBS_BINARY_DIR}/openssl/${openssl_lib_folder}/libssl.a" "${LIBS_BINARY_DIR}/openssl/${openssl_lib_folder}/libcrypto.a")
 
+		if(CMAKE_CROSSCOMPILING AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
+			string(REGEX REPLACE "gcc$" "" COMPILER_PREFIX "${CMAKE_C_COMPILER}")
+			if(COMPILER_PREFIX)
+				SET(OPENSSL_BUILD ${OPENSSL_BUILD} --cross-compile-prefix=${COMPILER_PREFIX})
+			endif()
+		endif()
+
 		# FIXME:
 		# check all the locations of the files (runtime files?!)
 		# and enable ssl in CURL
@@ -853,7 +860,7 @@ if(BUNDLED_LUA AND BUILD_MOD)
 	add_library(bundled_lua_int INTERFACE)
 	target_compile_definitions(bundled_lua_int INTERFACE BUNDLED_LUA)
 
-	if (WIN32 OR APPLE)
+	if (WIN32 OR APPLE OR CMAKE_CROSSCOMPILING)
 		set(LUA_LIB "${CMAKE_CURRENT_LIST_DIR}/lua/src")
 
 		FILE(GLOB LUA_LIB_SRC ${LUA_LIB}/*.c)
