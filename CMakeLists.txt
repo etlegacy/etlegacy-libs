@@ -433,9 +433,7 @@ if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
 
 	if (WIN32)
 
-		if(VSTUDIO)
-			set(CURL_BUNDLED_LIBRARIES optimized "${binary_dir}/lib/Release/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/Debug/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		elseif(MINGW OR VS_BUILD)
+		if(MINGW OR VS_BUILD OR VSTUDIO)
 			set(CURL_BUNDLED_LIBRARIES optimized "${binary_dir}/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}" debug "${binary_dir}/lib/libcurl-d${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		else()
 			set(CURL_BUNDLED_LIBRARIES "${binary_dir}/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}")
