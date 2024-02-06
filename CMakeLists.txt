@@ -625,9 +625,9 @@ endif()
 if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 	add_library(bundled_ogg_full INTERFACE)
 
-	if (APPLE)
+	if (APPLE OR CMAKE_CROSSCOMPILING)
 		set(OGG_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/ogg/lib/libogg${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		etl_setup_cmake_args(BUNDLED_OGG_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/ogg)
+		etl_setup_cmake_args(BUNDLED_OGG_CMAKE_ARGS)
 		ExternalProject_Add(bundled_ogg
 				PREFIX ${LIBS_BINARY_DIR}/ogg
 				URL	${CMAKE_CURRENT_LIST_DIR}/ogg
@@ -635,15 +635,10 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 				CMAKE_ARGS	${BUNDLED_OGG_CMAKE_ARGS}
 		)
 
-		add_dependencies(bundled_ogg_full bundled_ogg)
-		target_include_directories(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/ogg/include")
-		target_link_libraries(bundled_ogg_full INTERFACE "${OGG_BUNDLED_LIBRARIES}")
-
 		set(VORBIS_BUNDLED_LIBRARIES "${LIBS_BINARY_DIR}/vorbis/lib/libvorbis${CMAKE_STATIC_LIBRARY_SUFFIX}" "${LIBS_BINARY_DIR}/vorbis/lib/libvorbisfile${CMAKE_STATIC_LIBRARY_SUFFIX}")
 		etl_setup_cmake_args(BUNDLED_OGG_VORBIS_CMAKE_ARGS
 				-DCMAKE_LIBRARY_PATH=${LIBS_BINARY_DIR}/ogg
 				-DOGG_ROOT=${LIBS_BINARY_DIR}/ogg
-				-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/vorbis
 		)
 
 		ExternalProject_Add(bundled_ogg_vorbis
@@ -657,6 +652,10 @@ if(BUNDLED_OGG_VORBIS AND BUILD_CLIENT)
 		add_dependencies(bundled_ogg_full bundled_ogg_vorbis)
 		target_include_directories(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/vorbis/include")
 		target_link_libraries(bundled_ogg_full INTERFACE "${VORBIS_BUNDLED_LIBRARIES}")
+
+		add_dependencies(bundled_ogg_full bundled_ogg)
+		target_include_directories(bundled_ogg_full INTERFACE "${LIBS_BINARY_DIR}/ogg/include")
+		target_link_libraries(bundled_ogg_full INTERFACE "${OGG_BUNDLED_LIBRARIES}")
 	elseif(WIN32)
 		# OGG
 		set(OPATH "${CMAKE_CURRENT_LIST_DIR}/ogg")
