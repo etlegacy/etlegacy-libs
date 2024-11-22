@@ -960,21 +960,12 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 		list(APPEND SDL_CMAKE_ARGS -DSDL_FORCE_STATIC_VCRT=ON)
 	endif()
 
-	# In the current version (2.26.4) there are files that do not conform to ansi c89 so patch them
-	if (UNIX AND NOT APPLE)
-		find_package(Patch REQUIRED)
-		set(SDL_PATCH_COMMAND "${Patch_EXECUTABLE}" -p0 < "${CMAKE_CURRENT_LIST_DIR}/patches/sdl-2.26.4.c89.patch")
-	else()
-		set(SDL_PATCH_COMMAND)
-	endif()
-
 	etl_find_lib_path(SDL2_BUNDLED_LIBRARIES _SDL_OUTPUT)
 
 	ExternalProject_Add(bundled_sdl
 			URL https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2-2.30.9.tar.gz
 			URL_HASH MD5=57393a5e1a46dd19ae40968a301c70a3
 			PREFIX ${LIBS_BINARY_DIR}/sdl2
-			PATCH_COMMAND ${SDL_PATCH_COMMAND}
 			BUILD_BYPRODUCTS ${_SDL_OUTPUT}
 			CMAKE_ARGS ${SDL_CMAKE_ARGS}
 	)
