@@ -971,8 +971,8 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 	etl_find_lib_path(SDL2_BUNDLED_LIBRARIES _SDL_OUTPUT)
 
 	ExternalProject_Add(bundled_sdl
-			URL https://github.com/libsdl-org/SDL/archive/release-2.26.4.tar.gz
-			URL_HASH MD5=8b79847e3bd0f279e242d7fccb272f93
+			URL https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2-2.30.9.tar.gz
+			URL_HASH MD5=57393a5e1a46dd19ae40968a301c70a3
 			PREFIX ${LIBS_BINARY_DIR}/sdl2
 			PATCH_COMMAND ${SDL_PATCH_COMMAND}
 			BUILD_BYPRODUCTS ${_SDL_OUTPUT}
