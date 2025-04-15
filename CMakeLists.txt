@@ -191,6 +191,9 @@ function(etl_setup_cmake_args _list)
 		list(APPEND ${_list} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
 	endif()
 
+	if (CMAKE_POLICY_VERSION_MINIMUM)
+		list(APPEND ${_list} -DCMAKE_POLICY_VERSION_MINIMUM=${CMAKE_POLICY_VERSION_MINIMUM})
+	endif()
 
 	if (NOT "${ARGN}" MATCHES "-DCMAKE_INSTALL_PREFIX=")
 		message(VERBOSE "Appending default install prefix to the cmake args")
