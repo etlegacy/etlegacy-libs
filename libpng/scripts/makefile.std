@@ -1,26 +1,11 @@
 # makefile for libpng
-# Copyright (C) 2020-2022 Cosmin Truta
+# Copyright (C) 2015, 2018-2025 Cosmin Truta
 # Copyright (C) 2002, 2006, 2014 Glenn Randers-Pehrson
 # Copyright (C) 1995 Guy Eric Schalnat, Group 42, Inc.
 #
 # This code is released under the libpng license.
 # For conditions of distribution and use, see the disclaimer
 # and license in png.h
-
-# where make install puts libpng.a and png.h
-prefix=/usr/local
-INCPATH=$(prefix)/include
-LIBPATH=$(prefix)/lib
-
-# override DESTDIR= on the make install command line to easily support
-# installing into a temporary location.  Example:
-#
-#    make install DESTDIR=/tmp/build/libpng
-#
-# If you're going to install into a temporary location
-# via DESTDIR, $(DESTDIR)$(prefix) must already exist before
-# you execute make install.
-DESTDIR=
 
 # Where the zlib library and include files are located
 #ZLIBLIB=/usr/local/lib
@@ -31,21 +16,19 @@ ZLIBINC=../zlib
 CC = cc
 CPP = $(CC) -E
 LD = $(CC)
-AR_RC = ar rc
+AR = ar
 RANLIB = ranlib
-MKDIR_P = mkdir
-LN_SF = ln -sf
-CP = cp
 MV_F = mv -f
 RM_F = rm -f
 AWK = awk
 
 NOHWOPT = -DPNG_ARM_NEON_OPT=0 -DPNG_MIPS_MSA_OPT=0 \
-	-DPNG_POWERPC_VSX_OPT=0 -DPNG_INTEL_SSE_OPT=0
+          -DPNG_POWERPC_VSX_OPT=0 -DPNG_INTEL_SSE_OPT=0
 DFNFLAGS = # DFNFLAGS contains -D options to use in the libpng build
 DFA_EXTRA = # extra files that can be used to control configuration
 CPPFLAGS = -I$(ZLIBINC) $(NOHWOPT) # -DPNG_DEBUG=5
 CFLAGS = -O # -g
+ARFLAGS = rc
 LDFLAGS = -L$(ZLIBLIB) # -g
 LIBS = -lz -lm
 
@@ -58,7 +41,7 @@ OBJS = png.o pngerror.o pngget.o pngmem.o pngpread.o \
        pngtrans.o pngwio.o pngwrite.o pngwtran.o pngwutil.o
 
 .c.o:
-	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o $@ $<
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o $@ $*.c
 
 all: libpng.a pngtest
 
@@ -83,7 +66,7 @@ pnglibconf.dfn: scripts/pnglibconf.dfa scripts/options.awk pngconf.h pngusr.dfa 
 	$(MV_F) pnglibconf.tmp $@
 
 libpng.a: $(OBJS)
-	$(AR_RC) $@ $(OBJS)
+	$(AR) $(ARFLAGS) $@ $(OBJS)
 	$(RANLIB) $@
 
 pngtest: pngtest.o libpng.a
@@ -92,22 +75,9 @@ pngtest: pngtest.o libpng.a
 test: pngtest
 	./pngtest
 
-install: libpng.a pnglibconf.h
-	-@$(MKDIR_P) $(DESTDIR)$(INCPATH)
-	-@$(MKDIR_P) $(DESTDIR)$(INCPATH)/libpng
-	-@$(MKDIR_P) $(DESTDIR)$(LIBPATH)
-	-@$(RM_F) $(DESTDIR)$(INCPATH)/png.h
-	-@$(RM_F) $(DESTDIR)$(INCPATH)/pngconf.h
-	-@$(RM_F) $(DESTDIR)$(INCPATH)/pnglibconf.h
-	cp png.h $(DESTDIR)$(INCPATH)/libpng
-	cp pngconf.h $(DESTDIR)$(INCPATH)/libpng
-	cp pnglibconf.h $(DESTDIR)$(INCPATH)/libpng
-	chmod 644 $(DESTDIR)$(INCPATH)/libpng/png.h
-	chmod 644 $(DESTDIR)$(INCPATH)/libpng/pngconf.h
-	chmod 644 $(DESTDIR)$(INCPATH)/libpng/pnglibconf.h
-	(cd $(DESTDIR)$(INCPATH); ln -f -s libpng/* .)
-	cp libpng.a $(DESTDIR)$(LIBPATH)
-	chmod 644 $(DESTDIR)$(LIBPATH)/libpng.a
+install:
+	@echo "The $@ target is no longer supported by this makefile."
+	@false
 
 clean:
 	$(RM_F) *.o libpng.a pngtest pngout.png pnglibconf.h
