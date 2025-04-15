@@ -186,6 +186,11 @@ function(etl_setup_cmake_args _list)
 		endif()
 	endif()
 
+	# Make sure the make program is also passed to the sub-projects (if set)
+	if (CMAKE_MAKE_PROGRAM)
+		list(APPEND ${_list} -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM})
+	endif()
+
 	if (CMAKE_TOOLCHAIN_FILE)
 		# list(APPEND ${_list} -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE})
 		list(APPEND ${_list} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
