@@ -192,7 +192,6 @@ function(etl_setup_cmake_args _list)
 	endif()
 
 	if (CMAKE_TOOLCHAIN_FILE)
-		# list(APPEND ${_list} -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE})
 		list(APPEND ${_list} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
 	endif()
 
