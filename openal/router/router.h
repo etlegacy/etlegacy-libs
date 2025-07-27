@@ -1,197 +1,221 @@
 #ifndef ROUTER_ROUTER_H
 #define ROUTER_ROUTER_H
 
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winnt.h>
 
-#include <stdio.h>
+#include <atomic>
+#include <cstdio>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "AL/alc.h"
 #include "AL/al.h"
 #include "AL/alext.h"
-#include "atomic.h"
-#include "rwlock.h"
-#include "threads.h"
+
+#include "almalloc.h"
+#include "fmt/core.h"
 
 
-#ifndef UNUSED
-#if defined(__cplusplus)
-#define UNUSED(x)
-#elif defined(__GNUC__)
-#define UNUSED(x) UNUSED_##x __attribute__((unused))
-#elif defined(__LCLINT__)
-#define UNUSED(x) /*@unused@*/ x
-#else
-#define UNUSED(x) x
-#endif
-#endif
+constexpr auto MakeALCVer(int major, int minor) noexcept -> int { return (major<<8) | minor; }
 
-#define MAKE_ALC_VER(major, minor) (((major)<<8) | (minor))
+struct DriverIface {
+    LPALCCREATECONTEXT alcCreateContext{nullptr};
+    LPALCMAKECONTEXTCURRENT alcMakeContextCurrent{nullptr};
+    LPALCPROCESSCONTEXT alcProcessContext{nullptr};
+    LPALCSUSPENDCONTEXT alcSuspendContext{nullptr};
+    LPALCDESTROYCONTEXT alcDestroyContext{nullptr};
+    LPALCGETCURRENTCONTEXT alcGetCurrentContext{nullptr};
+    LPALCGETCONTEXTSDEVICE alcGetContextsDevice{nullptr};
+    LPALCOPENDEVICE alcOpenDevice{nullptr};
+    LPALCCLOSEDEVICE alcCloseDevice{nullptr};
+    LPALCGETERROR alcGetError{nullptr};
+    LPALCISEXTENSIONPRESENT alcIsExtensionPresent{nullptr};
+    LPALCGETPROCADDRESS alcGetProcAddress{nullptr};
+    LPALCGETENUMVALUE alcGetEnumValue{nullptr};
+    LPALCGETSTRING alcGetString{nullptr};
+    LPALCGETINTEGERV alcGetIntegerv{nullptr};
+    LPALCCAPTUREOPENDEVICE alcCaptureOpenDevice{nullptr};
+    LPALCCAPTURECLOSEDEVICE alcCaptureCloseDevice{nullptr};
+    LPALCCAPTURESTART alcCaptureStart{nullptr};
+    LPALCCAPTURESTOP alcCaptureStop{nullptr};
+    LPALCCAPTURESAMPLES alcCaptureSamples{nullptr};
 
-typedef struct DriverIface {
-    WCHAR Name[32];
-    HMODULE Module;
-    int ALCVer;
+    PFNALCSETTHREADCONTEXTPROC alcSetThreadContext{nullptr};
+    PFNALCGETTHREADCONTEXTPROC alcGetThreadContext{nullptr};
 
-    LPALCCREATECONTEXT alcCreateContext;
-    LPALCMAKECONTEXTCURRENT alcMakeContextCurrent;
-    LPALCPROCESSCONTEXT alcProcessContext;
-    LPALCSUSPENDCONTEXT alcSuspendContext;
-    LPALCDESTROYCONTEXT alcDestroyContext;
-    LPALCGETCURRENTCONTEXT alcGetCurrentContext;
-    LPALCGETCONTEXTSDEVICE alcGetContextsDevice;
-    LPALCOPENDEVICE alcOpenDevice;
-    LPALCCLOSEDEVICE alcCloseDevice;
-    LPALCGETERROR alcGetError;
-    LPALCISEXTENSIONPRESENT alcIsExtensionPresent;
-    LPALCGETPROCADDRESS alcGetProcAddress;
-    LPALCGETENUMVALUE alcGetEnumValue;
-    LPALCGETSTRING alcGetString;
-    LPALCGETINTEGERV alcGetIntegerv;
-    LPALCCAPTUREOPENDEVICE alcCaptureOpenDevice;
-    LPALCCAPTURECLOSEDEVICE alcCaptureCloseDevice;
-    LPALCCAPTURESTART alcCaptureStart;
-    LPALCCAPTURESTOP alcCaptureStop;
-    LPALCCAPTURESAMPLES alcCaptureSamples;
+    LPALENABLE alEnable{nullptr};
+    LPALDISABLE alDisable{nullptr};
+    LPALISENABLED alIsEnabled{nullptr};
+    LPALGETSTRING alGetString{nullptr};
+    LPALGETBOOLEANV alGetBooleanv{nullptr};
+    LPALGETINTEGERV alGetIntegerv{nullptr};
+    LPALGETFLOATV alGetFloatv{nullptr};
+    LPALGETDOUBLEV alGetDoublev{nullptr};
+    LPALGETBOOLEAN alGetBoolean{nullptr};
+    LPALGETINTEGER alGetInteger{nullptr};
+    LPALGETFLOAT alGetFloat{nullptr};
+    LPALGETDOUBLE alGetDouble{nullptr};
+    LPALGETERROR alGetError{nullptr};
+    LPALISEXTENSIONPRESENT alIsExtensionPresent{nullptr};
+    LPALGETPROCADDRESS alGetProcAddress{nullptr};
+    LPALGETENUMVALUE alGetEnumValue{nullptr};
+    LPALLISTENERF alListenerf{nullptr};
+    LPALLISTENER3F alListener3f{nullptr};
+    LPALLISTENERFV alListenerfv{nullptr};
+    LPALLISTENERI alListeneri{nullptr};
+    LPALLISTENER3I alListener3i{nullptr};
+    LPALLISTENERIV alListeneriv{nullptr};
+    LPALGETLISTENERF alGetListenerf{nullptr};
+    LPALGETLISTENER3F alGetListener3f{nullptr};
+    LPALGETLISTENERFV alGetListenerfv{nullptr};
+    LPALGETLISTENERI alGetListeneri{nullptr};
+    LPALGETLISTENER3I alGetListener3i{nullptr};
+    LPALGETLISTENERIV alGetListeneriv{nullptr};
+    LPALGENSOURCES alGenSources{nullptr};
+    LPALDELETESOURCES alDeleteSources{nullptr};
+    LPALISSOURCE alIsSource{nullptr};
+    LPALSOURCEF alSourcef{nullptr};
+    LPALSOURCE3F alSource3f{nullptr};
+    LPALSOURCEFV alSourcefv{nullptr};
+    LPALSOURCEI alSourcei{nullptr};
+    LPALSOURCE3I alSource3i{nullptr};
+    LPALSOURCEIV alSourceiv{nullptr};
+    LPALGETSOURCEF alGetSourcef{nullptr};
+    LPALGETSOURCE3F alGetSource3f{nullptr};
+    LPALGETSOURCEFV alGetSourcefv{nullptr};
+    LPALGETSOURCEI alGetSourcei{nullptr};
+    LPALGETSOURCE3I alGetSource3i{nullptr};
+    LPALGETSOURCEIV alGetSourceiv{nullptr};
+    LPALSOURCEPLAYV alSourcePlayv{nullptr};
+    LPALSOURCESTOPV alSourceStopv{nullptr};
+    LPALSOURCEREWINDV alSourceRewindv{nullptr};
+    LPALSOURCEPAUSEV alSourcePausev{nullptr};
+    LPALSOURCEPLAY alSourcePlay{nullptr};
+    LPALSOURCESTOP alSourceStop{nullptr};
+    LPALSOURCEREWIND alSourceRewind{nullptr};
+    LPALSOURCEPAUSE alSourcePause{nullptr};
+    LPALSOURCEQUEUEBUFFERS alSourceQueueBuffers{nullptr};
+    LPALSOURCEUNQUEUEBUFFERS alSourceUnqueueBuffers{nullptr};
+    LPALGENBUFFERS alGenBuffers{nullptr};
+    LPALDELETEBUFFERS alDeleteBuffers{nullptr};
+    LPALISBUFFER alIsBuffer{nullptr};
+    LPALBUFFERF alBufferf{nullptr};
+    LPALBUFFER3F alBuffer3f{nullptr};
+    LPALBUFFERFV alBufferfv{nullptr};
+    LPALBUFFERI alBufferi{nullptr};
+    LPALBUFFER3I alBuffer3i{nullptr};
+    LPALBUFFERIV alBufferiv{nullptr};
+    LPALGETBUFFERF alGetBufferf{nullptr};
+    LPALGETBUFFER3F alGetBuffer3f{nullptr};
+    LPALGETBUFFERFV alGetBufferfv{nullptr};
+    LPALGETBUFFERI alGetBufferi{nullptr};
+    LPALGETBUFFER3I alGetBuffer3i{nullptr};
+    LPALGETBUFFERIV alGetBufferiv{nullptr};
+    LPALBUFFERDATA alBufferData{nullptr};
+    LPALDOPPLERFACTOR alDopplerFactor{nullptr};
+    LPALDOPPLERVELOCITY alDopplerVelocity{nullptr};
+    LPALSPEEDOFSOUND alSpeedOfSound{nullptr};
+    LPALDISTANCEMODEL alDistanceModel{nullptr};
 
-    PFNALCSETTHREADCONTEXTPROC alcSetThreadContext;
-    PFNALCGETTHREADCONTEXTPROC alcGetThreadContext;
+    /* Functions to load after first context creation. */
+    LPALGENFILTERS alGenFilters{nullptr};
+    LPALDELETEFILTERS alDeleteFilters{nullptr};
+    LPALISFILTER alIsFilter{nullptr};
+    LPALFILTERF alFilterf{nullptr};
+    LPALFILTERFV alFilterfv{nullptr};
+    LPALFILTERI alFilteri{nullptr};
+    LPALFILTERIV alFilteriv{nullptr};
+    LPALGETFILTERF alGetFilterf{nullptr};
+    LPALGETFILTERFV alGetFilterfv{nullptr};
+    LPALGETFILTERI alGetFilteri{nullptr};
+    LPALGETFILTERIV alGetFilteriv{nullptr};
+    LPALGENEFFECTS alGenEffects{nullptr};
+    LPALDELETEEFFECTS alDeleteEffects{nullptr};
+    LPALISEFFECT alIsEffect{nullptr};
+    LPALEFFECTF alEffectf{nullptr};
+    LPALEFFECTFV alEffectfv{nullptr};
+    LPALEFFECTI alEffecti{nullptr};
+    LPALEFFECTIV alEffectiv{nullptr};
+    LPALGETEFFECTF alGetEffectf{nullptr};
+    LPALGETEFFECTFV alGetEffectfv{nullptr};
+    LPALGETEFFECTI alGetEffecti{nullptr};
+    LPALGETEFFECTIV alGetEffectiv{nullptr};
+    LPALGENAUXILIARYEFFECTSLOTS alGenAuxiliaryEffectSlots{nullptr};
+    LPALDELETEAUXILIARYEFFECTSLOTS alDeleteAuxiliaryEffectSlots{nullptr};
+    LPALISAUXILIARYEFFECTSLOT alIsAuxiliaryEffectSlot{nullptr};
+    LPALAUXILIARYEFFECTSLOTF alAuxiliaryEffectSlotf{nullptr};
+    LPALAUXILIARYEFFECTSLOTFV alAuxiliaryEffectSlotfv{nullptr};
+    LPALAUXILIARYEFFECTSLOTI alAuxiliaryEffectSloti{nullptr};
+    LPALAUXILIARYEFFECTSLOTIV alAuxiliaryEffectSlotiv{nullptr};
+    LPALGETAUXILIARYEFFECTSLOTF alGetAuxiliaryEffectSlotf{nullptr};
+    LPALGETAUXILIARYEFFECTSLOTFV alGetAuxiliaryEffectSlotfv{nullptr};
+    LPALGETAUXILIARYEFFECTSLOTI alGetAuxiliaryEffectSloti{nullptr};
+    LPALGETAUXILIARYEFFECTSLOTIV alGetAuxiliaryEffectSlotiv{nullptr};
 
-    LPALENABLE alEnable;
-    LPALDISABLE alDisable;
-    LPALISENABLED alIsEnabled;
-    LPALGETSTRING alGetString;
-    LPALGETBOOLEANV alGetBooleanv;
-    LPALGETINTEGERV alGetIntegerv;
-    LPALGETFLOATV alGetFloatv;
-    LPALGETDOUBLEV alGetDoublev;
-    LPALGETBOOLEAN alGetBoolean;
-    LPALGETINTEGER alGetInteger;
-    LPALGETFLOAT alGetFloat;
-    LPALGETDOUBLE alGetDouble;
-    LPALGETERROR alGetError;
-    LPALISEXTENSIONPRESENT alIsExtensionPresent;
-    LPALGETPROCADDRESS alGetProcAddress;
-    LPALGETENUMVALUE alGetEnumValue;
-    LPALLISTENERF alListenerf;
-    LPALLISTENER3F alListener3f;
-    LPALLISTENERFV alListenerfv;
-    LPALLISTENERI alListeneri;
-    LPALLISTENER3I alListener3i;
-    LPALLISTENERIV alListeneriv;
-    LPALGETLISTENERF alGetListenerf;
-    LPALGETLISTENER3F alGetListener3f;
-    LPALGETLISTENERFV alGetListenerfv;
-    LPALGETLISTENERI alGetListeneri;
-    LPALGETLISTENER3I alGetListener3i;
-    LPALGETLISTENERIV alGetListeneriv;
-    LPALGENSOURCES alGenSources;
-    LPALDELETESOURCES alDeleteSources;
-    LPALISSOURCE alIsSource;
-    LPALSOURCEF alSourcef;
-    LPALSOURCE3F alSource3f;
-    LPALSOURCEFV alSourcefv;
-    LPALSOURCEI alSourcei;
-    LPALSOURCE3I alSource3i;
-    LPALSOURCEIV alSourceiv;
-    LPALGETSOURCEF alGetSourcef;
-    LPALGETSOURCE3F alGetSource3f;
-    LPALGETSOURCEFV alGetSourcefv;
-    LPALGETSOURCEI alGetSourcei;
-    LPALGETSOURCE3I alGetSource3i;
-    LPALGETSOURCEIV alGetSourceiv;
-    LPALSOURCEPLAYV alSourcePlayv;
-    LPALSOURCESTOPV alSourceStopv;
-    LPALSOURCEREWINDV alSourceRewindv;
-    LPALSOURCEPAUSEV alSourcePausev;
-    LPALSOURCEPLAY alSourcePlay;
-    LPALSOURCESTOP alSourceStop;
-    LPALSOURCEREWIND alSourceRewind;
-    LPALSOURCEPAUSE alSourcePause;
-    LPALSOURCEQUEUEBUFFERS alSourceQueueBuffers;
-    LPALSOURCEUNQUEUEBUFFERS alSourceUnqueueBuffers;
-    LPALGENBUFFERS alGenBuffers;
-    LPALDELETEBUFFERS alDeleteBuffers;
-    LPALISBUFFER alIsBuffer;
-    LPALBUFFERF alBufferf;
-    LPALBUFFER3F alBuffer3f;
-    LPALBUFFERFV alBufferfv;
-    LPALBUFFERI alBufferi;
-    LPALBUFFER3I alBuffer3i;
-    LPALBUFFERIV alBufferiv;
-    LPALGETBUFFERF alGetBufferf;
-    LPALGETBUFFER3F alGetBuffer3f;
-    LPALGETBUFFERFV alGetBufferfv;
-    LPALGETBUFFERI alGetBufferi;
-    LPALGETBUFFER3I alGetBuffer3i;
-    LPALGETBUFFERIV alGetBufferiv;
-    LPALBUFFERDATA alBufferData;
-    LPALDOPPLERFACTOR alDopplerFactor;
-    LPALDOPPLERVELOCITY alDopplerVelocity;
-    LPALSPEEDOFSOUND alSpeedOfSound;
-    LPALDISTANCEMODEL alDistanceModel;
-} DriverIface;
+    std::wstring Name;
+    HMODULE Module{nullptr};
+    int ALCVer{0};
+    std::once_flag InitOnceCtx;
 
-extern DriverIface *DriverList;
-extern int DriverListSize;
+    template<typename T>
+    DriverIface(T&& name, HMODULE mod) : Name(std::forward<T>(name)), Module(mod) { }
+    ~DriverIface() { if(Module) FreeLibrary(Module); }
 
-extern altss_t ThreadCtxDriver;
-typedef ATOMIC(DriverIface*) atomic_DriverIfacePtr;
-extern atomic_DriverIfacePtr CurrentCtxDriver;
-
-
-typedef struct PtrIntMap {
-    ALvoid **keys;
-    /* Shares memory with keys. */
-    ALint *values;
-
-    ALsizei size;
-    ALsizei capacity;
-    RWLock lock;
-} PtrIntMap;
-#define PTRINTMAP_STATIC_INITIALIZE { NULL, NULL, 0, 0, RWLOCK_STATIC_INITIALIZE }
-
-void InitPtrIntMap(PtrIntMap *map);
-void ResetPtrIntMap(PtrIntMap *map);
-ALenum InsertPtrIntMapEntry(PtrIntMap *map, ALvoid *key, ALint value);
-ALint RemovePtrIntMapKey(PtrIntMap *map, ALvoid *key);
-ALint LookupPtrIntMapKey(PtrIntMap *map, ALvoid *key);
-
-
-void InitALC(void);
-void ReleaseALC(void);
-
-
-enum LogLevel {
-    LogLevel_None  = 0,
-    LogLevel_Error = 1,
-    LogLevel_Warn  = 2,
-    LogLevel_Trace = 3,
+    DriverIface(const DriverIface&) = delete;
+    DriverIface(DriverIface&&) = delete;
+    DriverIface& operator=(const DriverIface&) = delete;
+    DriverIface& operator=(DriverIface&&) = delete;
 };
-extern enum LogLevel LogLevel;
-extern FILE *LogFile;
+using DriverIfacePtr = std::unique_ptr<DriverIface>;
 
-#define TRACE(...) do {                                   \
-    if(LogLevel >= LogLevel_Trace)                        \
-    {                                                     \
-        fprintf(LogFile, "AL Router (II): " __VA_ARGS__); \
-        fflush(LogFile);                                  \
-    }                                                     \
+inline std::vector<DriverIfacePtr> DriverList;
+
+inline thread_local DriverIface *ThreadCtxDriver{};
+inline std::atomic<DriverIface*> CurrentCtxDriver{};
+
+inline DriverIface *GetThreadDriver() noexcept { return ThreadCtxDriver; }
+inline void SetThreadDriver(DriverIface *driver) noexcept { ThreadCtxDriver = driver; }
+
+
+enum class eLogLevel {
+    None  = 0,
+    Error = 1,
+    Warn  = 2,
+    Trace = 3,
+};
+extern eLogLevel LogLevel;
+extern gsl::owner<std::FILE*> LogFile;
+
+#define TRACE(...) do {                                     \
+    if(LogLevel >= eLogLevel::Trace)                        \
+    {                                                       \
+        std::FILE *file{LogFile ? LogFile : stderr};        \
+        fmt::println(file, "AL Router (II): " __VA_ARGS__); \
+        fflush(file);                                       \
+    }                                                       \
 } while(0)
-#define WARN(...) do {                                    \
-    if(LogLevel >= LogLevel_Warn)                         \
-    {                                                     \
-        fprintf(LogFile, "AL Router (WW): " __VA_ARGS__); \
-        fflush(LogFile);                                  \
-    }                                                     \
+#define WARN(...) do {                                      \
+    if(LogLevel >= eLogLevel::Warn)                         \
+    {                                                       \
+        std::FILE *file{LogFile ? LogFile : stderr};        \
+        fmt::println(file, "AL Router (WW): " __VA_ARGS__); \
+        fflush(file);                                       \
+    }                                                       \
 } while(0)
-#define ERR(...) do {                                     \
-    if(LogLevel >= LogLevel_Error)                        \
-    {                                                     \
-        fprintf(LogFile, "AL Router (EE): " __VA_ARGS__); \
-        fflush(LogFile);                                  \
-    }                                                     \
+#define ERR(...) do {                                       \
+    if(LogLevel >= eLogLevel::Error)                        \
+    {                                                       \
+        std::FILE *file{LogFile ? LogFile : stderr};        \
+        fmt::println(file, "AL Router (EE): " __VA_ARGS__); \
+        fflush(file);                                       \
+    }                                                       \
 } while(0)
+
+
+void LoadDriverList();
 
 #endif /* ROUTER_ROUTER_H */
