@@ -1,0 +1,63 @@
+#ifndef CORE_EVENT_H
+#define CORE_EVENT_H
+
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <variant>
+
+
+struct EffectState;
+
+using uint = unsigned int;
+
+
+enum class AsyncEnableBits : std::uint8_t {
+    SourceState,
+    BufferCompleted,
+    Disconnected,
+    Count
+};
+
+
+enum class AsyncSrcState : std::uint8_t {
+    Reset,
+    Stop,
+    Play,
+    Pause
+};
+
+using AsyncKillThread = std::monostate;
+
+struct AsyncSourceStateEvent {
+    uint mId;
+    AsyncSrcState mState;
+};
+
+struct AsyncBufferCompleteEvent {
+    uint mId;
+    uint mCount;
+};
+
+struct AsyncDisconnectEvent {
+    std::string msg;
+};
+
+struct AsyncEffectReleaseEvent {
+    EffectState *mEffectState;
+};
+
+using AsyncEvent = std::variant<AsyncKillThread,
+        AsyncSourceStateEvent,
+        AsyncBufferCompleteEvent,
+        AsyncEffectReleaseEvent,
+        AsyncDisconnectEvent>;
+
+template<typename T, typename ...Args>
+auto &InitAsyncEvent(AsyncEvent &event, Args&& ...args)
+{
+    auto *evt = std::construct_at(&event, std::in_place_type<T>, std::forward<Args>(args)...);
+    return std::get<T>(*evt);
+}
+
+#endif
