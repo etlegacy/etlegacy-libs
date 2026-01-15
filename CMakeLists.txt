@@ -336,8 +336,8 @@ if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 				#URL_MD5 "76766e98997660138cdaf13a187bd234"
 				#GIT_REPOSITORY "https://github.com/openssl/openssl.git"
 				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-				URL https://github.com/openssl/openssl/releases/download/openssl-3.2.0/openssl-3.2.0.tar.gz
-				URL_HASH MD5=7903549a14abebc5c323ce4e85f2cbb2
+				URL https://github.com/openssl/openssl/releases/download/openssl-3.5.4/openssl-3.5.4.tar.gz
+				URL_HASH MD5=570a7ab371147b6ba72c6d0fed93131f
 				SOURCE_DIR "${LIBS_DOWNLOAD_SRC_DIR}/openssl"
 				BUILD_IN_SOURCE 1
 				CONFIGURE_COMMAND ${OPENSSL_CONFIGURE}
@@ -396,8 +396,8 @@ if (FEATURE_SSL AND BUNDLED_OPENSSL AND (BUILD_CLIENT OR BUILD_SERVER))
 		ExternalProject_Add(
 				bundled_openssl
 				DOWNLOAD_DIR ${LIBS_DOWNLOAD_DIR}
-				URL https://github.com/openssl/openssl/releases/download/openssl-3.2.0/openssl-3.2.0.tar.gz
-				URL_HASH MD5=7903549a14abebc5c323ce4e85f2cbb2
+				URL https://github.com/openssl/openssl/releases/download/openssl-3.5.4/openssl-3.5.4.tar.gz
+				URL_HASH MD5=570a7ab371147b6ba72c6d0fed93131f
 				PREFIX ${OPENSSL_PREFIX}
 				CONFIGURE_COMMAND ${OPENSSL_BUILD} --prefix=<INSTALL_DIR>
 				--openssldir=<INSTALL_DIR> --libdir=${openssl_lib_folder}
@@ -425,12 +425,12 @@ endif()
 if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
 	add_library(bundled_curl_int INTERFACE)
 
-	set(CURL_DOWNLOAD_URL "https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz")
-	set(CURL_DOWNLOAD_HASH "MD5=0bc69288b20ae165ff4b7d6d7bbe70d2")
+	set(CURL_DOWNLOAD_URL "https://github.com/curl/curl/releases/download/curl-8_18_0/curl-8.18.0.tar.gz")
+	set(CURL_DOWNLOAD_HASH "MD5=240a23f26602f24564468d9abecb32fd")
 	etl_setup_cmake_args(CURL_CMAKE_ARGS
 			-DBUILD_CURL_EXE=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_ARES=OFF -DENABLE_THREADED_RESOLVER=ON
 			-DENABLE_CURLDEBUG=OFF -DBUILD_TESTING=OFF -DENABLE_IPV6=ON -DENABLE_MANUAL=OFF -DCURL_USE_LIBPSL=OFF
-			-DUSE_NGHTTP2=OFF -DCURL_WINDOWS_SSPI=OFF -DCURL_ZLIB=AUTO -DCMAKE_USE_GSSAPI=OFF
+			-DUSE_NGHTTP2=OFF -DCURL_WINDOWS_SSPI=OFF -DCURL_ZLIB=AUTO -DCURL_ZSTD=OFF -DCURL_BROTLI=OFF -DCMAKE_USE_GSSAPI=OFF
 			-DUSE_LIBIDN2=OFF -DCURL_USE_LIBSSH=OFF -DCURL_USE_LIBSSH2=OFF -DENABLE_DEBUG=OFF
 			-DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON -DCURL_DISABLE_TELNET=ON -DCURL_DISABLE_DICT=ON
 			-DCURL_DISABLE_FILE=ON -DCURL_DISABLE_TFTP=ON -DCURL_DISABLE_RTSP=ON -DCURL_DISABLE_POP3=ON
