@@ -966,8 +966,8 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 	etl_find_lib_path(SDL3_BUNDLED_LIBRARIES _SDL_OUTPUT)
 
 	ExternalProject_Add(bundled_sdl
-			URL https://github.com/libsdl-org/SDL/releases/download/release-3.4.0/SDL3-3.4.0.tar.gz
-			URL_HASH MD5=25cc9aade08c60e883b7accd87eb4600
+			URL https://github.com/libsdl-org/SDL/releases/download/release-3.4.18/SDL3-3.4.18.tar.gz
+			URL_HASH MD5=d15433230c920202a9cdc78d87134a36
 			PREFIX ${LIBS_BINARY_DIR}/sdl3
 			BUILD_BYPRODUCTS ${_SDL_OUTPUT}
 			CMAKE_ARGS ${SDL_CMAKE_ARGS}
