@@ -542,7 +542,10 @@ if(BUNDLED_CURL AND (BUILD_CLIENT OR BUILD_SERVER))
 						-DCMAKE_INCLUDE_PATH=${LIBS_BINARY_DIR}/wolfssl/include
 				)
 			elseif(BUNDLED_OPENSSL)
-				list(APPEND CURL_CMAKE_ARGS -DOPENSSL_ROOT_DIR=${OPENSSL_PREFIX} -DOPENSSL_USE_STATIC_LIBS=ON -DCURL_USE_OPENSSL=ON -DCURL_USE_WOLFSSL=OFF)
+				# CMAKE_PREFIX_PATH makes FindPkgConfig pick the bundled openssl.pc, so FindOpenSSL's
+				# static deps (-ldl -pthread) match the bundled libs instead of the system ones (which
+				# can drag in a ZLIB::ZLIB target that doesn't exist in this sub-build)
+				list(APPEND CURL_CMAKE_ARGS -DOPENSSL_ROOT_DIR=${OPENSSL_PREFIX} -DCMAKE_PREFIX_PATH=${OPENSSL_PREFIX} -DOPENSSL_USE_STATIC_LIBS=ON -DCURL_USE_OPENSSL=ON -DCURL_USE_WOLFSSL=OFF)
 			else()
 				message(WARNING "Using system OpenSSL")
 				list(APPEND CURL_CMAKE_ARGS -DCURL_USE_OPENSSL=ON -DCURL_USE_WOLFSSL=OFF)
