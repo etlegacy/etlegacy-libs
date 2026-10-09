@@ -7,7 +7,7 @@
 PLAT= guess
 
 CC= gcc -std=gnu99
-CFLAGS= -O2 -Wall -Wextra $(SYSCFLAGS) $(MYCFLAGS)
+CFLAGS= -O2 -Wall -Wextra -DLUA_COMPAT_5_3 $(SYSCFLAGS) $(MYCFLAGS)
 LDFLAGS= $(SYSLDFLAGS) $(MYLDFLAGS)
 LIBS= -lm $(SYSLIBS) $(MYLIBS)
 
@@ -30,7 +30,7 @@ CMCFLAGS=
 
 # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
 
-PLATS= guess aix bsd c89 freebsd generic linux linux-readline macosx mingw posix posix32bit solaris
+PLATS= guess aix bsd c89 freebsd generic ios linux linux-readline macosx mingw posix solaris
 
 LUA_A=	liblua.a
 CORE_O=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o
@@ -79,7 +79,7 @@ echo:
 	@echo "PLAT= $(PLAT)"
 	@echo "CC= $(CC)"
 	@echo "CFLAGS= $(CFLAGS)"
-	@echo "LDFLAGS= $(SYSLDFLAGS)"
+	@echo "LDFLAGS= $(LDFLAGS)"
 	@echo "LIBS= $(LIBS)"
 	@echo "AR= $(AR)"
 	@echo "RANLIB= $(RANLIB)"
@@ -117,6 +117,9 @@ FreeBSD NetBSD OpenBSD freebsd:
 
 generic: $(ALL)
 
+ios:
+	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_IOS"
+
 Linux linux:	linux-noreadline
 
 linux-noreadline:
@@ -135,10 +138,7 @@ mingw:
 	$(MAKE) "LUAC_T=luac.exe" luac.exe
 
 posix:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX -fPIC -DLUA_USE_DLOPEN" SYSLIBS="-ldl"
-
-posix32bit:
-	$(MAKE) $(ALL) SYSCFLAGS="-m32 -DLUA_USE_POSIX -fPIC -DLUA_USE_DLOPEN" SYSLDFLAGS="-m32" SYSLIBS="-ldl"
+	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX"
 
 SunOS solaris:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN -D_REENTRANT" SYSLIBS="-ldl"
