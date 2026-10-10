@@ -5,14 +5,14 @@
  * GOVERNED BY A BSD-STYLE SOURCE LICENSE INCLUDED WITH THIS SOURCE *
  * IN 'COPYING'. PLEASE READ THESE TERMS BEFORE DISTRIBUTING.       *
  *                                                                  *
- * THE Theora SOURCE CODE IS COPYRIGHT (C) 2002-2009                *
- * by the Xiph.Org Foundation and contributors http://www.xiph.org/ *
+ * THE Theora SOURCE CODE IS COPYRIGHT (C) 2002-2009,2025           *
+ * by the Xiph.Org Foundation and contributors                      *
+ * https://www.xiph.org/                                            *
  *                                                                  *
  ********************************************************************
 
   function: example SDL player application; plays Ogg Theora files (with
             optional Vorbis audio second stream)
-  last mod: $Id: player_example.c 16551 2009-09-09 17:53:13Z gmaxwell $
 
  ********************************************************************/
 
@@ -23,7 +23,12 @@
    be simple video playback as well...
 
    A simple 'demux and write back streams' would have been easier,
-   it's true. */
+   it's true.
+
+   On Linux platforms with ALSA support instead of OSS, the aoss
+   helper program from the alsa-oss package can be used to emulate OSS
+   support to get the audio working.
+*/
 
 #if !defined(_GNU_SOURCE)
 #define _GNU_SOURCE
@@ -93,8 +98,8 @@ ogg_stream_state vo;
 ogg_stream_state to;
 th_info      ti;
 th_comment   tc;
-th_dec_ctx       *td;
-th_setup_info    *ts;
+th_dec_ctx       *td = NULL;
+th_setup_info    *ts = NULL;
 vorbis_info      vi;
 vorbis_dsp_state vd;
 vorbis_block     vb;
@@ -109,6 +114,9 @@ int              stateflag=0;
 SDL_Surface *screen;
 SDL_Overlay *yuv_overlay;
 SDL_Rect rect;
+unsigned char *RGBbuffer;
+
+#define OC_CLAMP255(_x)     ((unsigned char)((((_x)<0)-1)&((_x)|-((_x)>255))))
 
 /* single frame video buffering */
 int          videobuf_ready=0;
@@ -159,6 +167,7 @@ int          audiofd_fragsize;      /* read and write only complete fragments
 int          audiofd=-1;
 ogg_int64_t  audiofd_timer_calibrate=-1;
 
+
 static void open_audio(){
   audio_buf_info info;
   int format=AFMT_S16_NE; /* host endian */
@@ -169,6 +178,9 @@ static void open_audio(){
   audiofd=open(AUDIO_DEVICE,O_RDWR);
   if(audiofd<0){
     fprintf(stderr,"Could not open audio device " AUDIO_DEVICE ".\n");
+#if defined(__linux__)
+    fprintf(stderr,"Perhaps aoss wrapper from alsa-oss can get audio working?\n");
+#endif /* __linux__ */
     exit(1);
   }
 
@@ -308,8 +320,8 @@ static void sigint_handler (int signal) {
 static void open_video(void){
   int w;
   int h;
-  w=(ti.pic_x+ti.frame_width+1&~1)-(ti.pic_x&~1);
-  h=(ti.pic_y+ti.frame_height+1&~1)-(ti.pic_y&~1);
+  w=(ti.pic_x+ti.pic_width+1&~1)-(ti.pic_x&~1);
+  h=(ti.pic_y+ti.pic_height+1&~1)-(ti.pic_y&~1);
   if ( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
     fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
     exit(1);
@@ -326,13 +338,16 @@ static void open_video(void){
     yuv_overlay = SDL_CreateYUVOverlay(w, h,
                                      SDL_YUY2_OVERLAY,
                                      screen);
-  else
+  else if (px_fmt==TH_PF_444) {
+    RGBbuffer = calloc(w*h*4,sizeof(*RGBbuffer));
+    fprintf(stderr,"warning: SDL does not support YUV 4:4:4, using slow software conversion.\n");
+  } else
     yuv_overlay = SDL_CreateYUVOverlay(w, h,
                                      SDL_YV12_OVERLAY,
                                      screen);
-  
-  if ( yuv_overlay == NULL ) {
-    fprintf(stderr, "SDL: Couldn't create SDL_yuv_overlay: %s\n",
+
+  if ( (yuv_overlay == NULL && px_fmt!=TH_PF_444) || (screen == NULL && px_fmt==TH_PF_444) ) {
+    fprintf(stderr, "SDL: xCouldn't create SDL_yuv_overlay: %s\n",
             SDL_GetError());
     exit(1);
   }
@@ -341,7 +356,8 @@ static void open_video(void){
   rect.w = w;
   rect.h = h;
 
-  SDL_DisplayYUVOverlay(yuv_overlay, &rect);
+  if (px_fmt!=TH_PF_444)
+    SDL_DisplayYUVOverlay(yuv_overlay, &rect);
 }
 
 static void video_write(void){
@@ -353,7 +369,7 @@ static void video_write(void){
   if ( SDL_MUSTLOCK(screen) ) {
     if ( SDL_LockSurface(screen) < 0 ) return;
   }
-  if (SDL_LockYUVOverlay(yuv_overlay) < 0) return;
+  if (px_fmt!=TH_PF_444 && SDL_LockYUVOverlay(yuv_overlay) < 0) return;
 
   /* let's draw the data on a SDL screen (*screen) */
   /* deal with border stride */
@@ -365,7 +381,7 @@ static void video_write(void){
 
   if (px_fmt==TH_PF_422) {
     uv_offset=(ti.pic_x/2)+(yuv[1].stride)*(ti.pic_y);
-    /* SDL doesn't have a planar 4:2:2 */ 
+    /* SDL doesn't have a planar 4:2:2 */
     for(i=0;i<yuv_overlay->h;i++) {
       int j;
       char *in_y  = (char *)yuv[0].data+y_offset+yuv[0].stride*i;
@@ -378,6 +394,27 @@ static void video_write(void){
         out[j*4+1] = in_u[j];
         out[j*4+3] = in_v[j];
       }
+    }
+  } else if (px_fmt==TH_PF_444){
+    SDL_Surface *output;
+    for(i=0;i<screen->h;i++) {
+      int j;
+      unsigned char *in_y  = (unsigned char *)yuv[0].data+y_offset+yuv[0].stride*i;
+      unsigned char *in_u  = (unsigned char *)yuv[1].data+y_offset+yuv[1].stride*i;
+      unsigned char *in_v  = (unsigned char *)yuv[2].data+y_offset+yuv[2].stride*i;
+      unsigned char *out = RGBbuffer+(screen->w*i*4);
+      for (j=0;j<screen->w;j++) {
+        int r, g, b;
+        r=(1904000*in_y[j]+2609823*in_v[j]-363703744)/1635200;
+        g=(3827562*in_y[j]-1287801*in_u[j]
+         -2672387*in_v[j]+447306710)/3287200;
+        b=(952000*in_y[j]+1649289*in_u[j]-225932192)/817600;
+        out[4*j+0]=OC_CLAMP255(b);
+        out[4*j+1]=OC_CLAMP255(g);
+        out[4*j+2]=OC_CLAMP255(r);
+      }
+      output=SDL_CreateRGBSurfaceFrom(RGBbuffer,screen->w,screen->h,32,4*screen->w,0,0,0,0);
+      SDL_BlitSurface(output,NULL,screen,NULL);
     }
   } else {
     uv_offset=(ti.pic_x/2)+(yuv[1].stride)*(ti.pic_y/2);
@@ -399,12 +436,13 @@ static void video_write(void){
   if ( SDL_MUSTLOCK(screen) ) {
     SDL_UnlockSurface(screen);
   }
-  SDL_UnlockYUVOverlay(yuv_overlay);
-
-
-  /* Show, baby, show! */
-  SDL_DisplayYUVOverlay(yuv_overlay, &rect);
-
+  if (px_fmt!=TH_PF_444) {
+    SDL_UnlockYUVOverlay(yuv_overlay);
+    /* Show, baby, show! */
+    SDL_DisplayYUVOverlay(yuv_overlay, &rect);
+  } else {
+    SDL_Flip(screen);
+  }
 }
 /* dump the theora (or vorbis) comment header */
 static int dump_comments(th_comment *tc){
@@ -637,9 +675,9 @@ int main(int argc,char *const *argv){
     th_info_clear(&ti);
     th_comment_clear(&tc);
   }
-  
+
   th_setup_free(ts);
-  
+
   if(vorbis_p){
     vorbis_synthesis_init(&vd,&vi);
     vorbis_block_init(&vd,&vb);
@@ -779,11 +817,9 @@ int main(int argc,char *const *argv){
       /* set up select wait on the audiobuffer and a timeout for video */
       struct timeval timeout;
       fd_set writefs;
-      fd_set empty;
       int n=0;
 
       FD_ZERO(&writefs);
-      FD_ZERO(&empty);
       if(audiofd>=0){
         FD_SET(audiofd,&writefs);
         n=audiofd+1;
@@ -806,11 +842,11 @@ int main(int argc,char *const *argv){
           timeout.tv_sec=milliseconds/1000;
           timeout.tv_usec=(milliseconds%1000)*1000;
 
-          n=select(n,&empty,&writefs,&empty,&timeout);
+          n=select(n,NULL,&writefs,NULL,&timeout);
           if(n)audio_calibrate_timer(0);
         }
       }else{
-        select(n,&empty,&writefs,&empty,NULL);
+        select(n,NULL,&writefs,NULL,NULL);
       }
     }
 

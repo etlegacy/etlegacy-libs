@@ -1,8 +1,8 @@
-# see http://www.scons.org if you do not have this tool
+# see https://www.scons.org if you do not have this tool
 from os.path import join
 import SCons
 
-# TODO: should use lamda and map to work on python 1.5
+# TODO: should use lambda and map to work on python 1.5
 def path(prefix, list): return [join(prefix, x) for x in list]
 
 encoder_sources = """
@@ -45,6 +45,13 @@ decoder_sources = """
 env = Environment()
 if env['CC'] == 'gcc':
   env.Append(CCFLAGS=["-g", "-O2", "-Wall", "-Wno-parentheses"])
+
+# pass collect_metrics=1 on the scons command line
+# to enable metrics collection for mode training.
+collect_metrics = ARGUMENTS.get('collect_metrics', 0)
+if int(collect_metrics):
+  env.Append(CPPDEFINES=['OC_COLLECT_METRICS'])
+  env.Append(LIBS=['m'])
 
 def CheckPKGConfig(context, version): 
   context.Message( 'Checking for pkg-config... ' ) 
@@ -94,20 +101,35 @@ def CheckHost_x86_64(context):
   context.Result(result)
   return result
 
+clock_gettime_test = """
+#    include <time.h>
+    int main(int argc, char **argv) {
+      struct timespec ts;
+      return clock_gettime(CLOCK_REALTIME, &ts);
+      return 0;
+    }
+    """
+def CheckClock_GetTime(context):
+  context.Message('Checking for clock_gettime...')
+  result = context.TryCompile(clock_gettime_test, '.c')
+  context.Result(result)
+  return result
+
 conf = Configure(env, custom_tests = {
   'CheckPKGConfig' : CheckPKGConfig,
   'CheckPKG' : CheckPKG,
   'CheckSDL' : CheckSDL,
   'CheckHost_x86_32' : CheckHost_x86_32,
   'CheckHost_x86_64' : CheckHost_x86_64,
+  'CheckClock_GetTime' : CheckClock_GetTime,
   })
-  
+
 if not conf.CheckPKGConfig('0.15.0'): 
-   print 'pkg-config >= 0.15.0 not found.' 
-   Exit(1)
+  print('pkg-config >= 0.15.0 not found.')
+  Exit(1)
 
 if not conf.CheckPKG('ogg'): 
-  print 'libogg not found.' 
+  print('libogg not found.')
   Exit(1) 
 
 if conf.CheckPKG('vorbis vorbisenc'):
@@ -129,38 +151,51 @@ if build_player_example and not conf.CheckSDL():
 if conf.CheckHost_x86_32():
   env.Append(CPPDEFINES='OC_X86_ASM')
   decoder_sources += """
+        x86/x86cpu.c
         x86/mmxidct.c
         x86/mmxfrag.c
         x86/mmxstate.c
+        x86/sse2idct.c
         x86/x86state.c
   """
   encoder_sources += """
-	x86/mmxencfrag.c
-	x86/mmxfdct.c
-	x86/x86enc.c
-	x86/mmxfrag.c
-	x86/mmxidct.c
-	x86/mmxstate.c
-	x86/x86state.c
+        x86/x86cpu.c
+        x86/mmxencfrag.c
+        x86/mmxfdct.c
+        x86/x86enc.c
+        x86/x86enquant.c
+        x86/sse2encfrag.c
+        x86/mmxfrag.c
+        x86/mmxidct.c
+        x86/mmxstate.c
+        x86/x86state.c
   """
 elif conf.CheckHost_x86_64():
   env.Append(CPPDEFINES=['OC_X86_ASM', 'OC_X86_64_ASM'])
   decoder_sources += """
+        x86/x86cpu.c
         x86/mmxidct.c
         x86/mmxfrag.c
         x86/mmxstate.c
+        x86/sse2idct.c
         x86/x86state.c
   """
   encoder_sources += """
-	x86/mmxencfrag.c
-	x86/mmxfdct.c
-	x86/x86enc.c
-	x86/sse2fdct.c
-	x86/mmxfrag.c
-	x86/mmxidct.c
-	x86/mmxstate.c
-	x86/x86state.c
+        x86/x86cpu.c
+        x86/mmxencfrag.c
+        x86/mmxfdct.c
+        x86/x86enc.c
+        x86/x86enquant.c
+        x86/sse2fdct.c
+        x86/mmxfrag.c
+        x86/mmxidct.c
+        x86/mmxstate.c
+        x86/x86state.c
+        x86/sse2encfrag.c
   """
+
+if conf.CheckClock_GetTime():
+  env.Append(CPPDEFINES='OP_HAVE_CLOCK_GETTIME')
 
 env = conf.Finish()
 
@@ -197,9 +232,19 @@ dump_psnr.Append(LIBS='m')
 dump_psnr_Sources = Split("""dump_psnr.c ../lib/libtheoradec.a""")
 dump_psnr.Program('examples/dump_psnr', path('examples', dump_psnr_Sources))
 
+libtheora_info = env.Clone()
+libtheora_info_Sources = Split("""
+        libtheora_info.c
+        ../lib/libtheoraenc.a
+        ../lib/libtheoradec.a
+  """)
+libtheora_info.Program('examples/libtheora_info',
+                       path('examples', libtheora_info_Sources))
+
 if have_vorbis:
   encex = dump_video.Clone()
   encex.ParseConfig('pkg-config --cflags --libs vorbisenc vorbis')
+  encex.Append(LIBS=['m'])
   encex_Sources = Split("""
 	encoder_example.c
 	../lib/libtheoraenc.a 
@@ -214,6 +259,7 @@ if have_vorbis:
 	../lib/libtheoradec.a
     """)
     plyex.ParseConfig('sdl-config --cflags --libs')
+    plyex.Append(LIBS=['m'])
     plyex.Program('examples/player_example', path('examples', plyex_Sources))
 
 png2theora = env.Clone()
@@ -222,4 +268,13 @@ png2theora_Sources = Split("""png2theora.c
 	../lib/libtheoradec.a
 """)
 png2theora.ParseConfig('pkg-config --cflags --libs libpng')
+png2theora.Append(LIBS=['m'])
 png2theora.Program('examples/png2theora', path('examples', png2theora_Sources))
+
+tiff2theora = env.Clone()
+tiff2theora_Sources = Split("""tiff2theora.c
+        ../lib/libtheoraenc.a
+        ../lib/libtheoradec.a
+""")
+tiff2theora.Append(LIBS=['tiff', 'm'])
+tiff2theora.Program('examples/tiff2theora', path('examples', tiff2theora_Sources))

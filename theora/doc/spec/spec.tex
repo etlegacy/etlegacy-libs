@@ -11,8 +11,10 @@
 \usepackage{longtable}
 \usepackage{ltablex}
 \usepackage{wrapfig}
+\usepackage{float}
 \usepackage[pdfpagemode=None,pdfstartview=FitH,pdfview=FitH,colorlinks=true]%
  {hyperref}
+\usepackage[utf8]{inputenc}
 
 \newtheorem{theorem}{Theorem}[section]
 \newcommand{\idx}[1]{{\ensuremath{\mathit{#1}}}}
@@ -58,13 +60,23 @@
 \numberwithin{figure}{chapter}
 \numberwithin{table}{chapter}
 
+%Provide section numbering for \paragraph.
+\makeatletter
+\renewcommand{\paragraph}{\@startsection{paragraph}{4}{0ex}%
+ {-3.25ex plus -1ex minus -0.2ex}%
+ {1.5ex plus 0.2ex}%
+ {\normalfont\normalsize\bfseries}}
+\makeatother
+\stepcounter{secnumdepth}
+\stepcounter{tocdepth}
+
 \keepXColumns
 
 \pagestyle{headings}
 \bibliographystyle{alpha}
 
 \title{Theora Specification}
-\author{Xiph.org Foundation}
+\author{Xiph.Org Foundation}
 \date{\today}
 
 
@@ -105,7 +117,7 @@ The prefix \bin{} indicates that the following value is to be interpreted as a
 {\bf Example:} The value \bin{1110100} is equal to the decimal value 116.
 \end{verse}
 
-The prefix \hex{} indicates the the following value is to be interpreted as a
+The prefix \hex{} indicates the following value is to be interpreted as a
  hexadecimal number (base 16).
 \begin{verse}
 {\bf Example:} The value \hex{74} is equal to the decimal value 116.
@@ -280,8 +292,8 @@ Such features may not increment the bitstream version number, and can only be
 
 Theora is a general purpose, lossy video codec.
 It is based on the VP3 video codec produced by On2 Technologies
- (\url{http://www.on2.com/}).
-On2 donated the VP3.1 source code to the Xiph.org Foundation and released it
+ (\url{https://www.on2.com/}).
+On2 donated the VP3.1 source code to the Xiph.Org Foundation and released it
  under a BSD-like license.
 On2 also made an irrevocable, royalty-free license grant for any patent claims
  it might have over the software and any derivatives.
@@ -368,7 +380,7 @@ The specification for embedding Theora into an Ogg transport stream is given in
 
 Theora's heritage is the proprietary commerical codec VP3, and it retains a
  fair amount of inflexibility when compared to Vorbis \cite{vorbis}, the first
- Xiph.org codec, which began as a research codec.
+ Xiph.Org codec, which began as a research codec.
 However, to provide additional scope for encoder improvement, Theora adopts
  some of the configurable aspects of decoder setup that are present in Vorbis.
 This configuration data is not available in VP3, which uses hardcoded values
@@ -390,7 +402,7 @@ It is therefore impossible to decode any frame in the stream without
 Thus, Theora headers are both required for decode to begin and relatively large
  as bitstream headers go.
 The header size is unbounded, although as a rule-of-thumb less than 16kB is
- recommended, and Xiph.org's reference encoder follows this suggestion.
+ recommended, and Xiph.Org's reference encoder follows this suggestion.
 %TODO: Is 8kB enough? My setup header is 7.4kB, that doesn't leave much room
 % for comments.
 %RG: the lesson from vorbis is that as small as possible is really
@@ -1949,7 +1961,7 @@ These are indicated as they appear in the sections below.
 \section{Common Header Decode}
 \label{sub:common-header}
 
-\begin{figure}[Htbp]
+\begin{figure}[H]
 \begin{center}
 \begin{verbatim}
   0                   1                   2                   3   
@@ -2024,7 +2036,7 @@ Packets with other header types (\hex{83}--\hex{FF}) are reserved and MUST be
 \section{Identification Header Decode}
 \label{sec:idheader}
 
-\begin{figure}[Htbp]
+\begin{figure}[H]
 \begin{center}
 \begin{verbatim}
   0                   1                   2                   3   
@@ -2541,7 +2553,7 @@ Vendors SHOULD make some effort to avoid arbitrarily polluting the common
  namespace.
 %"and other bodies"?
 %If you're going to be that vague, you might as well not say anything at all.
-Xiph.org and other bodies will generally collect and rationalize the more 
+Xiph.Org and other bodies will generally collect and rationalize the more 
  useful tags to help with standardization.
 
 Field names are not restricted to occur only once within a comment header.
@@ -4094,14 +4106,15 @@ In INTER\_MV\_FOUR mode, all four blocks in the luma plane are assigned their
 For INTER\_MV and INTER\_GOLDEN\_MV modes, a single motion vector is decoded
  and applied to each block.
 For INTER\_MV\_FOUR macro blocks, a motion vector is decoded for each coded
- luma block.
+ luma block, in raster order, not coded order.
 Uncoded luma blocks receive the default $(0,0)$ vector for the purposes of
  computing the chroma motion vectors.
 
 None of the remaining macro block coding modes require decoding motion vectors
  from the stream.
-INTRA mode does not use a motion-compensated predictor, and so requires no
- motion vector, and INTER\_NOMV and INTER\_GOLDEN\_NOMV modes use the default
+INTRA mode does not use a motion-compensated predictor, and thus does not
+ require a motion vector.
+Both the INTER\_NOMV and the INTER\_GOLDEN\_NOMV modes use the default
  vector $(0,0)$ for each block.
 This also includes all macro blocks with no coded luma blocks, as they are
  coded in INTER\_NOMV mode by definition.
@@ -4112,10 +4125,12 @@ The modes INTER\_MV\_LAST and INTER\_MV\_LAST2 use the motion vector from the
 Thus no explicit motion vector needs to be decoded for these modes.
 Macro blocks coded in INTRA mode or one of the GOLDEN modes are not considered
  in this process.
+For macro blocks coded in INTER\_MV\_FOUR mode, this process uses the vector
+ from the last coded luma block in the macro block, again in raster order, not
+ coded order.
+This is usually the upper-right block.
 If an insufficient number of macro blocks have been coded in one of the INTER
  modes, then the $(0,0)$ vector is used instead.
-For macro blocks coded in INTER\_MV\_FOUR mode, the vector from the upper-right
- luma block is used, even if the upper-right block is not coded.
 
 The motion vectors are decoded from the stream as follows:
 
@@ -5397,13 +5412,13 @@ Those \qi\ values are applied only to the AC coefficients.
 \locvar{W}        & \multicolumn{1}{p{40pt}}{Integer Array} &
                                7 & Yes & A 4-element array of the weights to
  apply to each neighboring DC value. \\
-\locvar{PDIV}     & Integer &  8 & No  & The valud to divide the weighted sum
+\locvar{PDIV}     & Integer &  8 & No  & The value to divide the weighted sum
  by. \\
 \locvar{\bj}      & Integer & 36 & No  & The index of a neighboring block in
  coded order. \\
 \locvar{\mbi}     & Integer & 32 & No  & The index of the macro block
- containing block \locvar{\bi}. \\
-\locvar{\mbi}     & Integer & 32 & No  & The index of the macro block
+ containing block \bitvar{\bi}. \\
+\locvar{\mbj}     & Integer & 32 & No  & The index of the macro block
  containing block \locvar{\bj}. \\
 \locvar{\rfi}     & Integer &  2 & No  & The index of the reference frame
  indicated by the coding mode for macro block \locvar{\mbi}. \\
@@ -5454,10 +5469,10 @@ $7$ (INTER\_MV\_FOUR)     & $1$ (Previous)        \\
 \end{table}
 
 \item
-If block \locvar{\bi} is not along the left edge of the coded frame:
+If block \bitvar{\bi} is not along the left edge of the coded frame:
 \begin{enumerate}
 \item
-Assign \locvar{\bj} the coded-order index of block \locvar{\bi}'s left
+Assign \locvar{\bj} the coded-order index of block \bitvar{\bi}'s left
  neighbor, i.e., in the same row but one column to the left.
 \item
 If $\bitvar{BCODED}[\bj]$ is not zero:
@@ -5484,11 +5499,11 @@ Otherwise, assign $\locvar{P}[0]$ the value zero.
 Otherwise, assign $\locvar{P}[0]$ the value zero.
 
 \item
-If block \locvar{\bi} is not along the left edge nor the bottom edge of the
+If block \bitvar{\bi} is not along the left edge nor the bottom edge of the
  coded frame:
 \begin{enumerate}
 \item
-Assign \locvar{\bj} the coded-order index of block \locvar{\bi}'s lower-left
+Assign \locvar{\bj} the coded-order index of block \bitvar{\bi}'s lower-left
  neighbor, i.e., one row down and one column to the left.
 \item
 If $\bitvar{BCODED}[\bj]$ is not zero:
@@ -5515,10 +5530,10 @@ Otherwise, assign $\locvar{P}[1]$ the value zero.
 Otherwise, assign $\locvar{P}[1]$ the value zero.
 
 \item
-If block \locvar{\bi} is not along the the bottom edge of the coded frame:
+If block \bitvar{\bi} is not along the bottom edge of the coded frame:
 \begin{enumerate}
 \item
-Assign \locvar{\bj} the coded-order index of block \locvar{\bi}'s lower
+Assign \locvar{\bj} the coded-order index of block \bitvar{\bi}'s lower
  neighbor, i.e., in the same column but one row down.
 \item
 If $\bitvar{BCODED}[\bj]$ is not zero:
@@ -5545,11 +5560,11 @@ Otherwise, assign $\locvar{P}[2]$ the value zero.
 Otherwise, assign $\locvar{P}[2]$ the value zero.
 
 \item
-If block \locvar{\bi} is not along the right edge nor the bottom edge of the
+If block \bitvar{\bi} is not along the right edge nor the bottom edge of the
  coded frame:
 \begin{enumerate}
 \item
-Assign \locvar{\bj} the coded-order index of block \locvar{\bi}'s lower-right
+Assign \locvar{\bj} the coded-order index of block \bitvar{\bi}'s lower-right
  neighbor, i.e., one row down and one column to the right.
 \item
 If $\bitvar{BCODED}[\bj]$ is not zero:
@@ -5594,7 +5609,7 @@ Assign the array \locvar{W} and the variable \locvar{PDIV} the values from the
 \multicolumn{1}{p{25pt}}{\centering$\locvar{P}[1]$ (DL)} &
 \multicolumn{1}{p{25pt}}{\centering$\locvar{P}[2]$ (D)} &
 \multicolumn{1}{p{25pt}}{\centering$\locvar{P}[3]$ (DR)} &
-\multicolumn{1}{p{25pt}}{\centering$\locvar{W}[3]$ (L)} &
+\multicolumn{1}{p{25pt}}{\centering$\locvar{W}[0]$ (L)} &
 \multicolumn{1}{p{25pt}}{\centering$\locvar{W}[1]$ (DL)} &
 \multicolumn{1}{p{25pt}}{\centering$\locvar{W}[2]$ (D)} &
 \multicolumn{1}{p{25pt}}{\centering$\locvar{W}[3]$ (DR)} &
@@ -6282,7 +6297,15 @@ A compliant decoder MUST use the exact implementation of the inverse DCT
 Some operations may be re-ordered, but the result must be precisely equivalent.
 This is a design decision that limits some avenues of decoder optimization, but
  prevents any drift in the prediction loop.
-Theora uses a 16-bit integerized approximation of of the 8-point 1D inverse DCT
+The full inverse DCT described in this section is only used when there is at
+ least one non-zero AC coefficient.
+Otherwise, a special DC-only case is used, which is described below in
+ step~\ref{step:dc-only-idct} of Section~\ref{sub:recon}.
+The DC-only special case is not exactly equivalent to applying the full inverse
+ transform, because it avoids the intermediate multiplications and truncation,
+ and it MUST be used in place of the full transform to ensure bit-exact decode.
+
+Theora uses a 16-bit integerized approximation of the 8-point 1D inverse DCT
  based on the Chen factorization \cite{CSF77}.
 It requires 16 multiplications and 26 additions and subtractions.
 
@@ -6614,7 +6637,7 @@ Precise equivalence in the inverse transform alone is all that is required to
  any compliant decoder implementation.
 However, a forward transform is provided here as a convenience for implementing
  an encoder.
-This is the version of the transform used by Xiph.org's Theora encoder, which
+This is the version of the transform used by Xiph.Org's Theora encoder, which
  is the same as that used by VP3.
 Like the inverse DCT, it is first applied to each row, and then applied to each
  column of the result.
@@ -7012,6 +7035,7 @@ Otherwise, use the values \locvar{REFP}, \locvar{RPW}, \locvar{RPH},
  Section~\ref{sub:predhalfpel}.
 \end{enumerate}
 \item
+\label{step:dc-only-idct}
 If $\bitvar{NCOEFFS}[\locvar{\bi}]$ is less than 2:
 \begin{enumerate}
 \item
@@ -7731,7 +7755,8 @@ Using \locvar{FTYPE}, \bitvar{NMBS}, \bitvar{NBS}, and \bitvar{BCODED}, decode
 \item
 If \locvar{FTYPE} is non-zero (inter frame), using \bitvar{PF}, \bitvar{NMBS},
  \locvar{MBMODES}, \bitvar{NBS}, and \locvar{BCODED}, decode the motion vectors
- into \locvar{MVECTS} using the procedure given in Section~\ref{sub:mv-decode}.
+ into \locvar{MVECTS} using the procedure given in
+ Section~\ref{sub:mb-mv-decode}.
 \item
 Using \bitvar{NBS}, \locvar{BCODED}, and \locvar{NQIS}, decode the block-level
  \qi\ values into \locvar{QIIS} using the procedure given in
@@ -7819,12 +7844,12 @@ It provides syncronization, multiplexing, framing, error detection and
  used by the Theora codec.
 
 This document assumes familiarity with the details of the Ogg standard.
-The Xiph.org documentation provides an overview of the Ogg transport stream
- format at \url{http://www.xiph.org/ogg/doc/oggstream.html} and a detailed
- description at \url{http://www.xiph.org/ogg/doc/framing.html}.
+The Xiph.Org documentation provides an overview of the Ogg transport stream
+ format at \url{https://www.xiph.org/ogg/doc/oggstream.html} and a detailed
+ description at \url{https://www.xiph.org/ogg/doc/framing.html}.
 The format is also defined in RFC~3533 \cite{rfc3533}.
 While Theora packets can be embedded in a wide variety of media
- containers and streaming mechanisms, the Xiph.org Foundation
+ containers and streaming mechanisms, the Xiph.Org Foundation
  recommends Ogg as the native format for Theora video in file-oriented
  storage and transmission contexts.
 
@@ -8117,7 +8142,7 @@ The remaining parameters simply assign these matrices to the proper quant
 \begin{align*}
 \bitvar{NQRS}    = & \{ \{1, 1, 1\}, \{1, 1, 1\} \} \\
 \bitvar{QRSIZES} = &
- \{ \{ \{1\}, \{1\}, \{1\} \}, \{ \{1\}, \{1\}, \{1\} \} \} \\
+ \{ \{ \{63\}, \{63\}, \{63\} \}, \{ \{63\}, \{63\}, \{63\} \} \} \\
 \bitvar{QRBMIS}  = &
  \{ \{ \{0, 0\}, \{1, 1\}, \{1, 1\} \}, \{ \{2, 2\}, \{2, 2\}, \{2, 2\} \} \} \\
 \end{align*}
@@ -8135,19 +8160,19 @@ This is the same order in which they will be decoded from the setup header.
 \cleardoublepage
 \chapter{Colophon}
 
-Ogg is a \href{http://www.xiph.org}{Xiph.org Foundation} effort to protect
+Ogg is a \href{https://www.xiph.org}{Xiph.Org Foundation} effort to protect
  essential tenets of Internet multimedia from corporate hostage-taking; Open
  Source is the net's greatest tool to keep everyone honest.
-See \href{http://www.xiph.org/about.html}{About the Xiph.org Foundation} for
+See \href{https://www.xiph.org/about.html}{About the Xiph.Org Foundation} for
  details.
 
 Ogg Theora is the first Ogg video codec.
 Anyone may freely use and distribute the Ogg and Theora specifications, whether
  in private, public, or corporate capacity.
-However, the Xiph.org Foundation and the Ogg project reserve the right to set
+However, the Xiph.Org Foundation and the Ogg project reserve the right to set
  the Ogg Theora specification and certify specification compliance.
 
-Xiph.org's Theora software codec implementation is distributed under a BSD-like
+Xiph.Org's Theora software codec implementation is distributed under a BSD-like
  license.
 This does not restrict third parties from distributing independent
  implementations of Theora software under other licenses.
@@ -8156,10 +8181,10 @@ This does not restrict third parties from distributing independent
 \includegraphics[width=2.5cm]{xifish}
 \end{wrapfigure}
 
-These pages are Copyright \textcopyright{} 2004-2007 Xiph.org Foundation.
+These pages are Copyright \textcopyright{} 2004-2007 Xiph.Org Foundation.
 All rights reserved.
-Ogg, Theora, Vorbis, Xiph.org Foundation and their logos are trademarks
- (\texttrademark) of the \href{http://www.xiph.org}{Xiph.org Foundation}.
+Ogg, Theora, Vorbis, Xiph.Org Foundation and their logos are trademarks
+ (\texttrademark) of the \href{https://www.xiph.org}{Xiph.Org Foundation}.
 
 This document is set in \LaTeX.
 

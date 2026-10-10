@@ -1,7 +1,6 @@
-INCLUDES = -I$(top_srcdir)/include
-
 noinst_HEADERS = tests.h
 
+AM_CPPFLAGS = -I$(top_srcdir)/include
 AM_CFLAGS = $(OGG_CFLAGS)
 
 THEORADIR = ../lib
@@ -11,7 +10,9 @@ THEORAENC_LIBS = $(THEORADIR)/libtheoraenc.la \
 		 $(THEORADIR)/libtheoradec.la $(OGG_LIBS)
 test: check
 
-TESTS_ENVIRONMENT = $(VALGRIND_ENVIRONMENT)
+TEST_ENV = @TEST_ENV@
+
+LOG_COMPILER=$(LIBTOOL) --mode=execute $(VALGRIND) $(TEST_ENV)
 
 TESTS_DEC = noop_theora \
 	comment comment_theoradec comment_theora

@@ -6,13 +6,13 @@
  * IN 'COPYING'. PLEASE READ THESE TERMS BEFORE DISTRIBUTING.       *
  *                                                                  *
  * THE Theora SOURCE CODE IS COPYRIGHT (C) 2002-2009,2009           *
- * by the Xiph.Org Foundation and contributors http://www.xiph.org/ *
+ * by the Xiph.Org Foundation and contributors                      *
+ * https://www.xiph.org/                                            *
  *                                                                  *
  ********************************************************************
 
   function: example encoder application; makes an Ogg Theora
             file from a sequence of png images
-  last mod: $Id: png2theora.c 16503 2009-08-22 18:14:02Z giles $
              based on code from Vegard Nossum
 
  ********************************************************************/
@@ -60,13 +60,13 @@ static  int passno;
 
 static FILE *ogg_fp = NULL;
 static ogg_stream_state ogg_os;
-static ogg_packet op;   
+static ogg_packet op;
 static ogg_page og;
-    
-static th_enc_ctx      *td;
+
+static th_enc_ctx      *td = NULL;
 static th_info          ti;
 
-static char *input_filter;
+static char *input_filter = NULL;
 
 const char *optstring = "o:hv:\4:\2:V:s:S:f:F:ck:d:\1\2\3\4\5\6";
 struct option options [] = {
@@ -85,8 +85,8 @@ struct option options [] = {
  {"keyframe-freq",required_argument,NULL,'k'},
  {"buf-delay",required_argument,NULL,'d'},
  {"two-pass",no_argument,NULL,'\2'},
- {"first-pass",required_argument,NULL,'\3'}, 
- {"second-pass",required_argument,NULL,'\4'},  
+ {"first-pass",required_argument,NULL,'\3'},
+ {"second-pass",required_argument,NULL,'\4'},
  {NULL,0,NULL,0}
 };
 
@@ -98,7 +98,7 @@ static void usage(void){
           "  i.e. file-%%06d.png to look for files file000001.png to file9999999.png \n\n"
           "Options: \n\n"
           "  -o --output <filename.ogv>      file name for encoded output (required);\n"
-          "  -v --video-quality <n>          Theora quality selector fro 0 to 10\n"
+          "  -v --video-quality <n>          Theora quality selector from 0 to 10\n"
           "                                  (0 yields smallest files but lowest\n"
           "                                  video quality. 10 yields highest\n"
           "                                  fidelity but large files)\n\n"
@@ -131,7 +131,7 @@ static void usage(void){
           "                                  two-pass encoding.\n"
           "  --chroma-444                    Use 4:4:4 chroma subsampling\n"
           "  --chroma-422                    Use 4:2:2 chroma subsampling\n"
-          "                                  (4:2:0 is default)\n\n" 
+          "                                  (4:2:0 is default)\n\n"
           "  -s --aspect-numerator <n>       Aspect ratio numerator, default is 0\n"
           "  -S --aspect-denominator <n>     Aspect ratio denominator, default is 0\n"
           "  -f --framerate-numerator <n>    Frame rate numerator\n"
@@ -182,80 +182,16 @@ scandir (const char *dir, struct dirent ***namelist,
   if (i == 0) return(-1);
   if (compar != NULL)
     qsort((void *)(*namelist), (size_t)i, sizeof(struct dirent *), compar);
-    
+
   return(i);
 }
 #endif
 
 static int
-theora_write_frame(unsigned long w, unsigned long h, unsigned char *yuv, int last)
+theora_write_frame(th_ycbcr_buffer ycbcr, int last)
 {
-  th_ycbcr_buffer ycbcr;
   ogg_packet op;
   ogg_page og;
-
-  unsigned long yuv_w;
-  unsigned long yuv_h;
-
-  unsigned char *yuv_y;
-  unsigned char *yuv_u;
-  unsigned char *yuv_v;
-
-  unsigned int x;
-  unsigned int y;
-
-  /* Must hold: yuv_w >= w */
-  yuv_w = (w + 15) & ~15;
-
-  /* Must hold: yuv_h >= h */
-  yuv_h = (h + 15) & ~15;
-
-  ycbcr[0].width = yuv_w;
-  ycbcr[0].height = yuv_h;
-  ycbcr[0].stride = yuv_w;
-  ycbcr[1].width = (chroma_format == TH_PF_444) ? yuv_w : (yuv_w >> 1);
-  ycbcr[1].stride = ycbcr[1].width;
-  ycbcr[1].height = (chroma_format == TH_PF_420) ? (yuv_h >> 1) : yuv_h;
-  ycbcr[2].width = ycbcr[1].width;
-  ycbcr[2].stride = ycbcr[1].stride;
-  ycbcr[2].height = ycbcr[1].height;
-
-  ycbcr[0].data = yuv_y = malloc(ycbcr[0].stride * ycbcr[0].height);
-  ycbcr[1].data = yuv_u = malloc(ycbcr[1].stride * ycbcr[1].height);
-  ycbcr[2].data = yuv_v = malloc(ycbcr[2].stride * ycbcr[2].height);
-
-  for(y = 0; y < h; y++) {
-    for(x = 0; x < w; x++) {
-      yuv_y[x + y * yuv_w] = yuv[3 * (x + y * w) + 0];
-    }
-  }
-
-  if (chroma_format == TH_PF_420) {
-    for(y = 0; y < h; y += 2) {
-      for(x = 0; x < w; x += 2) {
-        yuv_u[(x >> 1) + (y >> 1) * (yuv_w >> 1)] =
-          yuv[3 * (x + y * w) + 1];
-        yuv_v[(x >> 1) + (y >> 1) * (yuv_w >> 1)] =
-          yuv[3 * (x + y * w) + 2];
-      }
-    }
-  } else if (chroma_format == TH_PF_444) {
-    for(y = 0; y < h; y++) {
-      for(x = 0; x < w; x++) {
-        yuv_u[x + y * ycbcr[1].stride] = yuv[3 * (x + y * w) + 1];
-        yuv_v[x + y * ycbcr[2].stride] = yuv[3 * (x + y * w) + 2];
-      }
-    }
-  } else {  /* TH_PF_422 */
-    for(y = 0; y < h; y += 1) {
-      for(x = 0; x < w; x += 2) {
-        yuv_u[(x >> 1) + y * ycbcr[1].stride] =
-          yuv[3 * (x + y * w) + 1];
-        yuv_v[(x >> 1) + y * ycbcr[2].stride] =
-          yuv[3 * (x + y * w) + 2];
-      }
-    }    
-  }
 
   /* Theora is a one-frame-in,one-frame-out system; submit a frame
      for compression and pull out the packet */
@@ -320,23 +256,19 @@ theora_write_frame(unsigned long w, unsigned long h, unsigned char *yuv, int las
     return 1;
   }
 
-  if (passno!=1) { 
+  if (passno!=1) {
     ogg_stream_packetin(&ogg_os, &op);
     while(ogg_stream_pageout(&ogg_os, &og)) {
       fwrite(og.header, og.header_len, 1, ogg_fp);
       fwrite(og.body, og.body_len, 1, ogg_fp);
     }
-  }  
-
-  free(yuv_y);
-  free(yuv_u);
-  free(yuv_v);
+  }
 
   return 0;
 }
 
 static unsigned char
-clamp(double d)
+clamp(int d)
 {
   if(d < 0)
     return 0;
@@ -349,41 +281,106 @@ clamp(double d)
 
 static void
 rgb_to_yuv(png_bytep *png,
-           unsigned char *yuv,
+           th_ycbcr_buffer ycbcr,
            unsigned int w, unsigned int h)
 {
   unsigned int x;
   unsigned int y;
 
-  for(y = 0; y < h; y++) {
-    for(x = 0; x < w; x++) {
-      png_byte r;
-      png_byte g;
-      png_byte b;
+  unsigned int x1;
+  unsigned int y1;
 
-      r = png[y][3 * x + 0];
-      g = png[y][3 * x + 1];
-      b = png[y][3 * x + 2];
+  unsigned long yuv_w;
 
-      /* XXX: Cringe. */
-      yuv[3 * (x + w * y) + 0] = clamp(
-        0.299 * r
-        + 0.587 * g
-        + 0.114 * b);
-      yuv[3 * (x + w * y) + 1] = clamp((0.436 * 255
-        - 0.14713 * r
-        - 0.28886 * g
-        + 0.436 * b) / 0.872);
-      yuv[3 * (x + w * y) + 2] = clamp((0.615 * 255
-        + 0.615 * r
-        - 0.51499 * g
-        - 0.10001 * b) / 1.230);
+  unsigned char *yuv_y;
+  unsigned char *yuv_u;
+  unsigned char *yuv_v;
+
+  yuv_w = ycbcr[0].width;
+
+  yuv_y = ycbcr[0].data;
+  yuv_u = ycbcr[1].data;
+  yuv_v = ycbcr[2].data;
+
+  /*This ignores gamma and RGB primary/whitepoint differences.
+    It also isn't terribly fast (though a decent compiler will
+    strength-reduce the division to a multiplication).*/
+
+  if (chroma_format == TH_PF_420) {
+    for(y = 0; y < h; y += 2) {
+      y1=y+(y+1<h);
+      for(x = 0; x < w; x += 2) {
+        x1=x+(x+1<w);
+        png_byte r0 = png[y][3 * x + 0];
+        png_byte g0 = png[y][3 * x + 1];
+        png_byte b0 = png[y][3 * x + 2];
+        png_byte r1 = png[y][3 * x1 + 0];
+        png_byte g1 = png[y][3 * x1 + 1];
+        png_byte b1 = png[y][3 * x1 + 2];
+        png_byte r2 = png[y1][3 * x + 0];
+        png_byte g2 = png[y1][3 * x + 1];
+        png_byte b2 = png[y1][3 * x + 2];
+        png_byte r3 = png[y1][3 * x1 + 0];
+        png_byte g3 = png[y1][3 * x1 + 1];
+        png_byte b3 = png[y1][3 * x1 + 2];
+
+        yuv_y[x  + y * yuv_w]  = clamp((65481*r0+128553*g0+24966*b0+4207500)/255000);
+        yuv_y[x1 + y * yuv_w]  = clamp((65481*r1+128553*g1+24966*b1+4207500)/255000);
+        yuv_y[x  + y1 * yuv_w] = clamp((65481*r2+128553*g2+24966*b2+4207500)/255000);
+        yuv_y[x1 + y1 * yuv_w] = clamp((65481*r3+128553*g3+24966*b3+4207500)/255000);
+
+        yuv_u[(x >> 1) + (y >> 1) * ycbcr[1].stride] =
+          clamp( ((-33488*r0-65744*g0+99232*b0+29032005)/4 +
+                  (-33488*r1-65744*g1+99232*b1+29032005)/4 +
+                  (-33488*r2-65744*g2+99232*b2+29032005)/4 +
+                  (-33488*r3-65744*g3+99232*b3+29032005)/4)/225930);
+        yuv_v[(x >> 1) + (y >> 1) * ycbcr[2].stride] =
+          clamp( ((157024*r0-131488*g0-25536*b0+45940035)/4 +
+                  (157024*r1-131488*g1-25536*b1+45940035)/4 +
+                  (157024*r2-131488*g2-25536*b2+45940035)/4 +
+                  (157024*r3-131488*g3-25536*b3+45940035)/4)/357510);
+      }
+    }
+  } else if (chroma_format == TH_PF_444) {
+    for(y = 0; y < h; y++) {
+      for(x = 0; x < w; x++) {
+        png_byte r = png[y][3 * x + 0];
+        png_byte g = png[y][3 * x + 1];
+        png_byte b = png[y][3 * x + 2];
+
+        yuv_y[x + y * yuv_w] = clamp((65481*r+128553*g+24966*b+4207500)/255000);
+        yuv_u[x + y * yuv_w] = clamp((-33488*r-65744*g+99232*b+29032005)/225930);
+        yuv_v[x + y * yuv_w] = clamp((157024*r-131488*g-25536*b+45940035)/357510);
+      }
+    }
+  } else {  /* TH_PF_422 */
+    for(y = 0; y < h; y += 1) {
+      for(x = 0; x < w; x += 2) {
+        x1=x+(x+1<w);
+        png_byte r0 = png[y][3 * x + 0];
+        png_byte g0 = png[y][3 * x + 1];
+        png_byte b0 = png[y][3 * x + 2];
+        png_byte r1 = png[y][3 * x1 + 0];
+        png_byte g1 = png[y][3 * x1 + 1];
+        png_byte b1 = png[y][3 * x1 + 2];
+
+        yuv_y[x  + y * yuv_w] = clamp((65481*r0+128553*g0+24966*b0+4207500)/255000);
+        yuv_y[x1 + y * yuv_w] = clamp((65481*r1+128553*g1+24966*b1+4207500)/255000);
+
+        yuv_u[(x >> 1) + y * ycbcr[1].stride] =
+          clamp( ((-33488*r0-65744*g0+99232*b0+29032005)/2 +
+                  (-33488*r1-65744*g1+99232*b1+29032005)/2)/225930);
+        yuv_v[(x >> 1) + y * ycbcr[2].stride] =
+          clamp( ((157024*r0-131488*g0-25536*b0+45940035)/2 +
+                  (157024*r1-131488*g1-25536*b1+45940035)/2)/357510);
+      }
     }
   }
+
 }
 
 static int
-png_read(const char *pathname, unsigned int *w, unsigned int *h, unsigned char **yuv)
+png_read(const char *pathname, unsigned int *w, unsigned int *h, th_ycbcr_buffer ycbcr)
 {
   FILE *fp;
   unsigned char header[8];
@@ -395,6 +392,8 @@ png_read(const char *pathname, unsigned int *w, unsigned int *h, unsigned char *
   png_color_16p bkgd;
   png_uint_32 width;
   png_uint_32 height;
+  unsigned long yuv_w;
+  unsigned long yuv_h;
   int bit_depth;
   int color_type;
   int interlace_type;
@@ -462,9 +461,9 @@ png_read(const char *pathname, unsigned int *w, unsigned int *h, unsigned char *
   png_set_strip_alpha(png_ptr);
 
   row_data = (png_bytep)png_malloc(png_ptr,
-    3*height*width*png_sizeof(*row_data));
+    3*height*width*sizeof(*row_data));
   row_pointers = (png_bytep *)png_malloc(png_ptr,
-    height*png_sizeof(*row_pointers));
+    height*sizeof(*row_pointers));
   for(y = 0; y < height; y++) {
     row_pointers[y] = row_data + y*(3*width);
   }
@@ -473,8 +472,34 @@ png_read(const char *pathname, unsigned int *w, unsigned int *h, unsigned char *
 
   *w = width;
   *h = height;
-  *yuv = malloc(*w * *h * 3);
-  rgb_to_yuv(row_pointers, *yuv, *w, *h);
+  /* Must hold: yuv_w >= w */
+  yuv_w = (*w + 15) & ~15;
+  /* Must hold: yuv_h >= h */
+  yuv_h = (*h + 15) & ~15;
+
+  /* Do we need to allocate a buffer */
+  if (!ycbcr[0].data){
+    ycbcr[0].width = yuv_w;
+    ycbcr[0].height = yuv_h;
+    ycbcr[0].stride = yuv_w;
+    ycbcr[1].width = (chroma_format == TH_PF_444) ? yuv_w : (yuv_w >> 1);
+    ycbcr[1].stride = ycbcr[1].width;
+    ycbcr[1].height = (chroma_format == TH_PF_420) ? (yuv_h >> 1) : yuv_h;
+    ycbcr[2].width = ycbcr[1].width;
+    ycbcr[2].stride = ycbcr[1].stride;
+    ycbcr[2].height = ycbcr[1].height;
+
+    ycbcr[0].data = malloc(ycbcr[0].stride * ycbcr[0].height);
+    ycbcr[1].data = malloc(ycbcr[1].stride * ycbcr[1].height);
+    ycbcr[2].data = malloc(ycbcr[2].stride * ycbcr[2].height);
+  } else {
+    if ((ycbcr[0].width != yuv_w) || (ycbcr[0].height != yuv_h)){
+      fprintf(stderr, "Input size %lux%lu does not match %dx%d\n", yuv_w,yuv_h,ycbcr[0].width,ycbcr[0].height);
+      exit(1);
+    }
+  }
+
+  rgb_to_yuv(row_pointers, ycbcr, *w, *h);
 
   png_free(png_ptr, row_pointers);
   png_free(png_ptr, row_data);
@@ -498,7 +523,7 @@ static int ilog(unsigned _v){
   for(ret=0;_v;ret++)_v>>=1;
   return ret;
 }
-      
+
 int
 main(int argc, char *argv[])
 {
@@ -511,7 +536,7 @@ main(int argc, char *argv[])
   struct dirent **png_files;
   int soft_target=0;
   int ret;
-      
+
   while(1) {
 
     c=getopt_long(argc,argv,optstring,options,&long_option_index);
@@ -675,17 +700,19 @@ main(int argc, char *argv[])
   for(passno=(twopass==3?1:twopass);passno<=(twopass==3?2:twopass);passno++){
     unsigned int w;
     unsigned int h;
-    unsigned char *yuv;
     char input_png[1024];
+    th_ycbcr_buffer ycbcr;
+
+    ycbcr[0].data = 0;
     int last = 0;
 
     snprintf(input_png, 1023,"%s/%s", input_directory, png_files[0]->d_name);
-    if(png_read(input_png, &w, &h, &yuv)) {
+    if(png_read(input_png, &w, &h, ycbcr)) {
       fprintf(stderr, "could not read %s\n", input_png);
       exit(1);
     }
 
-    if (passno!=2) fprintf(stderr,"%d frames, %dx%d\n",n,w,h);    
+    if (passno!=2) fprintf(stderr,"%d frames, %dx%d\n",n,w,h);
 
     /* setup complete.  Raw processing loop */
     switch(passno){
@@ -697,9 +724,9 @@ main(int argc, char *argv[])
       break;
     }
 
-    fprintf(stderr, "%s\n", input_png); 
+    fprintf(stderr, "%s\n", input_png);
 
-    th_info_init(&ti);    
+    th_info_init(&ti);
     ti.frame_width = ((w + 15) >>4)<<4;
     ti.frame_height = ((h + 15)>>4)<<4;
     ti.pic_width = w;
@@ -716,7 +743,7 @@ main(int argc, char *argv[])
     ti.quality = video_quality;
     ti.keyframe_granule_shift=ilog(keyframe_frequency-1);
 
-    td=th_encode_alloc(&ti);  
+    td=th_encode_alloc(&ti);
     th_info_clear(&ti);
     /* setting just the granule shift only allows power-of-two keyframe
        spacing.  Set the actual requested spacing. */
@@ -782,7 +809,7 @@ main(int argc, char *argv[])
         We make this call just to set the encoder into 2-pass mode, because
          by default enabling two-pass sets the buffer delay to the whole file
          (because there's no way to explicitly request that behavior).
-        If we waited until we were actually encoding, it would overwite our
+        If we waited until we were actually encoding, it would overwrite our
          settings.*/
       if(th_encode_ctl(td,TH_ENCCTL_2PASS_IN,NULL,0)<0){
         fprintf(stderr,"Could not set up the second pass of two-pass mode.\n");
@@ -809,7 +836,7 @@ main(int argc, char *argv[])
     /* first packet will get its own page automatically */
     if(th_encode_flushheader(td,&tc,&op)<=0){
       fprintf(stderr,"Internal Theora library error.\n");
-      exit(1); 
+      exit(1);
     }
     th_comment_clear(&tc);
     if(passno!=1){
@@ -851,20 +878,20 @@ main(int argc, char *argv[])
     i=0; last=0;
     do {
       if(i >= n-1) last = 1;
-      if(theora_write_frame(w, h, yuv, last)) {
+      if(theora_write_frame(ycbcr, last)) {
           fprintf(stderr,"Encoding error.\n");
         exit(1);
       }
-      free(yuv);    
+
       i++;
       if (!last) {
         snprintf(input_png, 1023,"%s/%s", input_directory, png_files[i]->d_name);
-        if(png_read(input_png, &w, &h, &yuv)) {
+        if(png_read(input_png, &w, &h, ycbcr)) {
           fprintf(stderr, "could not read %s\n", input_png);
           exit(1);
         }
        fprintf(stderr, "%s\n", input_png);
-      }      
+      }
     } while (!last);
 
     if(passno==1){
@@ -886,18 +913,21 @@ main(int argc, char *argv[])
       fflush(twopass_file);
     }
     th_encode_free(td);
+    free(ycbcr[0].data);
+    free(ycbcr[1].data);
+    free(ycbcr[2].data);
   }
 
   if(ogg_stream_flush(&ogg_os, &og)) {
     fwrite(og.header, og.header_len, 1, ogg_fp);
     fwrite(og.body, og.body_len, 1, ogg_fp);
-  }            
+  }
 
   free(input_directory);
   free(input_filter);
 
   while (n--) free(png_files[n]);
-  free(png_files);  
+  free(png_files);
 
   if(ogg_fp){
     fflush(ogg_fp);

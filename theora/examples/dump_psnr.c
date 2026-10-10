@@ -6,12 +6,12 @@
  * IN 'COPYING'. PLEASE READ THESE TERMS BEFORE DISTRIBUTING.       *
  *                                                                  *
  * THE Theora SOURCE CODE IS COPYRIGHT (C) 2002-2009                *
- * by the Xiph.Org Foundation and contributors http://www.xiph.org/ *
+ * by the Xiph.Org Foundation and contributors                      *
+ * https://www.xiph.org/                                            *
  *                                                                  *
  ********************************************************************
 
-  function: example dumpvid application; dumps  Theora streams
-  last mod: $Id: dump_video.c 15675 2009-02-06 09:43:27Z tterribe $
+  function: example dumpvid application; dumps Theora streams
 
  ********************************************************************/
 
@@ -88,9 +88,9 @@ struct y4m_input{
   size_t            dst_buf_sz;
   /*The amount to read directly into the converted frame buffer.*/
   size_t            dst_buf_read_sz;
-  /*The size of the auxilliary buffer.*/
+  /*The size of the auxiliary buffer.*/
   size_t            aux_buf_sz;
-  /*The amount to read into the auxilliary buffer.*/
+  /*The amount to read into the auxiliary buffer.*/
   size_t            aux_buf_read_sz;
   y4m_convert_func  convert;
   unsigned char    *dst_buf;
@@ -652,6 +652,15 @@ static int y4m_input_open(y4m_input *_y4m,FILE *_fin,char *_skip,int _nskip){
     _y4m->aux_buf_sz=_y4m->aux_buf_read_sz=2*((_y4m->pic_w+1)/2)*_y4m->pic_h;
     _y4m->convert=y4m_convert_42xmpeg2_42xjpeg;
   }
+  else if(strcmp(_y4m->chroma_type,"422jpeg")==0){
+    _y4m->src_c_dec_h=_y4m->dst_c_dec_h=2;
+    _y4m->src_c_dec_v=_y4m->dst_c_dec_v=1;
+    _y4m->dst_buf_read_sz=_y4m->pic_w*_y4m->pic_h
+     +2*((_y4m->pic_w+1)/2)*_y4m->pic_h;
+    /*Natively supported: no conversion required.*/
+    _y4m->aux_buf_sz=_y4m->aux_buf_read_sz=0;
+    _y4m->convert=y4m_convert_null;
+  }
   else if(strcmp(_y4m->chroma_type,"411")==0){
     _y4m->src_c_dec_h=4;
     /*We don't want to introduce any additional sub-sampling, so we
@@ -1034,7 +1043,7 @@ static void video_input_close(video_input *_vid){
 
 static void usage(char *_argv[]){
   fprintf(stderr,"Usage: %s [options] <video1> <video2>\n"
-   "    <video1> and <video1> may be either YUV4MPEG or Ogg Theora files.\n\n"
+   "    <video1> and <video2> may be either YUV4MPEG or Ogg Theora files.\n\n"
    "    Options:\n\n"
    "      -f --frame-type Show frame type and QI value for each Theora frame.\n"
    "      -s --summary    Only output the summary line.\n"
