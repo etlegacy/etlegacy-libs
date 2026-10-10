@@ -1239,8 +1239,15 @@ if(BUNDLED_THEORA AND BUILD_CLIENT)
 				"${THEORA_SRC_ASM_DIR}/mmxfrag.c"
 				"${THEORA_SRC_ASM_DIR}/mmxstate.c"
 				"${THEORA_SRC_ASM_DIR}/x86state.c"
+				"${THEORA_SRC_ASM_DIR}/x86cpu.c"
 				"${THEORA_SRC_ASM_DIR}/*.h"
 				)
+
+		# sse2idct.c (oc_idct8x8_sse2, OC_IDCT_CONSTS) uses GCC-style inline asm
+		# and is not part of the MSVC x86_vc variant
+		if(NOT MSVC)
+			list(APPEND THEORA_ASM_SRC "${THEORA_SRC_ASM_DIR}/sse2idct.c")
+		endif()
 
 		LIST(APPEND THEORA_SRC ${THEORA_ASM_SRC})
 	else()
