@@ -1,39 +1,27 @@
-all: clean refman.dvi
+LATEX_CMD?=pdflatex
+MKIDX_CMD?=makeindex
+BIBTEX_CMD?=bibtex
+LATEX_COUNT?=8
+MANUAL_FILE?=refman
 
-ps: refman.ps
+all: $(MANUAL_FILE).pdf
 
-pdf: refman.pdf
+pdf: $(MANUAL_FILE).pdf
 
-ps_2on1: refman_2on1.ps
-
-pdf_2on1: refman_2on1.pdf
-
-refman.ps: refman.dvi
-	dvips -o refman.ps refman.dvi
-
-refman.pdf: refman.ps
-	ps2pdf refman.ps refman.pdf
-
-refman.dvi: refman.tex doxygen.sty
-	echo "Running latex..."
-	latex refman.tex
-	echo "Running makeindex..."
-	makeindex refman.idx
-	echo "Rerunning latex...."
-	latex refman.tex
-	latex_count=5 ; \
-	while egrep -s 'Rerun (LaTeX|to get cross-references right)' refman.log && [ $$latex_count -gt 0 ] ;\
+$(MANUAL_FILE).pdf: clean $(MANUAL_FILE).tex
+	$(LATEX_CMD) $(MANUAL_FILE)
+	$(MKIDX_CMD) $(MANUAL_FILE).idx
+	$(LATEX_CMD) $(MANUAL_FILE)
+	latex_count=$(LATEX_COUNT) ; \
+	while egrep -s 'Rerun (LaTeX|to get cross-references right|to get bibliographical references right)' $(MANUAL_FILE).log && [ $$latex_count -gt 0 ] ;\
 	    do \
 	      echo "Rerunning latex...." ;\
-	      latex refman.tex ;\
+	      $(LATEX_CMD) $(MANUAL_FILE) ;\
 	      latex_count=`expr $$latex_count - 1` ;\
 	    done
+	$(MKIDX_CMD) $(MANUAL_FILE).idx
+	$(LATEX_CMD) $(MANUAL_FILE)
 
-refman_2on1.ps: refman.ps
-	psnup -2 refman.ps >refman_2on1.ps
-
-refman_2on1.pdf: refman_2on1.ps
-	ps2pdf refman_2on1.ps refman_2on1.pdf
 
 clean:
-	rm -f *.ps *.dvi *.aux *.toc *.idx *.ind *.ilg *.log *.out refman.pdf
+	rm -f *.ps *.dvi *.aux *.toc *.idx *.ind *.ilg *.log *.out *.brf *.blg *.bbl $(MANUAL_FILE).pdf

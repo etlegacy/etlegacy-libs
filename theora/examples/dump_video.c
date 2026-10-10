@@ -5,18 +5,21 @@
  * GOVERNED BY A BSD-STYLE SOURCE LICENSE INCLUDED WITH THIS SOURCE *
  * IN 'COPYING'. PLEASE READ THESE TERMS BEFORE DISTRIBUTING.       *
  *                                                                  *
- * THE Theora SOURCE CODE IS COPYRIGHT (C) 2002-2009                *
- * by the Xiph.Org Foundation http://www.xiph.org/                  *
+ * THE Theora SOURCE CODE IS COPYRIGHT (C) 2002-2009,2025           *
+ * by the Xiph.Org Foundation https://www.xiph.org/                 *
  *                                                                  *
  ********************************************************************
 
-  function: example dumpvid application; dumps  Theora streams
-  last mod: $Id: dump_video.c,v 1.2 2004/03/24 19:12:42 derf Exp $
+  function: example dumpvid application; dumps Theora streams
 
  ********************************************************************/
 
 /* By Mauricio Piacentini (mauricio at xiph.org) */
 /*  simply dump decoded YUV data, for verification of theora bitstream */
+
+#if defined(HAVE_CONFIG_H)
+# include "config.h"
+#endif
 
 #if !defined(_REENTRANT)
 #define _REENTRANT
@@ -34,10 +37,10 @@
 #define _FILE_OFFSET_BITS 64
 #endif
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/timeb.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 /*Yes, yes, we're going to hell.*/
@@ -51,9 +54,61 @@
 #include "getopt.h"
 #include "theora/theoradec.h"
 
-const char *optstring = "o:rf";
+/* Implementation of op_time_get() and op_time_diff_ms() lifted from
+   opusfile to work on both Linux, Unix and Windows */
+
+#ifdef OP_HAVE_CLOCK_GETTIME
+# include <time.h>
+typedef struct timespec op_time;
+#else
+# include <sys/timeb.h>
+typedef struct timeb op_time;
+#endif
+
+#define OP_INT64_MAX (2*(((ogg_int64_t)1<<62)-1)|1)
+#define OP_INT64_MIN (-OP_INT64_MAX-1)
+#define OP_INT32_MAX (2*(((ogg_int32_t)1<<30)-1)|1)
+#define OP_INT32_MIN (-OP_INT32_MAX-1)
+
+static void op_time_get(op_time *now){
+# ifdef OP_HAVE_CLOCK_GETTIME
+  /*Prefer a monotonic clock that continues to increment during suspend.*/
+#  ifdef CLOCK_BOOTTIME
+  if(clock_gettime(CLOCK_BOOTTIME,now)!=0)
+#  endif
+#  ifdef CLOCK_MONOTONIC
+  if(clock_gettime(CLOCK_MONOTONIC,now)!=0)
+#  endif
+  clock_gettime(CLOCK_REALTIME,now);
+# else
+  ftime(now);
+# endif
+}
+
+static ogg_int32_t op_time_diff_ms(const op_time *_end, const op_time *_start){
+# ifdef OP_HAVE_CLOCK_GETTIME
+  ogg_int64_t dtime;
+  dtime=_end->tv_sec-(ogg_int64_t)_start->tv_sec;
+  assert(_end->tv_nsec<1000000000);
+  assert(_start->tv_nsec<1000000000);
+  if (dtime>(OP_INT32_MAX-1000)/1000) return OP_INT32_MAX;
+  if (dtime<(OP_INT32_MIN+1000)/1000) return OP_INT32_MIN;
+  return (ogg_int32_t)dtime*1000+(_end->tv_nsec-_start->tv_nsec)/1000000;
+# else
+  ogg_int64_t dtime;
+  dtime=_end->time-(ogg_int64_t)_start->time;
+  assert(_end->millitm<1000);
+  assert(_start->millitm<1000);
+  if (dtime>(OP_INT32_MAX-1000)/1000) return OP_INT32_MAX;
+  if (dtime<(OP_INT32_MIN+1000)/1000) return OP_INT32_MIN;
+  return (ogg_int32_t)dtime*1000+_end->millitm-_start->millitm;
+# endif
+}
+
+const char *optstring = "o:crf";
 struct option options [] = {
   {"output",required_argument,NULL,'o'},
+  {"crop",no_argument,NULL,'c'}, /*Crop down to the picture size.*/
   {"raw",no_argument, NULL,'r'}, /*Disable YUV4MPEG2 headers:*/
   {"fps-only",no_argument, NULL, 'f'}, /* Only interested in fps of decode loop */
   {NULL,0,NULL,0}
@@ -76,8 +131,8 @@ ogg_stream_state  vo;
 ogg_stream_state  to;
 th_info           ti;
 th_comment        tc;
-th_setup_info    *ts;
-th_dec_ctx       *td;
+th_setup_info    *ts=NULL;
+th_dec_ctx       *td=NULL;
 
 int              theora_p=0;
 int              theora_processing_headers;
@@ -88,6 +143,7 @@ int          videobuf_ready=0;
 ogg_int64_t  videobuf_granulepos=-1;
 double       videobuf_time=0;
 int          raw=0;
+int          crop=0;
 
 FILE* outfile = NULL;
 
@@ -107,7 +163,7 @@ static void stripe_decoded(th_ycbcr_buffer _dst,th_ycbcr_buffer _src,
     int y;
     yshift=pli!=0&&!(ti.pixel_fmt&2);
     y_end=_fragy_end<<3-yshift;
-    /*An implemention intending to display this data would need to check the
+    /*An implementation intending to display this data would need to check the
        crop rectangle before proceeding.*/
     for(y=_fragy0<<3-yshift;y<y_end;y++){
       memcpy(_dst[pli].data+y*_dst[pli].stride,
@@ -130,7 +186,8 @@ static void open_video(void){
     xshift=pli!=0&&!(ti.pixel_fmt&1);
     yshift=pli!=0&&!(ti.pixel_fmt&2);
     ycbcr[pli].data=(unsigned char *)malloc(
-     (ti.frame_width>>xshift)*(ti.frame_height>>yshift)*sizeof(char));
+     (ti.frame_width>>xshift)*(ti.frame_height>>yshift)*
+     sizeof(*ycbcr[pli].data));
     ycbcr[pli].stride=ti.frame_width>>xshift;
     ycbcr[pli].width=ti.frame_width>>xshift;
     ycbcr[pli].height=ti.frame_height>>yshift;
@@ -153,12 +210,32 @@ static void video_write(void){
   th_ycbcr_buffer ycbcr;
   th_decode_ycbcr_out(td,ycbcr);*/
   if(outfile){
+    int x0;
+    int y0;
+    int xend;
+    int yend;
+    int hdec;
+    int vdec;
+    if(crop){
+      x0=ti.pic_x;
+      y0=ti.pic_y;
+      xend=x0+ti.pic_width;
+      yend=y0+ti.pic_height;
+    }
+    else{
+      x0=y0=0;
+      xend=ti.frame_width;
+      yend=ti.frame_height;
+    }
+    hdec=vdec=0;
     if(!raw)fprintf(outfile, "FRAME\n");
     for(pli=0;pli<3;pli++){
-      for(i=0;i<ycbcr[pli].height;i++){
-        fwrite(ycbcr[pli].data+ycbcr[pli].stride*i, 1,
-         ycbcr[pli].width, outfile);
+      for(i=y0>>vdec;i<(yend+vdec>>vdec);i++){
+        fwrite(ycbcr[pli].data+ycbcr[pli].stride*i+(x0>>hdec), 1,
+         (xend+hdec>>hdec)-(x0>>hdec), outfile);
       }
+      hdec=!(ti.pixel_fmt&1);
+      vdec=!(ti.pixel_fmt&2);
     }
   }
 }
@@ -192,10 +269,21 @@ static int queue_page(ogg_page *page){
 
 static void usage(void){
   fprintf(stderr,
-          "Usage: dumpvid <file.ogv> > outfile\n"
-          "input is read from stdin if no file is passed on the command line\n"
-          "\n"
-  );
+   "Usage: dumpvid [options] [<infile.ogv>] [-o <outfile.y4m>]\n\n"
+   "If no input file is given, stdin is used.\n"
+   "Options:\n\n"
+   "  -o --output <outfile.y4m> File name for decoded output. If\n"
+   "                            this option is not given, the\n"
+   "                            decompressed data is sent to stdout.\n"
+   "  -c --crop                 Crop the output to the picture region.\n"
+   "                            By default, the entire encoded frame\n"
+   "                            is output, including the padding\n"
+   "                            require to make the image dimensions\n"
+   "                            a multiple of 16.\n"
+   "  -r --raw                  Output raw YUV with no framing instead\n"
+   "                            of YUV4MPEG2 (the default).\n"
+   "  -f --fps-only             Only report the decoding frame rate.\n");
+  exit(1);
 }
 
 int main(int argc,char *argv[]){
@@ -205,9 +293,9 @@ int main(int argc,char *argv[]){
   int long_option_index;
   int c;
 
-  struct timeb start;
-  struct timeb after;
-  struct timeb last;
+  op_time start;
+  op_time after;
+  op_time last;
   int fps_only=0;
   int frames = 0;
 
@@ -234,6 +322,10 @@ int main(int argc,char *argv[]){
       }else{
         outfile=stdout;
       }
+      break;
+
+    case 'c':
+      crop=1;
       break;
 
     case 'r':
@@ -364,6 +456,15 @@ int main(int argc,char *argv[]){
      to.serialno,ti.frame_width,ti.frame_height,
      (double)ti.fps_numerator/ti.fps_denominator,
      ti.pic_width,ti.pic_height,ti.pic_x,ti.pic_y);
+
+    /*{
+      int arg = 0xffff;
+      th_decode_ctl(td,TH_DECCTL_SET_TELEMETRY_MBMODE,&arg,sizeof(arg));
+      th_decode_ctl(td,TH_DECCTL_SET_TELEMETRY_MV,&arg,sizeof(arg));
+      th_decode_ctl(td,TH_DECCTL_SET_TELEMETRY_QI,&arg,sizeof(arg));
+      arg=10;
+      th_decode_ctl(td,TH_DECCTL_SET_TELEMETRY_BITS,&arg,sizeof(arg));
+    }*/
   }else{
     /* tear down the partial theora setup */
     th_info_clear(&ti);
@@ -376,13 +477,35 @@ int main(int argc,char *argv[]){
   if(theora_p)open_video();
 
   if(!raw && outfile){
-    static const char *CHROMA_TYPES[4]={"420jpeg",NULL,"422","444"};
+    static const char *CHROMA_TYPES[4]={"420jpeg",NULL,"422jpeg","444"};
+    int width;
+    int height;
     if(ti.pixel_fmt>=4||ti.pixel_fmt==TH_PF_RSVD){
       fprintf(stderr,"Unknown pixel format: %i\n",ti.pixel_fmt);
       exit(1);
     }
+    if(crop){
+      int hdec;
+      int vdec;
+      hdec=!(ti.pixel_fmt&1);
+      vdec=!(ti.pixel_fmt&2);
+      if((ti.pic_x&hdec)||(ti.pic_width&hdec)
+       ||(ti.pic_y&vdec)||(ti.pic_height&vdec)){
+        fprintf(stderr,
+         "Error: Cropped images with odd offsets/sizes and chroma subsampling\n"
+         "cannot be output to YUV4MPEG2. Remove the --crop flag or add the\n"
+         "--raw flag.\n");
+        exit(1);
+      }
+      width=ti.pic_width;
+      height=ti.pic_height;
+    }
+    else{
+      width=ti.frame_width;
+      height=ti.frame_height;
+    }
     fprintf(outfile,"YUV4MPEG2 C%s W%d H%d F%d:%d I%c A%d:%d\n",
-     CHROMA_TYPES[ti.pixel_fmt],ti.frame_width,ti.frame_height,
+     CHROMA_TYPES[ti.pixel_fmt],width,height,
      ti.fps_numerator,ti.fps_denominator,'p',
      ti.aspect_numerator,ti.aspect_denominator);
   }
@@ -418,8 +541,8 @@ int main(int argc,char *argv[]){
   }
 
   if(fps_only){
-    ftime(&start);
-    ftime(&last);
+    op_time_get(&start);
+    op_time_get(&last);
   }
 
   while(!got_sigint){
@@ -433,7 +556,7 @@ int main(int argc,char *argv[]){
           videobuf_ready=1;
           frames++;
           if(fps_only)
-            ftime(&after);
+            op_time_get(&after);
         }
 
       }else
@@ -441,17 +564,14 @@ int main(int argc,char *argv[]){
     }
 
     if(fps_only && (videobuf_ready || fps_only==2)){
-      long ms =
-        after.time*1000.+after.millitm-
-        (last.time*1000.+last.millitm);
+      ogg_int32_t ms = op_time_diff_ms(&after, &last);
 
       if(ms>500 || fps_only==1 ||
          (feof(infile) && !videobuf_ready)){
         float file_fps = (float)ti.fps_numerator/ti.fps_denominator;
         fps_only=2;
 
-        ms = after.time*1000.+after.millitm-
-          (start.time*1000.+start.millitm);
+        ms = op_time_diff_ms(&after, &start);
 
         fprintf(stderr,"\rframe:%d rate:%.2fx           ",
                 frames,

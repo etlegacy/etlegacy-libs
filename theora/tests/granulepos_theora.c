@@ -6,12 +6,11 @@
  * IN 'COPYING'. PLEASE READ THESE TERMS BEFORE DISTRIBUTING.       *
  *                                                                  *
  * THE Theora SOURCE CODE IS COPYRIGHT (C) 2002-2009                *
- * by the Xiph.Org Foundation http://www.xiph.org/                  *
+ * by the Xiph.Org Foundation https://www.xiph.org/                 *
  *                                                                  *
  ********************************************************************
 
   function: routines for validating encoder granulepos generation
-  last mod: $Id: granulepos_theora.c 16503 2009-08-22 18:14:02Z giles $
 
  ********************************************************************/
 
@@ -20,15 +19,6 @@
 #include <math.h>
 
 #include "tests.h"
-
-static int ilog(unsigned int v){
-  int ret=0;
-  while(v){
-    ret++;
-    v>>=1;
-  }
-  return(ret);
-}
 
 static int
 granulepos_test_encode (int frequency, int auto_p)

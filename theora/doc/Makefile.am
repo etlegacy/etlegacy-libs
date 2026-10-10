@@ -2,8 +2,6 @@
 
 SUBDIRS = spec
 
-docdir = $(datadir)/doc/$(PACKAGE)-$(VERSION)
-
 static_docs = vp3-format.txt color.html \
 	draft-ietf-avt-rtp-theora-00.xml \
 	draft-ietf-avt-rtp-theora-00.txt
@@ -27,7 +25,7 @@ dist_docdir = $(distdir)/libtheora
 dist-hook:
 	if test -d libtheora; then \
 	  mkdir $(dist_docdir); \
-	  echo -n "copying built documenation..."; \
+	  echo -n "copying built documentation..."; \
 	  for dir in libtheora/*; do \
 	    b=`basename $$dir`; \
 	    if test $$b != ".svn"; then \

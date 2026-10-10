@@ -12,14 +12,17 @@
 /* Define to 1 if you have the <machine/soundcard.h> header file. */
 #undef HAVE_MACHINE_SOUNDCARD_H
 
-/* Define to 1 if you have the <memory.h> header file. */
-#undef HAVE_MEMORY_H
+/* Abort if size exceeds 16384x16384 (for fuzzing only) */
+#undef HAVE_MEMORY_CONSTRAINT
 
 /* Define to 1 if you have the <soundcard.h> header file. */
 #undef HAVE_SOUNDCARD_H
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#undef HAVE_STDIO_H
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
@@ -42,18 +45,32 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
 
-/* Define to 1 if your C compiler doesn't accept -c and -o together. */
-#undef NO_MINUS_C_MINUS_O
+/* make use of arm asm optimization */
+#undef OC_ARM_ASM
+
+/* Define if assembler supports EDSP instructions */
+#undef OC_ARM_ASM_EDSP
+
+/* Define if assembler supports ARMv6 media instructions */
+#undef OC_ARM_ASM_MEDIA
+
+/* Define if compiler supports NEON instructions */
+#undef OC_ARM_ASM_NEON
+
+/* make use of c64x+ asm optimization */
+#undef OC_C64X_ASM
 
 /* make use of x86_64 asm optimization */
 #undef OC_X86_64_ASM
 
 /* make use of x86 asm optimization */
 #undef OC_X86_ASM
+
+/* Enable use of clock_gettime function */
+#undef OP_HAVE_CLOCK_GETTIME
 
 /* Name of package */
 #undef PACKAGE
@@ -70,17 +87,19 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* Define to 1 if you have the ANSI C header files. */
+/* Define to 1 if all of the C90 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
 #undef STDC_HEADERS
 
 /* Define to exclude encode support from the build */
 #undef THEORA_DISABLE_ENCODE
-
-/* Define to exclude floating point code from the build */
-#undef THEORA_DISABLE_FLOAT
 
 /* Version number of package */
 #undef VERSION

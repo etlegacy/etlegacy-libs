@@ -6,12 +6,11 @@
  * IN 'COPYING'. PLEASE READ THESE TERMS BEFORE DISTRIBUTING.       *
  *                                                                  *
  * THE Theora SOURCE CODE IS COPYRIGHT (C) 2002-2007                *
- * by the Xiph.Org Foundation http://www.xiph.org/                  *
+ * by the Xiph.Org Foundation https://www.xiph.org/                 *
  *                                                                  *
  ********************************************************************
     function: dump the VP3.1 huffman tables in a form suitable for
 	inclusion in the spec.
-    last mod: $Id: vp3huff.c 14078 2007-10-31 21:24:44Z giles $
 
  ********************************************************************/
 

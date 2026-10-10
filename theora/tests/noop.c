@@ -6,12 +6,11 @@
  * IN 'COPYING'. PLEASE READ THESE TERMS BEFORE DISTRIBUTING.       *
  *                                                                  *
  * THE Theora SOURCE CODE IS COPYRIGHT (C) 2002-2009                *
- * by the Xiph.Org Foundation http://www.xiph.org/                  *
+ * by the Xiph.Org Foundation https://www.xiph.org/                 *
  *                                                                  *
  ********************************************************************
 
   function: routines for validating codec initialization
-  last mod: $Id: noop.c 16503 2009-08-22 18:14:02Z giles $
 
  ********************************************************************/
 
@@ -65,6 +64,10 @@ noop_test_encode ()
   INFO ("+ Setting 16x16 image size");
   ti.frame_width = 16;
   ti.frame_height = 16;
+
+  INFO ("+ Setting a 1:1 frame rate");
+  ti.fps_numerator = 1;
+  ti.fps_denominator = 1;
 
   INFO ("+ Allocating encoder context");
   te = th_encode_alloc(&ti);
