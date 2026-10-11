@@ -1093,9 +1093,17 @@ if(BUNDLED_JPEG AND BUILD_CLIENT)
 			-DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON -DWITH_TOOLS=OFF -DWITH_TESTS=OFF
 	)
 
+	# libjpeg-turbo 3.x rejects universal (multi-arch) macOS builds because of its
+	# SIMD assembly - we build with WITH_SIMD=OFF, so allow fat binaries
+	if(APPLE)
+		set(JPEG_PATCH_COMMAND PATCH_COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=<SOURCE_DIR>
+				-P ${CMAKE_CURRENT_LIST_DIR}/patches/PatchJpegTurboMultiArch.cmake)
+	endif()
+
 	ExternalProject_Add(bundled_jpeg
 			PREFIX ${LIBS_BINARY_DIR}/jpegturbo
 			URL	${CMAKE_CURRENT_LIST_DIR}/jpegturbo
+			${JPEG_PATCH_COMMAND}
 			BUILD_BYPRODUCTS ${_JPEG_OUTPUT}
 			CMAKE_ARGS ${bundled_jpeg_cmake_args}
 	)
