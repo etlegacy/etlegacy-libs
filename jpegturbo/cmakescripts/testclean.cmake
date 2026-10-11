@@ -1,5 +1,6 @@
 file(GLOB FILES
   testout*
+  test_bmp*
   *_GRAY_*.bmp
   *_GRAY_*.png
   *_GRAY_*.ppm
@@ -30,8 +31,30 @@ file(GLOB FILES
   *_411_*.ppm
   *_411_*.jpg
   *_411.yuv
-  tjbenchtest*.log
-  tjexampletest*.log)
+  *_441_*.bmp
+  *_441_*.png
+  *_441_*.ppm
+  *_441_*.jpg
+  *_441.yuv
+  *_410_*.bmp
+  *_410_*.png
+  *_410_*.ppm
+  *_410_*.jpg
+  *_410.yuv
+  *_24_*.bmp
+  *_24_*.png
+  *_24_*.ppm
+  *_24_*.jpg
+  *_24.yuv
+  *_LOSSL*S_*.bmp
+  *_LOSSL*S_*.ppm
+  *_LOSSL*S_*.jpg
+  test/croptest.log
+  test/indexedcolortest.log
+  test/tjbenchtest*.log
+  test/tjcomptest*.log
+  test/tjdecomptest*.log
+  test/tjtrantest*.log)
 
 if(NOT FILES STREQUAL "")
   message(STATUS "Removing test files")

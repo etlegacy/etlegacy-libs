@@ -1,7 +1,7 @@
 /*
- * AltiVec optimizations for libjpeg-turbo
+ * Integer Sample Conversion and Quantization (AltiVec)
  *
- * Copyright (C) 2014-2015, D. R. Commander.  All Rights Reserved.
+ * Copyright (C) 2014-2015, 2024-2025, D. R. Commander.
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -20,8 +20,6 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-/* INTEGER QUANTIZATION AND SAMPLE CONVERSION */
-
 #include "jsimd_altivec.h"
 
 
@@ -29,7 +27,7 @@
  * always get the data we want by using a single vector load (although we may
  * have to permute the result.)
  */
-#if __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
 
 #define LOAD_ROW(row) { \
   elemptr = sample_data[row] + start_col; \
@@ -48,8 +46,9 @@
 #endif
 
 
-void jsimd_convsamp_altivec(JSAMPARRAY sample_data, JDIMENSION start_col,
-                            DCTELEM *workspace)
+HIDDEN void
+jsimd_convsamp_altivec(JSAMPARRAY sample_data, JDIMENSION start_col,
+                       DCTELEM *workspace)
 {
   JSAMPROW elemptr;
 
@@ -125,7 +124,7 @@ void jsimd_quantize_altivec(JCOEFPTR coef_block, DCTELEM *divisors,
 
   /* Constants */
   __vector unsigned short pw_word_bit_m1 = { __8X(WORD_BIT - 1) };
-#if __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
   __vector unsigned char shift_pack_index =
     {  0,  1, 16, 17,  4,  5, 20, 21,  8,  9, 24, 25, 12, 13, 28, 29 };
 #else

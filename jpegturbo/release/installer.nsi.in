@@ -71,34 +71,45 @@ Section "@CMAKE_PROJECT_NAME@ SDK for @INST_PLATFORM@ (required)"
 	SetOutPath $INSTDIR\lib\pkgconfig
 	File "@CMAKE_CURRENT_BINARY_DIR@\pkgscripts\libjpeg.pc"
 	File "@CMAKE_CURRENT_BINARY_DIR@\pkgscripts\libturbojpeg.pc"
-!ifdef JAVA
+	SetOutPath $INSTDIR\lib\cmake\@CMAKE_PROJECT_NAME@
+	File "@CMAKE_CURRENT_BINARY_DIR@\pkgscripts\@CMAKE_PROJECT_NAME@Config.cmake"
+	File "@CMAKE_CURRENT_BINARY_DIR@\pkgscripts\@CMAKE_PROJECT_NAME@ConfigVersion.cmake"
+	File "@CMAKE_CURRENT_BINARY_DIR@\win\@CMAKE_PROJECT_NAME@Targets.cmake"
+	File "@CMAKE_CURRENT_BINARY_DIR@\win\@CMAKE_PROJECT_NAME@Targets-release.cmake"
+!ifdef JNA
 	SetOutPath $INSTDIR\classes
-	File "@CMAKE_CURRENT_BINARY_DIR@\java\turbojpeg.jar"
+	File "@CMAKE_CURRENT_BINARY_DIR@\jna\turbojpeg-jna.jar"
 !endif
 	SetOutPath $INSTDIR\include
 	File "@CMAKE_CURRENT_BINARY_DIR@\jconfig.h"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\jerror.h"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\jmorecfg.h"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\jpeglib.h"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\turbojpeg.h"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\src\jerror.h"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\src\jmorecfg.h"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\src\jpeglib.h"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\src\turbojpeg.h"
 	SetOutPath $INSTDIR\doc
 	File "@CMAKE_CURRENT_SOURCE_DIR@\README.ijg"
 	File "@CMAKE_CURRENT_SOURCE_DIR@\README.md"
 	File "@CMAKE_CURRENT_SOURCE_DIR@\LICENSE.md"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\example.txt"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\libjpeg.txt"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\structure.txt"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\usage.txt"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\wizard.txt"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\tjexample.c"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\java\TJExample.java"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\src\example.c"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\doc\libjpeg.txt"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\doc\structure.txt"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\doc\usage.txt"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\doc\wizard.txt"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\src\tjcomp.c"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\src\tjdecomp.c"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\src\tjtran.c"
+	SetOutPath $INSTDIR\doc\jna
+	File "@CMAKE_CURRENT_SOURCE_DIR@\jna\TJ.java"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\jna\TJComp.java"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\jna\TJDecomp.java"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\jna\TJTran.java"
 !ifdef GCC
 	SetOutPath $INSTDIR\man\man1
-	File "@CMAKE_CURRENT_SOURCE_DIR@\cjpeg.1"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\djpeg.1"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\jpegtran.1"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\rdjpgcom.1"
-	File "@CMAKE_CURRENT_SOURCE_DIR@\wrjpgcom.1"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\doc\cjpeg.1"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\doc\djpeg.1"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\doc\jpegtran.1"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\doc\rdjpgcom.1"
+	File "@CMAKE_CURRENT_SOURCE_DIR@\doc\wrjpgcom.1"
 !endif
 
 	WriteRegStr HKLM "SOFTWARE\@INST_REG_NAME@ @VERSION@" "Install_Dir" "$INSTDIR"
@@ -141,8 +152,12 @@ Section "Uninstall"
 !endif
 	Delete $INSTDIR\lib\pkgconfig\libjpeg.pc
 	Delete $INSTDIR\lib\pkgconfig\libturbojpeg.pc
-!ifdef JAVA
-	Delete $INSTDIR\classes\turbojpeg.jar
+	Delete $INSTDIR\lib\cmake\@CMAKE_PROJECT_NAME@\@CMAKE_PROJECT_NAME@Config.cmake
+	Delete $INSTDIR\lib\cmake\@CMAKE_PROJECT_NAME@\@CMAKE_PROJECT_NAME@ConfigVersion.cmake
+	Delete $INSTDIR\lib\cmake\@CMAKE_PROJECT_NAME@\@CMAKE_PROJECT_NAME@Targets.cmake
+	Delete $INSTDIR\lib\cmake\@CMAKE_PROJECT_NAME@\@CMAKE_PROJECT_NAME@Targets-release.cmake
+!ifdef JNA
+	Delete $INSTDIR\classes\turbojpeg-jna.jar
 !endif
 	Delete $INSTDIR\bin\cjpeg.exe
 	Delete $INSTDIR\bin\djpeg.exe
@@ -159,13 +174,18 @@ Section "Uninstall"
 	Delete $INSTDIR\doc\README.ijg
 	Delete $INSTDIR\doc\README.md
 	Delete $INSTDIR\doc\LICENSE.md
-	Delete $INSTDIR\doc\example.txt
+	Delete $INSTDIR\doc\example.c
 	Delete $INSTDIR\doc\libjpeg.txt
 	Delete $INSTDIR\doc\structure.txt
 	Delete $INSTDIR\doc\usage.txt
 	Delete $INSTDIR\doc\wizard.txt
-	Delete $INSTDIR\doc\tjexample.c
-	Delete $INSTDIR\doc\TJExample.java
+	Delete $INSTDIR\doc\tjcomp.c
+	Delete $INSTDIR\doc\tjdecomp.c
+	Delete $INSTDIR\doc\tjtran.c
+	Delete $INSTDIR\doc\jna\TJ.java
+	Delete $INSTDIR\doc\jna\TJComp.java
+	Delete $INSTDIR\doc\jna\TJDecomp.java
+	Delete $INSTDIR\doc\jna\TJTran.java
 !ifdef GCC
 	Delete $INSTDIR\man\man1\cjpeg.1
 	Delete $INSTDIR\man\man1\djpeg.1
@@ -176,13 +196,16 @@ Section "Uninstall"
 
 	RMDir "$INSTDIR\include"
 	RMDir "$INSTDIR\lib\pkgconfig"
+	RMDir "$INSTDIR\lib\cmake\@CMAKE_PROJECT_NAME@"
+	RMDir "$INSTDIR\lib\cmake"
 	RMDir "$INSTDIR\lib"
+	RMDir "$INSTDIR\doc\jna"
 	RMDir "$INSTDIR\doc"
 !ifdef GCC
 	RMDir "$INSTDIR\man\man1"
 	RMDir "$INSTDIR\man"
 !endif
-!ifdef JAVA
+!ifdef JNA
 	RMDir "$INSTDIR\classes"
 !endif
 	RMDir "$INSTDIR\bin"
