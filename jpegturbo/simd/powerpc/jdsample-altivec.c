@@ -1,7 +1,7 @@
 /*
- * AltiVec optimizations for libjpeg-turbo
+ * Upsampling (AltiVec)
  *
- * Copyright (C) 2015, D. R. Commander.  All Rights Reserved.
+ * Copyright (C) 2015, 2024-2025, D. R. Commander.
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -20,15 +20,14 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-/* CHROMA UPSAMPLING */
-
 #include "jsimd_altivec.h"
 
 
-void jsimd_h2v1_fancy_upsample_altivec(int max_v_samp_factor,
-                                       JDIMENSION downsampled_width,
-                                       JSAMPARRAY input_data,
-                                       JSAMPARRAY *output_data_ptr)
+HIDDEN void
+jsimd_h2v1_fancy_upsample_altivec(int max_v_samp_factor,
+                                  JDIMENSION downsampled_width,
+                                  JSAMPARRAY input_data,
+                                  JSAMPARRAY *output_data_ptr)
 {
   JSAMPARRAY output_data = *output_data_ptr;
   JSAMPROW inptr, outptr;
@@ -49,7 +48,7 @@ void jsimd_h2v1_fancy_upsample_altivec(int max_v_samp_factor,
       {  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16 },
     next_index_lastcol =
       {  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 15 },
-#if __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
     merge_pack_index =
       {  1, 17,  3, 19,  5, 21,  7, 23,  9, 25, 11, 27, 13, 29, 15, 31 };
 #else
@@ -126,10 +125,11 @@ void jsimd_h2v1_fancy_upsample_altivec(int max_v_samp_factor,
 }
 
 
-void jsimd_h2v2_fancy_upsample_altivec(int max_v_samp_factor,
-                                       JDIMENSION downsampled_width,
-                                       JSAMPARRAY input_data,
-                                       JSAMPARRAY *output_data_ptr)
+HIDDEN void
+jsimd_h2v2_fancy_upsample_altivec(int max_v_samp_factor,
+                                  JDIMENSION downsampled_width,
+                                  JSAMPARRAY input_data,
+                                  JSAMPARRAY *output_data_ptr)
 {
   JSAMPARRAY output_data = *output_data_ptr;
   JSAMPROW inptr_1, inptr0, inptr1, outptr0, outptr1;
@@ -155,7 +155,7 @@ void jsimd_h2v2_fancy_upsample_altivec(int max_v_samp_factor,
       {  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17 },
     next_index_lastcol =
       {  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 14, 15 },
-#if __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
     merge_pack_index =
       {  1, 17,  3, 19,  5, 21,  7, 23,  9, 25, 11, 27, 13, 29, 15, 31 };
 #else
@@ -316,10 +316,9 @@ void jsimd_h2v2_fancy_upsample_altivec(int max_v_samp_factor,
 
 /* These are rarely used (mainly just for decompressing YCCK images) */
 
-void jsimd_h2v1_upsample_altivec(int max_v_samp_factor,
-                                 JDIMENSION output_width,
-                                 JSAMPARRAY input_data,
-                                 JSAMPARRAY *output_data_ptr)
+HIDDEN void
+jsimd_h2v1_upsample_altivec(int max_v_samp_factor, JDIMENSION output_width,
+                            JSAMPARRAY input_data, JSAMPARRAY *output_data_ptr)
 {
   JSAMPARRAY output_data = *output_data_ptr;
   JSAMPROW inptr, outptr;
@@ -354,10 +353,9 @@ void jsimd_h2v1_upsample_altivec(int max_v_samp_factor,
 }
 
 
-void jsimd_h2v2_upsample_altivec(int max_v_samp_factor,
-                                 JDIMENSION output_width,
-                                 JSAMPARRAY input_data,
-                                 JSAMPARRAY *output_data_ptr)
+HIDDEN void
+jsimd_h2v2_upsample_altivec(int max_v_samp_factor, JDIMENSION output_width,
+                            JSAMPARRAY input_data, JSAMPARRAY *output_data_ptr)
 {
   JSAMPARRAY output_data = *output_data_ptr;
   JSAMPROW inptr, outptr0, outptr1;
