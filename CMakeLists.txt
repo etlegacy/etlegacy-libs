@@ -984,6 +984,29 @@ if(BUNDLED_SDL AND BUILD_CLIENT)
 endif()
 
 #-----------------------------------------------------------------
+# Bundled Vulkan API headers (header only, no Vulkan library is linked)
+#-----------------------------------------------------------------
+if(BUNDLED_VULKAN_HEADERS AND BUILD_CLIENT)
+	add_library(bundled_vulkan_headers_int INTERFACE)
+
+	set(VULKAN_HEADERS_BUNDLED_INCLUDE_DIR "${LIBS_BINARY_DIR}/vulkan-headers/include")
+
+	ExternalProject_Add(bundled_vulkan_headers
+			URL https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.4.335.tar.gz
+			URL_HASH MD5=846da85f0b57654c683c797b8cff3922
+			PREFIX ${LIBS_BINARY_DIR}/vulkan-headers
+			CONFIGURE_COMMAND ""
+			BUILD_COMMAND ""
+			INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory <SOURCE_DIR>/include ${VULKAN_HEADERS_BUNDLED_INCLUDE_DIR}
+			BUILD_BYPRODUCTS ${VULKAN_HEADERS_BUNDLED_INCLUDE_DIR}/vulkan/vulkan.h
+	)
+	set_target_properties(bundled_vulkan_headers PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+
+	add_dependencies(bundled_vulkan_headers_int bundled_vulkan_headers)
+	target_include_directories(bundled_vulkan_headers_int INTERFACE "${VULKAN_HEADERS_BUNDLED_INCLUDE_DIR}")
+endif()
+
+#-----------------------------------------------------------------
 # Build bundled ZLib library
 #-----------------------------------------------------------------
 if(BUNDLED_ZLIB AND (BUILD_CLIENT OR BUILD_SERVER))
