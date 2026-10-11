@@ -4,7 +4,7 @@
  *
  *   FreeType path stroker (body).
  *
- * Copyright (C) 2002-2020 by
+ * Copyright (C) 2002-2026 by
  * David Turner, Robert Wilhelm, and Werner Lemberg.
  *
  * This file is part of the FreeType project, and may only be used,
@@ -16,13 +16,12 @@
  */
 
 
-#include <ft2build.h>
-#include FT_STROKER_H
-#include FT_TRIGONOMETRY_H
-#include FT_OUTLINE_H
-#include FT_INTERNAL_MEMORY_H
-#include FT_INTERNAL_DEBUG_H
-#include FT_INTERNAL_OBJECTS_H
+#include <freetype/ftstroke.h>
+#include <freetype/fttrigon.h>
+#include <freetype/ftoutln.h>
+#include <freetype/internal/ftmemory.h>
+#include <freetype/internal/ftdebug.h>
+#include <freetype/internal/ftobjs.h>
 
 
   /* declare an extern to access `ft_outline_glyph_class' globally */
@@ -694,6 +693,7 @@
   Fail:
     num_points   = 0;
     num_contours = 0;
+    error        = FT_THROW( Invalid_Outline );
     goto Exit;
   }
 
@@ -712,7 +712,7 @@
     {
       FT_UInt   count = border->num_points;
       FT_Byte*  read  = border->tags;
-      FT_Byte*  write = (FT_Byte*)outline->tags + outline->n_points;
+      FT_Byte*  write = outline->tags + outline->n_points;
 
 
       for ( ; count > 0; count--, read++, write++ )
@@ -728,10 +728,10 @@
 
     /* copy contours */
     {
-      FT_UInt    count = border->num_points;
-      FT_Byte*   tags  = border->tags;
-      FT_Short*  write = outline->contours + outline->n_contours;
-      FT_Short   idx   = (FT_Short)outline->n_points;
+      FT_UInt     count = border->num_points;
+      FT_Byte*    tags  = border->tags;
+      FT_UShort*  write = outline->contours + outline->n_contours;
+      FT_UShort   idx   = outline->n_points;
 
 
       for ( ; count > 0; count--, tags++, idx++ )
@@ -744,7 +744,7 @@
       }
     }
 
-    outline->n_points += (short)border->num_points;
+    outline->n_points += (FT_UShort)border->num_points;
 
     FT_ASSERT( FT_Outline_Check( outline ) == 0 );
   }
@@ -975,7 +975,8 @@
     FT_StrokeBorder  border = stroker->borders + side;
     FT_Angle         phi, theta, rotate;
     FT_Fixed         length;
-    FT_Vector        sigma, delta;
+    FT_Vector        sigma = { 0, 0 };
+    FT_Vector        delta;
     FT_Error         error = FT_Err_Ok;
     FT_Bool          intersect;          /* use intersection of lines? */
 
@@ -1049,7 +1050,7 @@
     {
       /* this is a mitered (pointed) or beveled (truncated) corner */
       FT_Fixed   radius = stroker->radius;
-      FT_Vector  sigma;
+      FT_Vector  sigma = { 0, 0 };
       FT_Angle   theta = 0, phi = 0;
       FT_Bool    bevel, fixed_bevel;
 
@@ -1070,7 +1071,7 @@
         if ( theta == FT_ANGLE_PI2 )
           theta = -rotate;
 
-        phi    = stroker->angle_in + theta + rotate;
+        phi = stroker->angle_in + theta + rotate;
 
         FT_Vector_From_Polar( &sigma, stroker->miter_limit, theta );
 
@@ -1371,7 +1372,7 @@
     arc[1] = *control;
     arc[2] = stroker->center;
 
-    while ( arc >= bez_stack )
+    do
     {
       FT_Angle  angle_in, angle_out;
 
@@ -1524,12 +1525,15 @@
         }
       }
 
-      arc -= 2;
-
       stroker->angle_in = angle_out;
-    }
 
-    stroker->center = *to;
+      if ( arc == bez_stack )
+        break;
+      arc -= 2;
+    } while ( 1 );
+
+    stroker->center      = *to;
+    stroker->line_length = 0;
 
   Exit:
     return error;
@@ -1576,7 +1580,7 @@
     arc[2] = *control1;
     arc[3] = stroker->center;
 
-    while ( arc >= bez_stack )
+    do
     {
       FT_Angle  angle_in, angle_mid, angle_out;
 
@@ -1740,12 +1744,15 @@
         }
       }
 
-      arc -= 3;
-
       stroker->angle_in = angle_out;
-    }
 
-    stroker->center = *to;
+      if ( arc == bez_stack )
+        break;
+      arc -= 3;
+    } while ( 1 );
+
+    stroker->center      = *to;
+    stroker->line_length = 0;
 
   Exit:
     return error;
@@ -1898,13 +1905,9 @@
     }
     else
     {
-      FT_Angle  turn;
-      FT_Int    inside_side;
-
-
       /* close the path if needed */
-      if ( stroker->center.x != stroker->subpath_start.x ||
-           stroker->center.y != stroker->subpath_start.y )
+      if ( !FT_IS_SMALL( stroker->center.x - stroker->subpath_start.x ) ||
+           !FT_IS_SMALL( stroker->center.y - stroker->subpath_start.y ) )
       {
          error = FT_Stroker_LineTo( stroker, &stroker->subpath_start );
          if ( error )
@@ -1913,29 +1916,11 @@
 
       /* process the corner */
       stroker->angle_out = stroker->subpath_angle;
-      turn               = FT_Angle_Diff( stroker->angle_in,
-                                          stroker->angle_out );
 
-      /* no specific corner processing is required if the turn is 0 */
-      if ( turn != 0 )
-      {
-        /* when we turn to the right, the inside side is 0 */
-        /* otherwise, the inside side is 1 */
-        inside_side = ( turn < 0 );
-
-        error = ft_stroker_inside( stroker,
-                                   inside_side,
-                                   stroker->subpath_line_length );
-        if ( error )
-          goto Exit;
-
-        /* process the outside side */
-        error = ft_stroker_outside( stroker,
-                                    !inside_side,
-                                    stroker->subpath_line_length );
-        if ( error )
-          goto Exit;
-      }
+      error = ft_stroker_process_corner( stroker,
+                                         stroker->subpath_line_length );
+      if ( error )
+        goto Exit;
 
       /* then end our two subpaths */
       ft_stroke_border_close( stroker->borders + 0, FALSE );
@@ -2070,12 +2055,14 @@
 
     FT_Vector*  point;
     FT_Vector*  limit;
-    char*       tags;
+    FT_Byte*    tags;
 
     FT_Error    error;
 
     FT_Int      n;         /* index of contour in outline     */
-    FT_UInt     first;     /* index of first point in contour */
+    FT_Int      first;     /* index of first point in contour */
+    FT_Int      last;      /* index of last point in contour  */
+
     FT_Int      tag;       /* current point's state           */
 
 
@@ -2087,22 +2074,17 @@
 
     FT_Stroker_Rewind( stroker );
 
-    first = 0;
-
+    last = -1;
     for ( n = 0; n < outline->n_contours; n++ )
     {
-      FT_UInt  last;  /* index of last point in contour */
-
-
-      last  = (FT_UInt)outline->contours[n];
-      limit = outline->points + last;
+      first = last + 1;
+      last  = outline->contours[n];
 
       /* skip empty points; we don't stroke these */
       if ( last <= first )
-      {
-        first = last + 1;
         continue;
-      }
+
+      limit = outline->points + last;
 
       v_start = outline->points[first];
       v_last  = outline->points[last];
@@ -2251,8 +2233,6 @@
         if ( error )
           goto Exit;
       }
-
-      first = last + 1;
     }
 
     return FT_Err_Ok;
@@ -2272,7 +2252,7 @@
                    FT_Stroker   stroker,
                    FT_Bool      destroy )
   {
-    FT_Error  error = FT_ERR( Invalid_Argument );
+    FT_Error  error = FT_THROW( Invalid_Argument );
     FT_Glyph  glyph = NULL;
 
 
@@ -2304,7 +2284,9 @@
       if ( error )
         goto Fail;
 
-      FT_Stroker_GetCounts( stroker, &num_points, &num_contours );
+      error = FT_Stroker_GetCounts( stroker, &num_points, &num_contours );
+      if ( error )
+        goto Fail;
 
       FT_Outline_Done( glyph->library, outline );
 
@@ -2347,7 +2329,7 @@
                          FT_Bool      inside,
                          FT_Bool      destroy )
   {
-    FT_Error  error = FT_ERR( Invalid_Argument );
+    FT_Error  error = FT_THROW( Invalid_Argument );
     FT_Glyph  glyph = NULL;
 
 
