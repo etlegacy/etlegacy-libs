@@ -1,7 +1,7 @@
 /*
- * AltiVec optimizations for libjpeg-turbo
+ * Fast Integer Inverse DCT (AltiVec)
  *
- * Copyright (C) 2014-2015, D. R. Commander.  All Rights Reserved.
+ * Copyright (C) 2014-2015, 2024-2025, D. R. Commander.
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -20,9 +20,7 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-/* FAST INTEGER INVERSE DCT
- *
- * This is similar to the SSE2 implementation, except that we left-shift the
+/* This is similar to the SSE2 implementation, except that we left-shift the
  * constants by 1 less bit (the -1 in CONST_SHIFT.)  This is because
  * vec_madds(arg1, arg2, arg3) generates the 16-bit saturated sum of:
  *   the elements in arg3 + the most significant 17 bits of
@@ -109,8 +107,9 @@
 }
 
 
-void jsimd_idct_ifast_altivec(void *dct_table_, JCOEFPTR coef_block,
-                              JSAMPARRAY output_buf, JDIMENSION output_col)
+HIDDEN void
+jsimd_idct_ifast_altivec(void *dct_table_, JCOEFPTR coef_block,
+                         JSAMPARRAY output_buf, JDIMENSION output_col)
 {
   short *dct_table = (short *)dct_table_;
   int *outptr;
@@ -127,12 +126,12 @@ void jsimd_idct_ifast_altivec(void *dct_table_, JCOEFPTR coef_block,
   __vector short pw_zero = { __8X(0) },
     pw_F1414 = { __8X(F_1_414 << CONST_SHIFT) },
     pw_F1847 = { __8X(F_1_847 << CONST_SHIFT) },
-    pw_MF1613 = { __8X(-F_1_613 << CONST_SHIFT) },
+    pw_MF1613 = { __8X((short)((unsigned short)(-F_1_613) << CONST_SHIFT)) },
     pw_F1082 = { __8X(F_1_082 << CONST_SHIFT) };
   __vector unsigned short
     pre_multiply_scale_bits = { __8X(PRE_MULTIPLY_SCALE_BITS) },
     pass1_bits3 = { __8X(PASS1_BITS + 3) };
-  __vector signed char pb_centerjsamp = { __16X(CENTERJSAMPLE) };
+  __vector signed char pb_centerjsamp = { __16X((signed char)CENTERJSAMPLE) };
 
   /* Pass 1: process columns */
 

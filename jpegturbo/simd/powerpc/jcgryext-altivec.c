@@ -1,8 +1,8 @@
 /*
- * AltiVec optimizations for libjpeg-turbo
+ * RGB-to-Grayscale Color Conversion (AltiVec)
  *
- * Copyright (C) 2014-2015, D. R. Commander.  All Rights Reserved.
- * Copyright (C) 2014, Jay Foad.  All Rights Reserved.
+ * Copyright (C) 2014-2015, 2024-2025, D. R. Commander.
+ * Copyright (C) 2014, Jay Foad.
  *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -24,23 +24,24 @@
 /* This file is included by jcgray-altivec.c */
 
 
-void jsimd_rgb_gray_convert_altivec(JDIMENSION img_width, JSAMPARRAY input_buf,
-                                    JSAMPIMAGE output_buf,
-                                    JDIMENSION output_row, int num_rows)
+HIDDEN void
+jsimd_rgb_gray_convert_altivec(JDIMENSION img_width, JSAMPARRAY input_buf,
+                               JSAMPIMAGE output_buf, JDIMENSION output_row,
+                               int num_rows)
 {
   JSAMPROW inptr, outptr;
   int pitch = img_width * RGB_PIXELSIZE, num_cols;
-#if __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
   int offset;
   unsigned char __attribute__((aligned(16))) tmpbuf[RGB_PIXELSIZE * 16];
 #endif
 
   __vector unsigned char rgb0, rgb1 = { 0 }, rgb2 = { 0 },
     rgbg0, rgbg1, rgbg2, rgbg3, y;
-#if __BIG_ENDIAN__ || RGB_PIXELSIZE == 4
+#if defined(__BIG_ENDIAN__) || RGB_PIXELSIZE == 4
   __vector unsigned char rgb3 = { 0 };
 #endif
-#if __BIG_ENDIAN__ && RGB_PIXELSIZE == 4
+#if defined(__BIG_ENDIAN__) && RGB_PIXELSIZE == 4
   __vector unsigned char rgb4 = { 0 };
 #endif
   __vector short rg0, rg1, rg2, rg3, bg0, bg1, bg2, bg3;
@@ -52,7 +53,7 @@ void jsimd_rgb_gray_convert_altivec(JDIMENSION img_width, JSAMPARRAY input_buf,
     pw_f0114_f0250 = { __4X2(F_0_114, F_0_250) };
   __vector int pd_onehalf = { __4X(ONE_HALF) };
   __vector unsigned char pb_zero = { __16X(0) },
-#if __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
     shift_pack_index =
       { 0, 1, 4, 5,  8,  9, 12, 13, 16, 17, 20, 21, 24, 25, 28, 29 };
 #else
@@ -69,7 +70,7 @@ void jsimd_rgb_gray_convert_altivec(JDIMENSION img_width, JSAMPARRAY input_buf,
          num_cols -= RGB_PIXELSIZE * 16, inptr += RGB_PIXELSIZE * 16,
          outptr += 16) {
 
-#if __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
       /* Load 16 pixels == 48 or 64 bytes */
       offset = (size_t)inptr & 15;
       if (offset) {

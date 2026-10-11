@@ -9,14 +9,16 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/..)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/..)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/..)
 
-if(MSVC)
+if(MSVC_LIKE)
   # Build all configurations against shared C library
-  foreach(var CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
-    CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
-    if(${var} MATCHES "/MT")
-      string(REGEX REPLACE "/MT" "/MD" ${var} "${${var}}")
-    endif()
-  endforeach()
+  if(CMAKE_BUILD_TYPE_UC STREQUAL "DEBUG")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDebugDLL)
+  elseif(MSVC_IDE)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+  else()
+    set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
+  endif()
+  message(STATUS "Visual C++ run-time library for libjpeg API DLL: ${CMAKE_MSVC_RUNTIME_LIBRARY}")
 endif()
 
 foreach(src ${JPEG_SOURCES})
@@ -28,14 +30,29 @@ if(WITH_SIMD AND (MSVC_IDE OR XCODE))
   set_source_files_properties(${SIMD_OBJS} PROPERTIES GENERATED 1)
 endif()
 
-if(WIN32)
-  if(WITH_MEM_SRCDST)
-    set(DEFFILE ../win/jpeg${SO_MAJOR_VERSION}-memsrcdst.def)
+if(WITH_TURBOJPEG OR WITH_TOOLS OR WITH_TESTS)
+  if(WITH_SYSTEM_SPNG)
+    unset(SPNG_SOURCES)
   else()
-    set(DEFFILE ../win/jpeg${SO_MAJOR_VERSION}.def)
+    add_subdirectory(spng)
+    set(SPNG_SOURCES $<TARGET_OBJECTS:spng>)
+  endif()
+  if(WITH_SYSTEM_ZLIB OR WITH_SYSTEM_SPNG)
+    unset(ZLIB_SOURCES)
+  else()
+    set(ZLIB_SOURCES $<TARGET_OBJECTS:zlib>)
   endif()
 endif()
-add_library(jpeg SHARED ${JPEG_SRCS} ${DEFFILE} $<TARGET_OBJECTS:simd>
+
+if(WIN32)
+  set(DEFFILE ../win/jpeg${SO_MAJOR_VERSION}.def)
+endif()
+if(MSVC_LIKE)
+  configure_file(${CMAKE_SOURCE_DIR}/win/jpeg.rc.in
+    ${CMAKE_BINARY_DIR}/win/jpeg.rc)
+  set(JPEG_SRCS ${JPEG_SRCS} ${CMAKE_BINARY_DIR}/win/jpeg.rc)
+endif()
+add_library(jpeg SHARED ${JPEG_SRCS} ${DEFFILE} ${SIMD_TARGET_OBJECTS}
   ${SIMD_OBJS})
 
 set_target_properties(jpeg PROPERTIES SOVERSION ${SO_MAJOR_VERSION}
@@ -51,49 +68,112 @@ if(MAPFLAG)
   set_target_properties(jpeg PROPERTIES
     LINK_FLAGS "${MAPFLAG}${CMAKE_CURRENT_BINARY_DIR}/../libjpeg.map")
 endif()
-if(MSVC)
+if(MSVC_LIKE)
   set_target_properties(jpeg PROPERTIES
     RUNTIME_OUTPUT_NAME jpeg${SO_MAJOR_VERSION})
-  # The jsimd_*.c file is built using /MT, so this prevents a linker warning.
-  set_target_properties(jpeg PROPERTIES LINK_FLAGS "/NODEFAULTLIB:LIBCMT /NODEFAULTLIB:LIBCMTD")
+  # The jsimd_*.c file is built to use libcmt or libcmtd, so this prevents a
+  # linker warning.
+  if(MSVC)
+    set_target_properties(jpeg PROPERTIES LINK_FLAGS
+      "/NODEFAULTLIB:LIBCMT /NODEFAULTLIB:LIBCMTD")
+  else()
+    set_target_properties(jpeg PROPERTIES LINK_FLAGS
+      "-Wl,-nodefaultlib:libcmt -Wl,-nodefaultlib:libcmtd")
+  endif()
 elseif(MINGW)
   set_target_properties(jpeg PROPERTIES SUFFIX -${SO_MAJOR_VERSION}.dll)
 endif()
 
-if(WIN32)
-  set(USE_SETMODE "-DUSE_SETMODE")
+if(WITH_TOOLS)
+  if(WIN32)
+    set(USE_SETMODE "-DUSE_SETMODE")
+  endif()
+  set(CDJPEG_COMPILE_FLAGS
+    "-DBMP_SUPPORTED -DGIF_SUPPORTED -DPNG_SUPPORTED -DSPNG_STATIC -DPPM_SUPPORTED -DTARGA_SUPPORTED ${USE_SETMODE}")
+
+  add_executable(cjpeg ../src/cjpeg.c ../src/cdjpeg.c ../src/rdbmp.c
+    ../src/rdgif.c
+    ../src/wrapper/rdpng-8.c ../src/wrapper/rdpng-12.c
+    ../src/wrapper/rdpng-16.c ${ZLIB_SOURCES} ${SPNG_SOURCES}
+    ../src/wrapper/rdppm-8.c ../src/wrapper/rdppm-12.c
+    ../src/wrapper/rdppm-16.c
+    ../src/rdswitch.c ../src/rdtarga.c)
+  set_property(TARGET cjpeg PROPERTY COMPILE_FLAGS ${CDJPEG_COMPILE_FLAGS})
+  target_link_libraries(cjpeg jpeg)
+  if(SPNG_LIBRARY)
+    target_link_libraries(cjpeg ${SPNG_LIBRARY})
+  endif()
+  if(NOT WITH_SYSTEM_SPNG AND ZLIB_LIBRARY)
+    target_link_libraries(cjpeg ${ZLIB_LIBRARY})
+  endif()
+
+  add_executable(djpeg ../src/djpeg.c ../src/cdjpeg.c
+    ../src/wrapper/rdcolmap-8.c ../src/wrapper/rdcolmap-12.c
+    ../src/rdswitch.c ../src/wrbmp.c
+    ../src/wrapper/wrgif-8.c ../src/wrapper/wrgif-12.c
+    ../src/wrapper/wrpng-8.c ../src/wrapper/wrpng-12.c
+    ../src/wrapper/wrpng-16.c ${ZLIB_SOURCES} ${SPNG_SOURCES}
+    ../src/wrapper/wrppm-8.c ../src/wrapper/wrppm-12.c
+    ../src/wrapper/wrppm-16.c
+    ../src/wrtarga.c)
+  set_property(TARGET djpeg PROPERTY COMPILE_FLAGS ${CDJPEG_COMPILE_FLAGS})
+  target_link_libraries(djpeg jpeg)
+  if(SPNG_LIBRARY)
+    target_link_libraries(djpeg ${SPNG_LIBRARY})
+  endif()
+  if(NOT WITH_SYSTEM_SPNG AND ZLIB_LIBRARY)
+    target_link_libraries(djpeg ${ZLIB_LIBRARY})
+  endif()
+
+  add_executable(jpegtran ../src/jpegtran.c ../src/cdjpeg.c ../src/rdswitch.c
+    ../src/transupp.c)
+  target_link_libraries(jpegtran jpeg)
+  set_property(TARGET jpegtran PROPERTY COMPILE_FLAGS "${USE_SETMODE}")
 endif()
-if(WITH_12BIT)
-  set(COMPILE_FLAGS "-DGIF_SUPPORTED -DPPM_SUPPORTED ${USE_SETMODE}")
-else()
-  set(COMPILE_FLAGS "-DBMP_SUPPORTED -DGIF_SUPPORTED -DPPM_SUPPORTED -DTARGA_SUPPORTED ${USE_SETMODE}")
-  set(CJPEG_BMP_SOURCES ../rdbmp.c ../rdtarga.c)
-  set(DJPEG_BMP_SOURCES ../wrbmp.c ../wrtarga.c)
+
+if(WITH_TESTS)
+  add_executable(example ../src/example.c)
+  target_link_libraries(example jpeg)
+
+  add_executable(jcstest ../src/jcstest.c)
+  target_link_libraries(jcstest jpeg)
+
+  include(CheckFunctionExists)
+  check_function_exists(fmemopen HAVE_FMEMOPEN)
+  if(HAVE_FMEMOPEN)
+    add_executable(bmpsizetest ../src/bmpsizetest.c
+      ../src/rdbmp.c ../src/wrbmp.c
+      ../src/rdgif.c ../src/wrapper/wrgif-8.c ../src/wrapper/wrgif-12.c
+      ${ZLIB_SOURCES} ${SPNG_SOURCES}
+      ../src/wrapper/rdpng-8.c ../src/wrapper/rdpng-12.c
+      ../src/wrapper/rdpng-16.c ../src/wrapper/wrpng-8.c
+      ../src/wrapper/wrpng-12.c ../src/wrapper/wrpng-16.c
+      ../src/wrapper/rdppm-8.c ../src/wrapper/rdppm-12.c
+      ../src/wrapper/rdppm-16.c ../src/wrapper/wrppm-8.c
+      ../src/wrapper/wrppm-12.c ../src/wrapper/wrppm-16.c
+      ../src/rdtarga.c ../src/wrtarga.c)
+    set_property(TARGET bmpsizetest PROPERTY COMPILE_FLAGS
+      ${CDJPEG_COMPILE_FLAGS})
+    target_link_libraries(bmpsizetest jpeg)
+    if(SPNG_LIBRARY)
+      target_link_libraries(bmpsizetest ${SPNG_LIBRARY})
+    endif()
+    if(ZLIB_LIBRARY)
+      target_link_libraries(bmpsizetest ${ZLIB_LIBRARY})
+    endif()
+  endif()
 endif()
 
-add_executable(cjpeg ../cjpeg.c ../cdjpeg.c ../rdgif.c ../rdppm.c
-  ../rdswitch.c ${CJPEG_BMP_SOURCES})
-set_property(TARGET cjpeg PROPERTY COMPILE_FLAGS ${COMPILE_FLAGS})
-target_link_libraries(cjpeg jpeg)
-
-add_executable(djpeg ../djpeg.c ../cdjpeg.c ../rdcolmap.c ../rdswitch.c
-  ../wrgif.c ../wrppm.c ${DJPEG_BMP_SOURCES})
-set_property(TARGET djpeg PROPERTY COMPILE_FLAGS ${COMPILE_FLAGS})
-target_link_libraries(djpeg jpeg)
-
-add_executable(jpegtran ../jpegtran.c ../cdjpeg.c ../rdswitch.c ../transupp.c)
-target_link_libraries(jpegtran jpeg)
-set_property(TARGET jpegtran PROPERTY COMPILE_FLAGS "${USE_SETMODE}")
-
-add_executable(jcstest ../jcstest.c)
-target_link_libraries(jcstest jpeg)
-
-install(TARGETS jpeg cjpeg djpeg jpegtran
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-if(NOT CMAKE_VERSION VERSION_LESS "3.1" AND MSVC AND
-  CMAKE_C_LINKER_SUPPORTS_PDB)
+install(TARGETS jpeg EXPORT ${CMAKE_PROJECT_NAME}Targets
+  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT lib
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT lib
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT bin)
+if(WITH_TOOLS)
+  install(TARGETS cjpeg djpeg jpegtran
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT bin)
+endif()
+if(MSVC_LIKE AND CMAKE_C_LINKER_SUPPORTS_PDB)
   install(FILES "$<TARGET_PDB_FILE:jpeg>"
-    DESTINATION ${CMAKE_INSTALL_BINDIR} OPTIONAL)
+    DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT bin OPTIONAL)
 endif()
