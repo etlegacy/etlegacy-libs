@@ -1,5 +1,4 @@
 include(ExternalProject)
-include(CheckIncludeFile)
 
 set(LIBS_BINARY_DIR ${PROJECT_BINARY_DIR}/libs)
 set(LIBS_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads/pgk)
@@ -1079,16 +1078,6 @@ endif()
 if(BUNDLED_JPEG AND BUILD_CLIENT)
 	add_library(bundled_jpeg_int INTERFACE)
 
-	check_include_file(stddef.h HAVE_STDDEF_H)
-	check_include_file(stdlib.h HAVE_STDLIB_H)
-
-	# Set SIZEOF_SIZE_T  @SIZE_T@ for 64 or 32 bit
-	if(ETL_64BITS)
-		set(SIZEOF_SIZE_T 8)
-	else()
-		set(SIZEOF_SIZE_T 4)
-	endif()
-
 	set(binary_dir "${LIBS_BINARY_DIR}/jpegturbo")
 
 	if(MSVC)
@@ -1097,16 +1086,11 @@ if(BUNDLED_JPEG AND BUILD_CLIENT)
 		set(JPEG_BUNDLED_LIBRARIES "${binary_dir}/lib/libturbojpeg${CMAKE_STATIC_LIBRARY_SUFFIX}")
 	endif()
 
-	set(JPEG_LIB "${CMAKE_CURRENT_LIST_DIR}/jpegturbo")
-
-	# configure_file(${JPEG_LIB}/jconfig.h.cmake ${JPEG_LIB}/jconfig.h)
-	# configure_file(${JPEG_LIB}/jconfigint.h.cmake ${JPEG_LIB}/jconfigint.h)
-
 	etl_find_lib_path(JPEG_BUNDLED_LIBRARIES _JPEG_OUTPUT)
 	etl_setup_cmake_args(bundled_jpeg_cmake_args
-			-DENABLE_SHARED=OFF -DENABLE_STATIC=ON -DREQUIRE_SIMD=OFF -DWITH_12BIT=OFF
-			-DWITH_ARITH_DEC=ON -DWITH_ARITH_ENC=ON -DWITH_JAVA=OFF -DWITH_JPEG7=OFF -DWITH_JPEG8=ON
-			-DWITH_MEM_SRCDST=ON -DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON
+			-DENABLE_SHARED=OFF -DENABLE_STATIC=ON
+			-DWITH_ARITH_DEC=ON -DWITH_ARITH_ENC=ON -DWITH_JPEG8=ON
+			-DWITH_SIMD=OFF -DWITH_TURBOJPEG=ON -DWITH_TOOLS=OFF -DWITH_TESTS=OFF
 	)
 
 	ExternalProject_Add(bundled_jpeg
