@@ -610,6 +610,10 @@ if(BUNDLED_OPENAL AND BUILD_CLIENT)
 		if(NOT MSVC)
 			target_link_libraries(bundled_openal_int INTERFACE ${CMAKE_CXX_IMPLICIT_LINK_LIBRARIES})
 		endif()
+		# The static lib doesn't carry its system deps: the WinMM/WASAPI backends
+		# need winmm and avrt (mirrors upstream's EXTRA_LIBS). DSound resolves its
+		# entry points at runtime and COM comes in via the default Windows link libs.
+		target_link_libraries(bundled_openal_int INTERFACE winmm avrt)
 		target_include_directories(bundled_openal_int INTERFACE "${binary_dir}/include")
 		target_compile_definitions(bundled_openal_int INTERFACE AL_LIBTYPE_STATIC)
 	elseif(UNIX)
