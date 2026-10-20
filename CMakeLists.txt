@@ -1007,6 +1007,38 @@ if(BUNDLED_VULKAN_HEADERS AND BUILD_CLIENT)
 endif()
 
 #-----------------------------------------------------------------
+# Build bundled MoltenVK library (macOS Vulkan driver, copied into the app bundle)
+#-----------------------------------------------------------------
+if(BUNDLED_MOLTENVK AND BUILD_CLIENT)
+	set(MOLTENVK_BUNDLED_LIBRARY "${LIBS_BINARY_DIR}/moltenvk/lib/libMoltenVK.dylib")
+
+	# MoltenVK 1.4.2 needs macOS 12
+	set(MOLTENVK_DEPLOYMENT_TARGET "${CMAKE_OSX_DEPLOYMENT_TARGET}")
+	if(NOT MOLTENVK_DEPLOYMENT_TARGET OR MOLTENVK_DEPLOYMENT_TARGET VERSION_LESS "12.0")
+		set(MOLTENVK_DEPLOYMENT_TARGET "12.0")
+	endif()
+
+	# its CMake build fetches SPIRV-Cross, SPIRV-Headers, Vulkan-Headers and
+	# cereal (pinned revisions) with CPM; SPIRV-Tools is only used for debug
+	# SPIR-V disassembly and is left out
+	ExternalProject_Add(bundled_moltenvk
+			URL https://github.com/KhronosGroup/MoltenVK/archive/refs/tags/v1.4.2.tar.gz
+			URL_HASH MD5=df2d78bb916d30020f3f8146cf9ac6b3
+			PREFIX ${LIBS_BINARY_DIR}/moltenvk
+			CMAKE_ARGS
+				-DCMAKE_BUILD_TYPE=Release
+				-DCMAKE_INSTALL_PREFIX=${LIBS_BINARY_DIR}/moltenvk
+				-DCMAKE_INSTALL_LIBDIR=lib
+				-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
+				-DCMAKE_OSX_DEPLOYMENT_TARGET=${MOLTENVK_DEPLOYMENT_TARGET}
+				-DMVK_EXCLUDE_SPIRV_TOOLS=ON
+				-DCPM_SOURCE_CACHE=${LIBS_BINARY_DIR}/moltenvk/cpm
+			BUILD_BYPRODUCTS ${MOLTENVK_BUNDLED_LIBRARY}
+	)
+	set_target_properties(bundled_moltenvk PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+endif()
+
+#-----------------------------------------------------------------
 # Build bundled ZLib library
 #-----------------------------------------------------------------
 if(BUNDLED_ZLIB AND (BUILD_CLIENT OR BUILD_SERVER))
