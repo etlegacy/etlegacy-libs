@@ -1038,6 +1038,41 @@ if(BUNDLED_MOLTENVK AND BUILD_CLIENT)
 	set_target_properties(bundled_moltenvk PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 endif()
 
+if(BUNDLED_SHADERC AND BUILD_CLIENT)
+	# Shaderc uses python3 to setup its internal dependencies ( shrug )
+	find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+	set(SHADERC_BINARY_DIR "${LIBS_BINARY_DIR}/shaderc")
+	set(GLSLC_BIN "glslc${CMAKE_EXECUTABLE_SUFFIX}")
+	if(VSTUDIO)
+		set(GLSLC_FOLDER_PATH "glslc/Release/${GLSLC_BIN}")
+	else()
+		set(GLSLC_FOLDER_PATH "glslc/${GLSLC_BIN}")
+	endif()
+	set(GLSLC_PATH "${SHADERC_BINARY_DIR}/bin/${GLSLC_BIN}")
+
+	ExternalProject_Add(shaderc_project
+			PREFIX "${SHADERC_BINARY_DIR}"
+			GIT_REPOSITORY "https://github.com/google/shaderc.git"
+			GIT_TAG "v2026.4"
+			UPDATE_COMMAND ${Python3_EXECUTABLE} utils/git-sync-deps
+			CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release
+				-DSHADERC_ENABLE_WGSL_OUTPUT=OFF -DSHADERC_ENABLE_HLSL=OFF
+				-DSHADERC_SKIP_INSTALL=OFF -DSHADERC_SKIP_TESTS=ON
+				-DSHADERC_SKIP_EXAMPLES=ON -DSHADERC_SKIP_COPYRIGHT_CHECK=ON
+				-DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON
+			BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target glslc_exe
+			INSTALL_COMMAND ${CMAKE_COMMAND} -E copy <BINARY_DIR>/${GLSLC_FOLDER_PATH} <INSTALL_DIR>/bin/
+			BUILD_BYPRODUCTS "${GLSLC_PATH}"
+	)
+
+	set(VK_GLSL_COMPILER "${GLSLC_PATH}")
+	add_custom_target(glslc_binary DEPENDS shaderc_project)
+	set_target_properties(glslc_binary PROPERTIES
+		GLSLC_EXECUTABLE "${GLSLC_PATH}"
+	)
+endif()
+
 #-----------------------------------------------------------------
 # Build bundled ZLib library
 #-----------------------------------------------------------------
